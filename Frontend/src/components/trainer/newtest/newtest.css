@@ -1,0 +1,261 @@
+.newtest-steps-holder{
+    width:80%;
+    margin-left:10%;
+}
+.new-test-form-holder{
+    padding-top:30px;
+}
+.basic-test-form-outer{
+    width:36%;
+    margin-left:33%;
+    padding:50px;
+    border-radius: 5px; 
+}
+.list1-question-new-test{
+    padding:0px;
+}
+.random-question-generation{
+    width:100%;
+    border-radius: 5px; 
+    padding:20px;
+}
+.blind{
+    display: none;
+}
+.notblind{
+    display: block;
+}
+
+
+
+/* ─── GitHub-Dark for NewTest ────────────────────────────────────── */
+.newtest-dashboard {
+  background: #161b22;
+  color:      #c9d1d9;
+  padding:    24px;
+}
+
+/* ─── Steps ──────────────────────────────────────────────────────── */
+.newtest-dashboard .newtest-steps-holder {
+  background:    #0d1117 !important;
+  border-radius: 6px;
+  padding:       12px;
+  margin:        0 auto 24px;
+}
+.newtest-dashboard .ant-steps-item-title {
+  color: #8b949e !important;
+}
+.newtest-dashboard .ant-steps-item-finish .ant-steps-item-icon,
+.newtest-dashboard .ant-steps-item-process .ant-steps-item-icon {
+  background: #238636 !important;
+  border-color: #238636 !important;
+}
+.newtest-dashboard .ant-steps-item-wait .ant-steps-item-icon {
+  background: #30363d !important;
+  border-color: #30363d !important;
+  color: #8b949e !important;
+}
+.newtest-dashboard .ant-steps-item-title-active {
+  color: #58a6ff !important;
+}
+
+.selectQuestion .ant-steps-item-wait .ant-steps-item-icon {
+  background: #30363d !important;
+  border-color: #30363d !important;
+  color: #8b949e !important;
+}
+.selectQuestion .ant-steps-item-title-active {
+  color: #58a6ff !important;
+}
+
+/* ─── Forms & Inputs ───────────────────────────────────────────── */
+.newtest-dashboard .basic-test-form-outer,
+.newtest-dashboard .random-question-generation {
+  background:    #0d1117;
+  border:        1px solid #30363d;
+  border-radius: 6px;
+  padding:       20px;
+  margin-bottom: 24px;
+}
+.newtest-dashboard .basic-test-form-outer {
+  width:        36%;
+  margin:       0 auto 24px;
+}
+.newtest-dashboard .basic-test-form-inner {
+  background: transparent;
+}
+.newtest-dashboard .ant-form-item-label > label {
+  color: #c9d1d9 !important;
+}
+.newtest-dashboard .ant-form-item-has-error .ant-form-item-explain {
+  color: #ff7b72 !important;
+}
+.newtest-dashboard .ant-input,
+.newtest-dashboard .ant-input-number input,
+.newtest-dashboard .ant-input-affix-wrapper,
+.newtest-dashboard .ant-select-selector,
+.newtest-dashboard .ant-input-textarea textarea {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+  color:      #c9d1d9 !important;
+}
+.newtest-dashboard .ant-input::placeholder,
+.newtest-dashboard .ant-input-number input::placeholder {
+  color: #6e7681 !important;
+}
+.newtest-dashboard .ant-input:hover,
+.newtest-dashboard .ant-input:focus,
+.newtest-dashboard .ant-input-affix-wrapper:hover,
+.newtest-dashboard .ant-input-affix-wrapper-focused,
+.newtest-dashboard .ant-select-focused .ant-select-selector {
+  border-color: #58a6ff !important;
+  box-shadow:   0 0 0 2px rgba(88,166,255,0.2) !important;
+}
+
+.newtest-dashboard .ant-checkbox .ant-checkbox-inner {
+  background: #0d1117 !important;
+  border:     1px solid #adb4bb !important;
+}
+.newtest-dashboard .ant-checkbox-checked .ant-checkbox-inner {
+  background:    #238636 !important;
+  border-color: #238636 !important;
+}
+
+/* ─── Select & Transfer Lists ──────────────────────────────────── */
+.newtest-dashboard .ant-select-dropdown,
+.newtest-dashboard .ant-select-dropdown-menu {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+}
+.newtest-dashboard .ant-select-dropdown-menu-item,
+.newtest-dashboard .ant-select-selection-placeholder {
+  color: #c9d1d9 !important;
+}
+.newtest-dashboard .ant-transfer {
+  background: transparent;
+}
+.newtest-dashboard .ant-transfer-list {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+}
+.newtest-dashboard .ant-transfer-list-header,
+.newtest-dashboard .ant-transfer-list-footer {
+  background: #161b22 !important;
+  color:      #c9d1d9 !important;
+}
+.newtest-dashboard .ant-transfer-list-body-item {
+  background: #0d1117 !important;
+  border-bottom: 1px solid #30363d !important;
+  color: #c9d1d9 !important;
+}
+
+/* ─── Buttons ───────────────────────────────────────────────────── */
+.newtest-dashboard .ant-btn,
+.newtest-dashboard .ant-btn[block] {
+  background:    #238636 !important;
+  border-color: #238636 !important;
+  color:         #fff !important;
+}
+.newtest-dashboard .ant-btn:hover,
+.newtest-dashboard .ant-btn:focus {
+  background:    #2ea043 !important;
+  border-color: #2ea043 !important;
+}
+.newtest-dashboard .ant-btn-default {
+  background:    #238636 !important;
+  border-color: #238636 !important;
+  color:         #fff !important;
+}
+.newtest-dashboard .ant-btn-default:hover,
+.newtest-dashboard .ant-btn-default:focus {
+   background:    #2ea043 !important;
+  border-color: #2ea043 !important;
+}
+
+/* ─── Modals ────────────────────────────────────────────────────── */
+.newtest-dashboard .ant-modal-content {
+  background: #161b22 !important;
+  color:      #c9d1d9 !important;
+}
+.newtest-dashboard .ant-modal-header {
+  background:    #161b22 !important;
+  border-bottom: 1px solid #30363d !important;
+}
+.newtest-dashboard .ant-modal-title {
+  color: #c9d1d9 !important;
+}
+.newtest-dashboard .ant-modal-body {
+  background: #161b22 !important;
+  color:      #c9d1d9 !important;
+}
+
+/* ─── Divider & Icons ─────────────────────────────────────────── */
+.newtest-dashboard .ant-divider {
+  border-top: 1px solid #30363d !important;
+}
+.newtest-dashboard .anticon {
+  color: #8b949e !important;
+}
+
+
+/* ─── GitHub-Dark Alert Overrides ───────────────────────────────── */
+
+/* 1) For Notification API (notification.success, etc.) */
+.ant-notification-notice {
+  background:     #0d1117 !important;  /* dark card bg */
+  border:         1px solid #30363d !important;
+  border-radius:  6px;
+  color:          #c9d1d9 !important;  /* light text */
+}
+.ant-notification-notice .ant-notification-notice-close {
+  color: #8b949e !important;           /* close-icon */
+}
+.ant-notification-notice-success .ant-notification-notice-icon {
+  color: #238636 !important;           /* green “check” */
+}
+.ant-notification-notice-info    .ant-notification-notice-icon,
+.ant-notification-notice-warning .ant-notification-notice-icon,
+.ant-notification-notice-error   .ant-notification-notice-icon {
+  /* adjust other icon colors if you like */
+  color: #58a6ff !important;  
+}
+.ant-notification-notice-success .ant-notification-notice-message,
+.ant-notification-notice-success .ant-notification-notice-description {
+  color: #c9d1d9 !important;
+}
+
+/* 2) For Message API (message.success, etc.) */
+.ant-message-notice {
+  background:    #0d1117 !important;
+  border:        1px solid #30363d !important;
+  border-radius: 6px;
+}
+.ant-message-notice-success .ant-message-notice-content {
+  color:          #c9d1d9 !important;
+  background:     #0d1117 !important;
+  border:         1px solid #30363d !important;
+}
+.ant-message-notice-success .anticon {
+  color: #238636 !important;
+}
+
+/* 3) If your Alert is a Modal */  
+.ant-modal-content {
+  background: #161b22 !important;
+  color:      #c9d1d9 !important;
+}
+.ant-modal-header {
+  background:    #161b22 !important;
+  border-bottom: 1px solid #30363d !important;
+}
+.ant-modal-title {
+  color: #c9d1d9 !important;
+}
+.ant-modal-body {
+  background: #161b22 !important;
+  color:      #c9d1d9 !important;
+}
+.ant-modal-footer {
+  background:    #161b22 !important;
+  border-top:    1px solid #30363d !important;
+}

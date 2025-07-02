@@ -1,0 +1,249 @@
+.conduct-test-main-wrapper{
+    min-height: 600px;
+}
+.test-conduct-testid-form{
+    width:30%;
+    margin-left: 35%;
+    padding:50px;
+    border-radius: 5px; 
+    background: #0d1117;
+    text-align: center;
+}
+.candidate-list-header-container{
+    padding:0px 0px;
+}
+.reload-button{
+    margin-bottom: 20px;
+    background:       #2ea043;
+    border-color:    #2ea043;
+}
+
+.reload-button:hover{
+  background:       #2ea043;
+  border-color:    #2ea043;
+
+}
+.preview-btn{
+    background:       #2ea043;
+    border-color:    #2ea043;
+}
+
+.preview-btn:hover{
+  background:       #2ea043;
+  border-color:    #2ea043;
+
+}
+
+.green{
+    background: rgb(16, 143, 16);
+    color: #fff
+}
+
+
+
+/* ─── GitHub-Dark Theme for ConductTest Views ───────────────────────── */
+.conduct-test-dashboard {
+  background:        #161b22;
+  color:             #c9d1d9;
+}
+
+/* Ensure all nested text is light */
+.conduct-test-dashboard,
+.conduct-test-dashboard * {
+  color:            #c9d1d9 !important;
+}
+
+/* ─── Inputs, TextAreas, Selects, Buttons ──────────────────────────── */
+.conduct-test-dashboard .ant-input,
+.conduct-test-dashboard .ant-input-affix-wrapper,
+.conduct-test-dashboard .ant-input-textarea textarea,
+.conduct-test-dashboard .ant-select-selector,
+.conduct-test-dashboard .ant-input-number input,
+.conduct-test-dashboard .ant-btn {
+  background:       #0d1117 !important;
+  border:           1px solid #30363d !important;
+  color:            #c9d1d9 !important;
+}
+
+.conduct-test-dashboard .start-test-btn,
+.conduct-test-dashboard .start-test-btn {
+  background:       #238636 !important;
+  border-color:    #238636 !important;
+  color:            #fff !important;
+}
+.conduct-test-dashboard .start-test-btn:hover,
+.conduct-test-dashboard .start-test-btn:hover {
+  background:       #2ea043 !important;
+  border-color:    #2ea043 !important;
+}
+.conduct-test-dashboard .stop-registration-btn,
+.conduct-test-dashboard .stop-registration-btn {
+  background:       #020803 !important;
+  border-color:    #d44441 !important;
+  color:            #fff !important;
+}
+.conduct-test-dashboard .stop-registration-btn:hover,
+.conduct-test-dashboard .stop-registration-btn:hover {
+  background:       #4e514e !important;
+  border-color:    #2ea043 !important;
+}
+.conduct-test-dashboard .end-test-btn,
+.conduct-test-dashboard .end-test-btn {
+  background:       #da3633 !important;
+  border-color:    #da3633 !important;
+  color:            #fff !important;
+}
+.conduct-test-dashboard .end-test-btn:hover,
+.conduct-test-dashboard .end-test-btn:hover {
+  background:       #d44441 !important;
+  border-color:    #d44441 !important;
+}
+
+.conduct-test-dashboard .preview-btn,
+.conduct-test-dashboard .preview-btn {
+  background:       #238636;
+  border-color:    #238636;
+  color:            #fff;
+}
+.conduct-test-dashboard .preview-btn:hover,
+.conduct-test-dashboard .preview-btn:hover {
+  background:       #2ea043;
+  border-color:    #2ea043;
+}
+
+
+/* Placeholder text */
+.conduct-test-dashboard .ant-input::placeholder,
+.conduct-test-dashboard .ant-input-textarea textarea::placeholder,
+.conduct-test-dashboard .ant-input-number input::placeholder {
+  color:            #6e7681 !important;
+  opacity:          1 !important;
+}
+
+/* Button hover/focus */
+.conduct-test-dashboard .ant-btn:hover,
+.conduct-test-dashboard .ant-btn:focus {
+  background:       rgba(56, 139, 253, 0.15) !important;
+  border-color:    #58a6ff !important;
+}
+
+/* ─── Tabs ─────────────────────────────────────────────────────────── */
+.conduct-test-dashboard .ant-tabs-nav-wrap {
+  background:       #0d1117 !important;
+  border-bottom:    1px solid #30363d !important;
+}
+.conduct-test-dashboard .ant-tabs-tab {
+  color:            #8b949e !important;
+}
+.conduct-test-dashboard .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color:            #58a6ff !important;
+}
+.conduct-test-dashboard .ant-tabs-ink-bar {
+  background:       #58a6ff !important;
+}
+
+/* ─── Descriptions & Cards ────────────────────────────────────────── */
+.conduct-test-dashboard .ant-descriptions-bordered {
+  background:       #161b22 !important;
+  /* border:           1px solid #30363d !important; */
+}
+.conduct-test-dashboard .ant-descriptions-item-label {
+  color:            #8b949e !important;
+  background:       #161b22 !important;
+}
+.conduct-test-dashboard .ant-descriptions-item-content {
+  color:            #c9d1d9 !important;
+  background:       #0d1117;
+}
+
+/* ─── Tables ───────────────────────────────────────────────────────── */
+.conduct-test-dashboard .ant-table {
+  background:       #0d1117 !important;
+  border:           1px solid #30363d !important;
+}
+.conduct-test-dashboard .ant-table-thead > tr > th {
+  background:       #161b22 !important;
+  color:            #8b949e !important;
+  border-bottom:    1px solid #30363d !important;
+}
+.conduct-test-dashboard .ant-table-tbody > tr > td {
+  background:       #0d1117 !important;
+  color:            #c9d1d9 !important;
+  border-bottom:    1px solid #30363d !important;
+}
+.conduct-test-dashboard .ant-table-tbody > tr:hover > td {
+  background:       #21262d !important;
+}
+
+/* Filter dropdowns */
+.conduct-test-dashboard .ant-table-filter-dropdown {
+  background:       #161b22 !important;
+  border:           1px solid #30363d !important;
+}
+.conduct-test-dashboard .ant-table-filter-dropdown input {
+  background:       #0d1117 !important;
+  color:            #c9d1d9 !important;
+}
+
+/* ─── Modals & Popconfirms ───────────────────────────────────────── */
+.conduct-test-dashboard .ant-modal-content,
+.conduct-test-dashboard .ant-popconfirm-inner-content {
+  background:       #161b22 !important;
+  color:            #c9d1d9 !important;
+}
+
+.conduct-test-dashboard .ant-modal-confirm-content,
+.conduct-test-dashboard .ant-modal-confirm-title {
+  color: #f0f0f0 !important; 
+}
+
+.conduct-test-dashboard .ant-modal-header {
+  background:       #161b22 !important;
+  border-bottom:    1px solid #30363d !important;
+}
+.conduct-test-dashboard .ant-modal-title,
+.conduct-test-dashboard .ant-popconfirm-title,
+.conduct-test-dashboard .ant-popconfirm-message {
+  color:            #c9d1d9 !important;
+}
+.conduct-test-dashboard .ant-modal-close {
+  color:            #8b949e !important;
+}
+.conduct-test-dashboard .ant-modal-close:hover {
+  color:            #c9d1d9 !important;
+}
+.conduct-test-dashboard .ant-modal-footer {
+  background:       #161b22 !important;
+  border-top:       1px solid #30363d !important;
+}
+/* Modal buttons */
+.conduct-test-dashboard .ant-modal-content .ant-btn,
+.conduct-test-dashboard .ant-popconfirm-buttons .ant-btn {
+  background:       #238636 !important;
+  border-color:    #238636 !important;
+  color:            #fff !important;
+}
+.conduct-test-dashboard .ant-modal-content .ant-btn:hover,
+.conduct-test-dashboard .ant-popconfirm-buttons .ant-btn:hover {
+  background:       #2ea043 !important;
+  border-color:    #2ea043 !important;
+}
+
+/* ─── Scrollbars (Optional) ─────────────────────────────────────── */
+.conduct-test-dashboard ::-webkit-scrollbar {
+  width:            8px;
+}
+.conduct-test-dashboard ::-webkit-scrollbar-track {
+  background:       #161b22;
+}
+.conduct-test-dashboard ::-webkit-scrollbar-thumb {
+  background:       #30363d;
+  border-radius:    4px;
+}
+.conduct-test-dashboard ::-webkit-scrollbar-thumb:hover {
+  background:       #424a53;
+}
+ 
+.alert-class {
+    color: #f0f0f0;
+}

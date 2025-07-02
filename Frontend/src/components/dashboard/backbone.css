@@ -1,0 +1,65 @@
+#components-layout-demo-custom-trigger .trigger {
+  font-size: 18px;
+  line-height: 64px;
+  padding: 0 24px;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+#components-layout-demo-custom-trigger .trigger:hover {
+  color: #1890ff;
+}
+
+.navy-menu {
+  background:  #0d1117;
+  border-right: none;
+  color: #35f85c;
+
+}
+
+.navy-header {
+  background-color: #0d1117 !important;
+  color: #ffffff !important;
+}
+.logo11 {
+  width: 120px;
+  height: 31px;
+  margin: 16px;
+  float: left;
+  z-index: 10;
+}
+
+.d-logo {
+  height: 55px;
+  margin-top: -17px;
+}
+.user-options-list {
+  position: fixed;
+  top: 0px;
+  right: -15px;
+  list-style: none;
+  float: left;
+  margin-top: 7px;
+}
+.user-options-list > * {
+  display: inline;
+  margin-right: 30px;
+}
+
+.logout-button {
+  background: #35f85c;
+  border-color: #238636;
+}
+.logout-button:hover {
+  background: #1e960e;
+  border-color: #00796b;
+}
+
+.content {
+  background: #161b22;
+  color: #ffffff;
+}
+
+.trigger {
+  margin-left: 20px;
+}

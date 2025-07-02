@@ -1,0 +1,176 @@
+/* ────────────────────────────────────────────────────────────────── */
+/* Wrap your JSX root as: 
+   <div class="register-subject-form newquestion-dashboard"> */
+
+/* ─── 1) Dashboard Scope ─────────────────────────────────────────── */
+.newquestion-dashboard {
+  background: #161b22;
+  color:      #c9d1d9;
+  padding:    24px;
+}
+
+/* Form labels */
+.newquestion-dashboard .ant-form-item-label > label {
+  color: #c9d1d9 !important;
+}
+
+/* ─── 2) Inputs / TextAreas / Number ─────────────────────────────── */
+.newquestion-dashboard .ant-input,
+.newquestion-dashboard .ant-input-affix-wrapper,
+.newquestion-dashboard .ant-input-textarea textarea,
+.newquestion-dashboard .ant-input-number input {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+  color:      #c9d1d9 !important;
+}
+.newquestion-dashboard .ant-input::placeholder,
+.newquestion-dashboard .ant-input-textarea textarea::placeholder,
+.newquestion-dashboard .ant-input-number input::placeholder {
+  color:   #6e7681 !important;
+  opacity: 1 !important;
+}
+.newquestion-dashboard .ant-input:hover,
+.newquestion-dashboard .ant-input-affix-wrapper:hover,
+.newquestion-dashboard .ant-input-textarea textarea:hover,
+.newquestion-dashboard .ant-input-number:hover {
+  border-color: #58a6ff !important;
+}
+.newquestion-dashboard .ant-input:focus,
+.newquestion-dashboard .ant-input-affix-wrapper-focused,
+.newquestion-dashboard .ant-input-textarea textarea:focus,
+.newquestion-dashboard .ant-input-number:focus {
+  border-color: #58a6ff !important;
+  box-shadow:   0 0 0 2px rgba(88,166,255,0.2) !important;
+}
+
+/* ─── 3) Single-Select Control ────────────────────────────────────── */
+.newquestion-dashboard .ant-select-single .ant-select-selector {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+  color:      #c9d1d9 !important;
+}
+.newquestion-dashboard .ant-select-single .ant-select-selection-placeholder,
+.newquestion-dashboard .ant-select-single .ant-select-selection-item {
+  color: #6e7681 !important;
+}
+/* keep the dropdown arrow visible */
+.newquestion-dashboard .ant-select-single .ant-select-arrow {
+  color: #8b949e !important;
+}
+
+/* ─── 4) Dropdown Menu & Items ────────────────────────────────────── */
+.newquestion-dashboard .ant-select-dropdown,
+.newquestion-dashboard .ant-select-dropdown-menu {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+}
+.newquestion-dashboard .ant-select-dropdown-menu-item,
+.newquestion-dashboard .ant-select-dropdown-menu-item-group-title {
+  color: #c9d1d9 !important;
+}
+.newquestion-dashboard .ant-select-dropdown-menu-item-active,
+.newquestion-dashboard .ant-select-dropdown-menu-item-selected {
+  background: #21262d !important;
+  color:      #58a6ff !important;
+}
+
+/* ─── 5) Checkboxes ────────────────────────────────────────────────── */
+.newquestion-dashboard .ant-checkbox .ant-checkbox-inner {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+}
+.newquestion-dashboard .ant-checkbox-checked .ant-checkbox-inner {
+  background:    #238636 !important;
+  border-color: #238636 !important;
+}
+
+/* ─── 6) Buttons Inside Form ──────────────────────────────────────── */
+/* Upload & primary */
+.newquestion-dashboard .ant-upload .ant-btn,
+.newquestion-dashboard .ant-btn[type="primary"] {
+  background:    #238636 !important;
+  border-color: #238636 !important;
+  color:         #fff !important;
+}
+.newquestion-dashboard .ant-upload .ant-btn:hover,
+.newquestion-dashboard .ant-btn[type="primary"]:hover,
+.newquestion-dashboard .ant-btn[type="primary"]:focus {
+  background:    #2ea043 !important;
+  border-color: #2ea043 !important;
+}
+/* Danger */
+.newquestion-dashboard .ant-btn-danger {
+  background:    #da3633 !important;
+  border-color: #da3633 !important;
+}
+.newquestion-dashboard .ant-btn-danger:hover {
+  background:    #d44441 !important;
+  border-color: #d44441 !important;
+}
+
+/* Divider line */
+.newquestion-dashboard .ant-divider-horizontal {
+  border-top: 1px solid #30363d !important;
+}
+
+/* Icons */
+.newquestion-dashboard .anticon {
+  color: #8b949e !important;
+}
+
+/* ────────────────────────────────────────────────────────────────── */
+/* 7) Global Dark Modals & Popconfirms ───────────────────────────── */
+
+/* Modal container & header */
+.ant-modal-content {
+  background: #161b22 !important;
+  color:      #c9d1d9 !important;
+}
+.ant-modal-header {
+  background:    #161b22 !important;
+  border-bottom: 1px solid #30363d !important;
+}
+.ant-modal-title {
+  color: #c9d1d9 !important;
+}
+
+/* Close (x) */
+.ant-modal-close {
+  color: #8b949e !important;
+}
+.ant-modal-close:hover {
+  color: #c9d1d9 !important;
+}
+
+/* Body & footer */
+.ant-modal-body {
+  background: #161b22 !important;
+  color:      #c9d1d9 !important;
+}
+.ant-modal-footer {
+  background:    #161b22 !important;
+  border-top:    1px solid #30363d !important;
+}
+
+/* Buttons inside any modal or popconfirm */
+.ant-modal-content .ant-btn,
+.ant-popconfirm-buttons .ant-btn,
+.ant-modal-confirm .ant-btn {
+  background:    #238636 !important;
+  border-color: #238636 !important;
+  color:         #fff !important;
+}
+.ant-modal-content .ant-btn:hover,
+.ant-popconfirm-buttons .ant-btn:hover,
+.ant-modal-confirm .ant-btn:hover {
+  background:    #2ea043 !important;
+  border-color: #2ea043 !important;
+}
+
+/* Popconfirm text */
+.ant-popconfirm-inner-content,
+.ant-popconfirm-title,
+.ant-popconfirm-message {
+  color: #c9d1d9 !important;
+}
+

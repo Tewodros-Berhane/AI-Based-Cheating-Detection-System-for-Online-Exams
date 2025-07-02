@@ -1,0 +1,125 @@
+General Styling
+.single-question-container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.question-button {
+  background: #28a745; /* Green color */
+  color: #fff;
+  padding: 12px;
+  border-radius: 50%;
+  border: none;
+  font-weight: bold;
+}
+
+
+
+.question-body {
+  margin-bottom: 20px;
+}
+
+.question-body h3 {
+  font-family: "Montserrat", sans-serif;
+  font-size: 1.4rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.question-image {
+  width: 40%;
+  margin: 20px auto;
+  display: block;
+  border-radius: 8px;
+}
+
+.options {
+  margin-top: 10px; /* Reduced margin */
+}
+
+.option-col {
+  margin-bottom: 12px;
+}
+
+.option-checkbox {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start; /* Aligning checkboxes to the left */
+  align-items: center;
+  margin-left: 5px; /* Reduced margin to bring options closer */
+}
+
+.option-label {
+  font-size: 1rem;
+  color: #333;
+  margin-left: 10px; /* Ensuring proper spacing between the checkbox and label */
+}
+
+.option-image {
+  width: 50px;
+  margin-left: 10px;
+  border-radius: 5px;
+}
+
+/* Control Buttons */
+.control-buttons {
+  display: flex;
+  align-items: right;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.control-button {
+  padding: 12px 25px;
+  margin: 5px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.previous-btn {
+  background: #fff;
+  border: 1px solid #fff;
+}
+
+.control-button:hover {
+  background: #1e7e34;
+  color: #fff;
+}
+
+.control-button:focus {
+  outline: none;
+}
+
+.control-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.option-checkbox input {
+  margin-right: 10px;
+}
+
+.option-checkbox label {
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.option-image-in-exam-panel-holder {
+  width: 100%;
+}
+
+.option-image-in-exam-panel {
+  width: 60%;
+  margin-left: 20%;
+}

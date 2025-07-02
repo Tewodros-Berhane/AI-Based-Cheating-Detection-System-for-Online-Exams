@@ -1,0 +1,140 @@
+
+.answer-table-wrapper {
+    width: 80%; 
+    margin-left: auto; 
+    margin-right: auto; 
+    background-color: #fff; 
+    border-radius: 8px; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); 
+    padding: 20px; 
+}
+
+.answer-table-heading {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.answer-table-outer {
+    padding: 20px;
+    background: #2b2929;
+}
+
+.ant-descriptions-item-label {
+    font-weight: bold;
+    color: #586069; 
+}
+
+.ant-descriptions-item-content {
+    color: #24292f; 
+}
+
+
+.ant-table-tbody > tr > td {
+    font-size: 14px;
+    color: #586069; 
+}
+
+.ant-table-tbody > tr:hover {
+    background-color: #f1f1f1; 
+}
+
+.ant-table-header {
+    background-color: #f9fafb; 
+}
+
+
+.ant-btn {
+    background-color: #28a745; 
+    border-color: #28a745;
+    color: white;
+    font-weight: 600;
+}
+
+.ant-btn:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+.ant-tag {
+    font-weight: 600;
+}
+
+.ant-tag-green {
+    background-color: #28a745;
+    color: white;
+}
+
+.ant-tag-blue {
+    background-color: #007bff;
+    color: white;
+}
+
+.feedbackFormHolder {
+    width: 50%;
+    margin-left: 25%;
+    text-align: center;
+    margin-top: 50px;
+}
+
+.pp {
+    padding: 15px;
+}
+
+.modal-header {
+    background-color: #fafbfc;
+    border-bottom: 1px solid #e1e4e8;
+}
+
+.ant-modal-footer {
+    background-color: #f1f3f5;
+}
+
+.skeletor-wrapper {
+    padding: 20px;
+    background-color: #fff;
+}
+
+.skeletor-wrapper .ant-skeleton {
+    background-color: #f1f1f1;
+}
+
+.mainQuestionDetailsContaine {
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.questionDetailsBody {
+    font-size: 16px;
+    color: #24292f;
+    margin-bottom: 20px;
+}
+
+.questionDetailsOptions {
+    padding: 10px;
+    font-size: 14px;
+}
+
+.green {
+    background-color: #28a745;
+    color: white;
+}
+
+.ant-btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
+    .answer-table-wrapper {
+        width: 95%; 
+    }
+}
+
+@media only screen and (min-width: 1200px) {
+    .answer-table-wrapper {
+        width: 70%; 
+    }
+}

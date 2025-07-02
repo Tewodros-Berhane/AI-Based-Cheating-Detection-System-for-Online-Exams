@@ -1,0 +1,163 @@
+/* ─── Scoped GitHub-Dark for TestDetails ─────────────────────────── */
+.testdetails-dashboard {
+  background: #161b22;
+  color:      #c9d1d9;
+  padding:    24px;
+}
+
+/* Tabs */
+.testdetails-dashboard .ant-tabs-nav-wrap {
+  background:    #0d1117 !important;
+  border-bottom: 1px solid #30363d !important;
+}
+.testdetails-dashboard .ant-tabs-tab {
+  color: #8b949e !important;
+}
+.testdetails-dashboard .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #58a6ff !important;
+}
+.testdetails-dashboard .ant-tabs-ink-bar {
+  background: #58a6ff !important;
+}
+
+/* Skeleton */
+.testdetails-dashboard .ant-skeleton .ant-skeleton-element,
+.testdetails-dashboard .ant-skeleton .ant-skeleton-title,
+.testdetails-dashboard .ant-skeleton .ant-skeleton-paragraph {
+  background-color: #161b22 !important;
+  color:            #c9d1d9 !important;
+}
+
+/* Descriptions */
+.testdetails-dashboard .ant-descriptions-bordered {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+}
+.testdetails-dashboard .ant-descriptions-item-label {
+  background: #161b22;
+  color:      #8b949e !important;
+}
+.testdetails-dashboard .ant-descriptions-item-content {
+  color: #c9d1d9 !important;
+}
+
+/* Inputs */
+.testdetails-dashboard .ant-input,
+.testdetails-dashboard .ant-input-affix-wrapper,
+.testdetails-dashboard .ant-input-number input {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+  color:      #c9d1d9 !important;
+}
+.testdetails-dashboard .ant-input::placeholder,
+.testdetails-dashboard .ant-input-number input::placeholder {
+  color:   #6e7681 !important;
+  opacity: 1 !important;
+}
+.testdetails-dashboard .ant-input:hover,
+.testdetails-dashboard .ant-input:focus,
+.testdetails-dashboard .ant-input-affix-wrapper:hover,
+.testdetails-dashboard .ant-input-affix-wrapper-focused {
+  border-color: #58a6ff !important;
+  box-shadow:   0 0 0 2px rgba(88,166,255,0.2) !important;
+}
+
+/* Tags */
+.testdetails-dashboard .ant-tag {
+  background: #0d1117 !important;
+  color:      #58a6ff !important;
+  border:     1px solid #30363d !important;
+}
+.testdetails-dashboard .ant-tag:hover {
+  background: #161b22 !important;
+}
+
+/* Cards */
+.testdetails-dashboard .ant-card {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+  color:      #c9d1d9 !important;
+}
+.testdetails-dashboard .ant-card-body {
+  color: #c9d1d9 !important;
+}
+
+/* Download section */
+.testdetails-dashboard .download-section {
+  background:    #161b22;
+  border:        1px solid #30363d;
+  padding:       16px;
+  border-radius: 6px;
+  color:         #c9d1d9;
+  margin-bottom: 24px;
+}
+.testdetails-dashboard .download-section::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+/* Download link/button */
+.testdetails-dashboard .download-xlsx {
+  float:           right;
+  background-color: #238636;
+  color:            #fff;
+  padding:          0.5em 1em;
+  border-radius:    4px;
+  text-decoration:  none;
+  font-weight:      500;
+  transition:       background-color .2s ease;
+}
+.testdetails-dashboard .download-xlsx:hover {
+  background-color: #2ea043;
+  color:            #fff;
+}
+.testdetails-dashboard .download-xlsx .anticon {
+  margin-left: 8px;
+  color:       #fff !important;
+}
+
+/* Trainee table (inside Stats/Trainee tab) */
+.testdetails-dashboard .download-section .ant-table {
+  background: #0d1117 !important;
+  border:     1px solid #30363d !important;
+}
+.testdetails-dashboard .download-section .ant-table thead > tr > th {
+  background:     #161b22 !important;
+  color:          #8b949e !important;
+  border-bottom:  1px solid #30363d !important;
+}
+.testdetails-dashboard .download-section .ant-table tbody > tr > td {
+  background:     #0d1117 !important;
+  color:          #c9d1d9 !important;
+  border-bottom:  1px solid #30363d !important;
+}
+
+/* Feedback Cards & Comments */
+.testdetails-dashboard .ant-comment-inner,
+.testdetails-dashboard .ant-comment-content {
+  background: #0d1117 !important;
+  color:      #c9d1d9 !important;
+}
+.testdetails-dashboard .ant-comment-content-author-name {
+  color: #58a6ff !important;
+}
+.testdetails-dashboard .ant-comment-content-author-time {
+  color: #8b949e !important;
+}
+.testdetails-dashboard .ant-comment-content-detail {
+  color: #c9d1d9 !important;
+}
+.testdetails-dashboard .ant-avatar {
+  background-color: #30363d !important;
+}
+
+
+
+/* Divider & Icons */
+.testdetails-dashboard .ant-divider {
+  border-top: 1px solid #30363d !important;
+}
+.testdetails-dashboard .anticon {
+  color: #8b949e !important;
+}
