@@ -1,6 +1,6 @@
 # AI-Based Cheating Detection System for Online Exams 🎓🔍
 
-[![License](https://img.shields.io/badge/License-MIT-green.svg )](LICENSE)
+[![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg )](LICENSE)
 
 ## Overview
 Revolutionizing academic integrity in online exams, this AI-powered system detects cheating through **real-time head movement tracking** and **whisper/murmur detection**. Designed for institutions like Mekelle University, it addresses critical gaps in traditional proctoring tools by analyzing subtle behavioral cues often missed by conventional systems.
@@ -29,18 +29,19 @@ Revolutionizing academic integrity in online exams, this AI-powered system detec
 3. **Anomaly Detection**  
    Machine learning models flag deviations (sudden head turns, low-volume speech)  
 4. **Proctor Dashboard**  
-   Visualizes alerts with timestamped video/audio snippets  
+   Visualizes alerts with blinking colors Red for cheating, Yellow for suspicious, and Green for normal behaviours. 
 
 ---
 
 ## Technical Stack 💻
-| Component          | Technologies                                                                 |
+| Component          | Technologies                                                                |
 |--------------------|-----------------------------------------------------------------------------|
 | **Computer Vision** | OpenCV, MediaPipe, CNN/RNN (TensorFlow/PyTorch)                            |
-| **Audio Processing**| Librosa, Spectrogram Analysis, CNNs                                         |
-| **Backend**         | Django REST Framework                                                      |
-| **Frontend**        | React.js (Examiner Dashboard)                                              |
-| **Deployment**      | AWS/Azure GPU instances for real-time inference                            |
+| **Audio Processing**| Librosa, Spectrogram Analysis, CNNs                                        |
+| **AI Server**       | AioRTC - Python                                                            |
+| **Backend**         | NodeJs                                                                     |
+| **Frontend**        | React.js (Examiner Dashboard/Exam Portal)                                  |
+| **Database**        | MongoDB                                                                    |
 | **Datasets**        | Curated from Mendeley cheating behavior dataset + Mozilla Common Voice     |
 
 ---
@@ -48,9 +49,8 @@ Revolutionizing academic integrity in online exams, this AI-powered system detec
 ## Demo 🎥
 ![Examiner Dashboard](docs/dashboard.png)  
 *Real-time monitoring interface showing:*  
-- Student webcam feeds  
-- Audio waveform visualization  
-- Flagged event timeline  
+- Examiner Dashboard for monitoring students  
+- Real TIme Alerts    
 
 ---
 
@@ -67,17 +67,3 @@ Revolutionizing academic integrity in online exams, this AI-powered system detec
 - Not a replacement for human judgment - flags require proctor review  
 
 ---
-
-## Contributing 🤝
-We welcome improvements to:  
-- Noise cancellation algorithms  
-- Low-light video processing  
-- Amharic/Tigrinya whisper detection  
-
-```bash
-# Suggested contribution workflow
-git clone https://github.com/Tewodros-Berhane/AI-Based-Cheating-Detection-System-for-Online-Exams.git 
-git checkout -b feature/audio-enhancements
-# Make changes...
-git commit -m "Added noise suppression layer"
-git push origin feature/audio-enhancements
