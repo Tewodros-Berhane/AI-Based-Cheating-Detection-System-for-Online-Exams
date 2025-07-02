@@ -1,5 +1,6 @@
 # AI-Based Cheating Detection System for Online Exams 🎓🔍
 
+[![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg )](LICENSE)
 
 ## Overview
 Revolutionizing academic integrity in online exams, this AI-powered system detects cheating through **real-time head movement tracking** and **whisper/murmur detection**. Designed for institutions like Mekelle University, it addresses critical gaps in traditional proctoring tools by analyzing subtle behavioral cues often missed by conventional systems.
