@@ -34,13 +34,14 @@ Revolutionizing academic integrity in online exams, this AI-powered system detec
 ---
 
 ## Technical Stack 💻
-| Component          | Technologies                                                                 |
+| Component          | Technologies                                                                |
 |--------------------|-----------------------------------------------------------------------------|
 | **Computer Vision** | OpenCV, MediaPipe, CNN/RNN (TensorFlow/PyTorch)                            |
-| **Audio Processing**| Librosa, Spectrogram Analysis, CNNs                                         |
-| **Backend**         | Django REST Framework                                                      |
+| **Audio Processing**| Librosa, Spectrogram Analysis, CNNs                                        |
+| **AI Server**       | AioRTC - Python                                                            |
+| **Backend**         | NodeJs                                                                     |
 | **Frontend**        | React.js (Examiner Dashboard)                                              |
-| **Deployment**      | AWS/Azure GPU instances for real-time inference                            |
+| **Database**        | MongoDB                                                                    |
 | **Datasets**        | Curated from Mendeley cheating behavior dataset + Mozilla Common Voice     |
 
 ---
