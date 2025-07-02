@@ -28,7 +28,7 @@ Revolutionizing academic integrity in online exams, this AI-powered system detec
 3. **Anomaly Detection**  
    Machine learning models flag deviations (sudden head turns, low-volume speech)  
 4. **Proctor Dashboard**  
-   Visualizes alerts with timestamped video/audio snippets  
+   Visualizes alerts with blinking colors Red for cheating, Yellow for suspicious, and Green for normal behaviours. 
 
 ---
 
