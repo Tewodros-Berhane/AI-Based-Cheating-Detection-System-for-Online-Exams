@@ -1,12 +1,11 @@
 // src/components/trainer/TrainerResultPreview.js
 import React, { useEffect, useRef, useState } from 'react';
-import { FaCircle } from 'react-icons/fa';   // ⬅️ filled circle
+import { FaCircle } from 'react-icons/fa';   
 export default function TrainerResultPreview({ traineeId }) {
-  const [result, setResult] = useState(null);     // last AI verdict
+  const [result, setResult] = useState(null);     
   const wsRef = useRef(null);
 
   useEffect(() => {
-    // open a dedicated WS for this trainee
     const url = `ws://localhost:8081/?role=trainer&traineeid=${traineeId}`;
     wsRef.current = new WebSocket(url);
 
@@ -19,9 +18,9 @@ export default function TrainerResultPreview({ traineeId }) {
       let msg;
       try { msg = JSON.parse(txt); } catch { return; }
 
-      // { type:"ai-result", behaviour:"cheating" | "suspicious" | "normal", traineeId:"…" }
+      
       if (msg.type === 'ai-result') {
-        setResult(msg.behaviour);           // ➡️ triggers re‑render every time
+        setResult(msg.behaviour);           
       }
     };
 
@@ -31,11 +30,10 @@ export default function TrainerResultPreview({ traineeId }) {
     return () => wsRef.current && wsRef.current.close();
   }, [traineeId]);
 
-  /* simple coloured badge (optional) */
   const colours = {
-    cheating:   '#ff4444',   // bright red
-    suspicious: '#ffec3d',   // vivid yellow
-    normal:     '#2ecc71'    // bright green
+    cheating:   '#ff4444',   
+    suspicious: '#ffec3d',   
+    normal:     '#2ecc71'    
   };
 
   return (

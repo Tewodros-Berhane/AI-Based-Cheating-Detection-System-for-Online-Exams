@@ -152,7 +152,7 @@ export default function FaceRecognition({
           clearInterval(countdownRef.current);
            console.log('⏰ No-face timeout—ending exam');
            endExam('No face detected for 30s');
-           return 0;       // <-- return a number, not a Promise
+           return 0;       
         }
          return next;
        });

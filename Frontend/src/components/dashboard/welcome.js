@@ -2,20 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 import './welcome.css';
 import { Card, Statistic, Row, Col, Table, Spin, Alert } from 'antd';
-import { loadDashboard } from '../../services/dashboard'; // adjust path as needed
+import { loadDashboard } from '../../services/dashboard'; 
 
 function Welcome({ user }) {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Determine user type
+  
   let userType = 'User';
   if (user && user.userDetails && user.userDetails.type) {
     userType = user.userDetails.type;
   }
 
-  // Fetch dashboard data once
+  
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -45,7 +45,7 @@ function Welcome({ user }) {
     return null;
   }
 
-  // Build stats array based on userType
+  
   const stats = userType === 'ADMIN'
     ? [
         { title: 'Total Exams', value: dashboard.stats.totalExams },
@@ -61,7 +61,7 @@ function Welcome({ user }) {
         ]
       : [];
 
-  // Columns definition for tables
+  
   const columns = userType === 'ADMIN'
     ? [
         { title: 'Name', dataIndex: 'name', key: 'name' },
@@ -71,7 +71,7 @@ function Welcome({ user }) {
         { title: 'Email', dataIndex: 'email', key: 'email' },
       ];
 
-  // Map backend data to table-friendly structures
+  
   const recentTrainers = (dashboard.recentTrainers || []).map(t => ({
     key: t._id,
     name: t.name,
@@ -99,7 +99,7 @@ function Welcome({ user }) {
     text: fb.feedback
   }));
 
-  // Render statistic cards
+  
   const renderStats = () => (
     <Row gutter={[16, 16]}>
       {stats.map((stat, idx) => (
@@ -112,7 +112,7 @@ function Welcome({ user }) {
     </Row>
   );
 
-  // Render tables and feedback sections
+  
   const renderExtraSections = () => {
     if (userType === 'TRAINER') {
       return (

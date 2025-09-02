@@ -14,7 +14,7 @@ General Styling
 }
 
 .question-button {
-  background: #28a745; /* Green color */
+  background: #28a745; 
   color: #fff;
   padding: 12px;
   border-radius: 50%;
@@ -43,7 +43,7 @@ General Styling
 }
 
 .options {
-  margin-top: 10px; /* Reduced margin */
+  margin-top: 10px; 
 }
 
 .option-col {
@@ -53,15 +53,15 @@ General Styling
 .option-checkbox {
   width: 100%;
   display: flex;
-  justify-content: flex-start; /* Aligning checkboxes to the left */
+  justify-content: flex-start; 
   align-items: center;
-  margin-left: 5px; /* Reduced margin to bring options closer */
+  margin-left: 5px; 
 }
 
 .option-label {
   font-size: 1rem;
   color: #333;
-  margin-left: 10px; /* Ensuring proper spacing between the checkbox and label */
+  margin-left: 10px; 
 }
 
 .option-image {
@@ -70,7 +70,6 @@ General Styling
   border-radius: 5px;
 }
 
-/* Control Buttons */
 .control-buttons {
   display: flex;
   align-items: right;

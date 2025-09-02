@@ -2,12 +2,12 @@
     position: absolute;
     width: 100%;
     height: 100%;
-    background: #2b2929; /* Light GitHub background */
+    background: #2b2929; 
     color: #24292f;
 }
 
 .trainee-registration-form-inner {
-    background: #f6f8fa; /* Light card background */
+    background: #f6f8fa; 
     width: 50%;
     padding: 40px;
     border-radius: 8px;

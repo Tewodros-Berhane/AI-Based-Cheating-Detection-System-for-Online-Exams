@@ -1,11 +1,11 @@
-/* ─── Scoped GitHub-Dark for TestDetails ─────────────────────────── */
+
 .testdetails-dashboard {
   background: #161b22;
   color:      #c9d1d9;
   padding:    24px;
 }
 
-/* Tabs */
+
 .testdetails-dashboard .ant-tabs-nav-wrap {
   background:    #0d1117 !important;
   border-bottom: 1px solid #30363d !important;
@@ -20,7 +20,7 @@
   background: #58a6ff !important;
 }
 
-/* Skeleton */
+
 .testdetails-dashboard .ant-skeleton .ant-skeleton-element,
 .testdetails-dashboard .ant-skeleton .ant-skeleton-title,
 .testdetails-dashboard .ant-skeleton .ant-skeleton-paragraph {
@@ -28,7 +28,7 @@
   color:            #c9d1d9 !important;
 }
 
-/* Descriptions */
+
 .testdetails-dashboard .ant-descriptions-bordered {
   background: #0d1117 !important;
   border:     1px solid #30363d !important;
@@ -41,7 +41,7 @@
   color: #c9d1d9 !important;
 }
 
-/* Inputs */
+
 .testdetails-dashboard .ant-input,
 .testdetails-dashboard .ant-input-affix-wrapper,
 .testdetails-dashboard .ant-input-number input {
@@ -62,7 +62,7 @@
   box-shadow:   0 0 0 2px rgba(88,166,255,0.2) !important;
 }
 
-/* Tags */
+
 .testdetails-dashboard .ant-tag {
   background: #0d1117 !important;
   color:      #58a6ff !important;
@@ -72,7 +72,7 @@
   background: #161b22 !important;
 }
 
-/* Cards */
+
 .testdetails-dashboard .ant-card {
   background: #0d1117 !important;
   border:     1px solid #30363d !important;
@@ -82,7 +82,7 @@
   color: #c9d1d9 !important;
 }
 
-/* Download section */
+
 .testdetails-dashboard .download-section {
   background:    #161b22;
   border:        1px solid #30363d;
@@ -97,7 +97,7 @@
   clear: both;
 }
 
-/* Download link/button */
+
 .testdetails-dashboard .download-xlsx {
   float:           right;
   background-color: #238636;
@@ -117,7 +117,7 @@
   color:       #fff !important;
 }
 
-/* Trainee table (inside Stats/Trainee tab) */
+
 .testdetails-dashboard .download-section .ant-table {
   background: #0d1117 !important;
   border:     1px solid #30363d !important;
@@ -133,7 +133,7 @@
   border-bottom:  1px solid #30363d !important;
 }
 
-/* Feedback Cards & Comments */
+
 .testdetails-dashboard .ant-comment-inner,
 .testdetails-dashboard .ant-comment-content {
   background: #0d1117 !important;
@@ -154,7 +154,7 @@
 
 
 
-/* Divider & Icons */
+
 .testdetails-dashboard .ant-divider {
   border-top: 1px solid #30363d !important;
 }

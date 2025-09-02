@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-const clients = {}; // Store connected clients
+const clients = {}; 
 
 wss.on('connection', (ws, req) => {
     const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;

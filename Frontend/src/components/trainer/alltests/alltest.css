@@ -1,23 +1,23 @@
-/* ─── Dashboard Scope ────────────────────────────────────────────── */
+
 .alltests-dashboard {
   background: #161b22;
   color:      #c9d1d9;
   padding:    24px;
 }
 
-/* ─── Table Container ───────────────────────────────────────────── */
+
 .alltests-dashboard .admin-table-container {
   background: #0d1117 !important;
   border:     1px solid #30363d !important;
   padding:    16px;
 }
 
-/* Header Title */
+
 .alltests-dashboard .register-trainer-form-header .ant-typography {
   color: #c9d1d9 !important;
 }
 
-/* ─── Ant Table ─────────────────────────────────────────────────── */
+
 .alltests-dashboard .ant-table {
   background: #0d1117 !important;
   border:     1px solid #30363d !important;
@@ -36,7 +36,7 @@
   background: #21262d !important;
 }
 
-/* Search filter dropdown */
+
 .alltests-dashboard .ant-table-filter-dropdown {
   background: #161b22 !important;
   border:     1px solid #30363d !important;
@@ -54,12 +54,12 @@
   opacity: 0.85;
 }
 
-/* Highlighted search text */
+
 .alltests-dashboard .highlight {
   background-color: #ffc069 !important;
 }
 
-/* ─── Tags ───────────────────────────────────────────────────────── */
+
 .alltests-dashboard .ant-tag {
   background: #0d1117 !important;
   color:      #58a6ff !important;
@@ -69,9 +69,9 @@
   background: #161b22 !important;
 }
 
-/* ─── Action Buttons & Popconfirm ───────────────────────────────── */
+
 .alltests-dashboard .ant-btn {
-  /* leave default colors alone, or override globally below if needed */
+  
   margin-right: 8px;
 }
 .alltests-dashboard .ant-popconfirm-inner-content,
@@ -82,7 +82,7 @@
 }
 
 
-/* ─── Modal ──────────────────────────────────────────────────────── */
+
 .alltests-dashboard .ant-modal-content {
   background: #161b22 !important;
   color:      #c9d1d9 !important;

@@ -28,14 +28,14 @@
 
 
 
-/* ─── GitHub-Dark for NewTest ────────────────────────────────────── */
+
 .newtest-dashboard {
   background: #161b22;
   color:      #c9d1d9;
   padding:    24px;
 }
 
-/* ─── Steps ──────────────────────────────────────────────────────── */
+
 .newtest-dashboard .newtest-steps-holder {
   background:    #0d1117 !important;
   border-radius: 6px;
@@ -68,7 +68,7 @@
   color: #58a6ff !important;
 }
 
-/* ─── Forms & Inputs ───────────────────────────────────────────── */
+
 .newtest-dashboard .basic-test-form-outer,
 .newtest-dashboard .random-question-generation {
   background:    #0d1117;
@@ -121,7 +121,7 @@
   border-color: #238636 !important;
 }
 
-/* ─── Select & Transfer Lists ──────────────────────────────────── */
+
 .newtest-dashboard .ant-select-dropdown,
 .newtest-dashboard .ant-select-dropdown-menu {
   background: #0d1117 !important;
@@ -149,7 +149,7 @@
   color: #c9d1d9 !important;
 }
 
-/* ─── Buttons ───────────────────────────────────────────────────── */
+
 .newtest-dashboard .ant-btn,
 .newtest-dashboard .ant-btn[block] {
   background:    #238636 !important;
@@ -172,7 +172,7 @@
   border-color: #2ea043 !important;
 }
 
-/* ─── Modals ────────────────────────────────────────────────────── */
+
 .newtest-dashboard .ant-modal-content {
   background: #161b22 !important;
   color:      #c9d1d9 !important;
@@ -189,7 +189,7 @@
   color:      #c9d1d9 !important;
 }
 
-/* ─── Divider & Icons ─────────────────────────────────────────── */
+
 .newtest-dashboard .ant-divider {
   border-top: 1px solid #30363d !important;
 }
@@ -198,25 +198,25 @@
 }
 
 
-/* ─── GitHub-Dark Alert Overrides ───────────────────────────────── */
 
-/* 1) For Notification API (notification.success, etc.) */
+
+
 .ant-notification-notice {
-  background:     #0d1117 !important;  /* dark card bg */
+  background:     #0d1117 !important;  
   border:         1px solid #30363d !important;
   border-radius:  6px;
-  color:          #c9d1d9 !important;  /* light text */
+  color:          #c9d1d9 !important;  
 }
 .ant-notification-notice .ant-notification-notice-close {
-  color: #8b949e !important;           /* close-icon */
+  color: #8b949e !important;           
 }
 .ant-notification-notice-success .ant-notification-notice-icon {
-  color: #238636 !important;           /* green “check” */
+  color: #238636 !important;           
 }
 .ant-notification-notice-info    .ant-notification-notice-icon,
 .ant-notification-notice-warning .ant-notification-notice-icon,
 .ant-notification-notice-error   .ant-notification-notice-icon {
-  /* adjust other icon colors if you like */
+  
   color: #58a6ff !important;  
 }
 .ant-notification-notice-success .ant-notification-notice-message,
@@ -224,7 +224,7 @@
   color: #c9d1d9 !important;
 }
 
-/* 2) For Message API (message.success, etc.) */
+
 .ant-message-notice {
   background:    #0d1117 !important;
   border:        1px solid #30363d !important;
@@ -239,7 +239,7 @@
   color: #238636 !important;
 }
 
-/* 3) If your Alert is a Modal */  
+  
 .ant-modal-content {
   background: #161b22 !important;
   color:      #c9d1d9 !important;

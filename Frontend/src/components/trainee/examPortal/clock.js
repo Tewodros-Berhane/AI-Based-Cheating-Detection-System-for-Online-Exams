@@ -43,13 +43,11 @@ const Clock = ({ trainee, LocaltestDone, fetchTestdata }) => {
       }
     }).then((response) => {
       if (response.data.success) {
-        // Send stop signal through control channel
         if (controlChannel && controlChannel.readyState === 'open') {
           controlChannel.send(JSON.stringify({ action: 'endTest' }));
           console.log('🛑 Sent endTest to server');
         }
 
-        // Send AI result through finish socket
         const sendAIResult = () => {
           if (
             finishSockRef.current && 
@@ -60,12 +58,11 @@ const Clock = ({ trainee, LocaltestDone, fetchTestdata }) => {
             );
             console.log('📡 Finish exam relayed');
           } else {
-            setTimeout(sendAIResult, 100); // Retry after 100ms
+            setTimeout(sendAIResult, 100); 
           }
         };
         sendAIResult();
 
-        // Send test-ended message over WebSocket (if available)
         if (mediaStream) {
           mediaStream.getTracks().forEach(track => track.stop());
           setMediaStream(null);

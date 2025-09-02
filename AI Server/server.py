@@ -11,11 +11,10 @@ from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
 from aiortc.exceptions import InvalidStateError
 from aiortc.mediastreams import MediaStreamError
 
-from Models import predict_head, predict_audio
-from Models.audio import AUDIO_LABELS as AUDIO
-from Models.Head_movement import GAZE_LABELS, LIP_LABELS
+from models import predict_head, predict_audio
+from models.audio import AUDIO_LABELS as AUDIO
+from models.Head_movement import GAZE_LABELS, LIP_LABELS
 
-# ─── behaviour‐assignment logic ──────────────────────────────
 suspicious_counts = {}
 REPETITION_THRESHOLD = 500
 
@@ -31,7 +30,6 @@ def safe_send(dc, payload, label):
     try:
         dc.send(payload)
     except (InvalidStateError, ConnectionError) as e:
-        # log once, but don’t crash the task
         print(f"[DATA] ⚠️  send failed ({label}):", e)
 
 
@@ -52,11 +50,9 @@ def assign_behaviour(vision_res: dict, audio_res: dict) -> str:
     key = (h_idx, g_idx, l_idx, a_idx)
     print(f"[ASSIGN] inputs → head:{audio_label=}, lip:{lip_label=}, gaze:{gaze_label=}, audio:{audio_label=}")
 
-    # 1) immediate cheating
     if audio_label == "cheating":
         return "cheating"
 
-    # 2) base suspicious logic
     if lip_label == "Talking" and audio_label == "background":
         base = "suspicious"
     elif gaze_label == "Closed":
@@ -68,7 +64,6 @@ def assign_behaviour(vision_res: dict, audio_res: dict) -> str:
     else:
         base = "normal"
 
-    # 3) escalation on repetition
     if base == "suspicious":
         suspicious_counts[key] = suspicious_counts.get(key, 0) + 1
         print(f"[ASSIGN] suspicion count for {key} = {suspicious_counts[key]}")
@@ -89,10 +84,7 @@ async def consume_video(track: MediaStreamTrack, dc, context):
             break
 
         print(f"[VIDEO] got frame pts={frame.pts}")
-        # encode PNG
-        # import numpy as np
-        # arr = frame.to_ndarray(format="rgb24")
-        # print(f"[DEBUG] raw frame stats — min:{arr.min()}, max:{arr.max()}, mean:{arr.mean():.1f}")
+       
         img = frame.to_ndarray(format="rgb24")
         buf = io.BytesIO()
         from PIL import Image
@@ -107,7 +99,6 @@ async def consume_video(track: MediaStreamTrack, dc, context):
 
         context["vision"] = vision_res
 
-        # if audio already ran at least once, compute behaviour
         if "audio" in context:
             audio_res = context["audio"]
             beh = assign_behaviour(vision_res, audio_res)
@@ -129,7 +120,6 @@ def int16_to_float32(arr: np.ndarray) -> np.ndarray:
 
 async def consume_audio(track: MediaStreamTrack, dc, context):
     print("[AUDIO] ▶️ starting audio consumer")
-        # float32 buffer of samples
     buf = np.empty((0,), dtype=np.float32)
     sr = None
 
@@ -146,24 +136,20 @@ async def consume_audio(track: MediaStreamTrack, dc, context):
 
         if arr.ndim > 1:
             arr = arr.mean(axis=0)
-        # record sample rate once
         if sr is None:
             sr = frame.sample_rate
             print(f"[AUDIO] using sample_rate = {sr}")
 
-        # convert int16 → float32 in -1..+1
         mono = int16_to_float32(arr)
         print(f"[AUDIO] mono.shape = {mono.shape}")
 
 
-        # append to our float buffer
         buf = np.concatenate([buf, mono])
         print(f"[AUDIO] buf now has {len(buf)} samples; waiting for 16000 to batch.")
 
         if len(buf) >= 16000:
             print("[AUDIO] batching ~1.0s audio chunk")
 
-            # build WAV
             chunk, buf = buf[:16000], buf[16000:]
 
             try:
@@ -175,7 +161,6 @@ async def consume_audio(track: MediaStreamTrack, dc, context):
 
             context["audio"] = audio_res
 
-            # if we already have vision, compute behaviour
             if "vision" in context:
                 vision_res = context["vision"]
                 beh = assign_behaviour(vision_res, audio_res)
@@ -190,8 +175,7 @@ async def consume_audio(track: MediaStreamTrack, dc, context):
                 except InvalidStateError:
                     print("[AUDIO] 🚨 data-channel not ready, skipping send")
 
-            # buffer.clear()
-            # sample_count = 0
+            
 
 async def offer(request):
     print("[OFFER] got new /offer request")
@@ -229,7 +213,6 @@ async def offer(request):
                             sender.track.stop()
                     asyncio.ensure_future(pc.close())
                 elif data.get("type") == "ping":
-                    # Optionally reply with pong
                     try:
                         print('recieved ping')
                         channel.send(json.dumps({"type": "pong"}))
@@ -251,7 +234,6 @@ async def offer(request):
     await pc.setLocalDescription(answer)
     print("[OFFER] answer set locally")
 
-    # wait for ICE gathering (no trickle)
     while pc.iceGatheringState != "complete":
         await asyncio.sleep(0.1)
     print("[OFFER] ICE gathering complete")

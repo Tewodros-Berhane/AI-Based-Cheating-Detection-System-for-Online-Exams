@@ -325,9 +325,9 @@ handleIdSubmit = async (e) => {
                         <WebRTCServer traineeId={traineeid} testId={testid}/>
                     }
 
-                    {traineeid && testid &&
+                    {/* {traineeid && testid &&
                         <FaceRecognition traineeId={traineeid} testId={testid} />
-                    }
+                    } */}
                 </div>
             );
         }

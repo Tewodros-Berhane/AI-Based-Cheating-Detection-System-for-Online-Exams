@@ -19,7 +19,7 @@ class TraineeRegisterForm extends Component {
             inform: true,
             testid: null,
             user: null,
-            faceImage: null, // ✅ Add this to track uploaded image file
+            faceImage: null, 
         };
     }
 

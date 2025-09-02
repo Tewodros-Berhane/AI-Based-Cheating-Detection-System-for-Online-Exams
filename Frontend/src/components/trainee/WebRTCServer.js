@@ -30,7 +30,6 @@ export default function WebRTC({traineeId}) {
       if (resultSockRef.current) resultSockRef.current.close();
     };
 
-    // The actual negotiation logic
     const setupPeerConnection = async () => {
 
       resultSockRef.current = new WebSocket(
@@ -75,7 +74,7 @@ export default function WebRTC({traineeId}) {
       };
       ctrlDC.onerror = (e) => console.error('⚠️ Control channel error', e);
 
-      // expose it so other components (Sidepanel) can send on it
+      // expose it so other components can send on it
       setControlChannel(ctrlDC);
 
       // 2) Handle incoming data channel from the server
@@ -92,7 +91,7 @@ export default function WebRTC({traineeId}) {
           try {
             const msg = JSON.parse(e.data);
             console.log('🤖 AI result:', msg);
-               // 🔄 relay to WS signalling server so the trainer gets it
+               //  relay to WS signalling server so the trainer gets it
              if (
                resultSockRef.current &&
                resultSockRef.current.readyState === WebSocket.OPEN
@@ -121,7 +120,6 @@ export default function WebRTC({traineeId}) {
         pc.addTrack(track, mediaStream);
       });
 
-      // 4) Negotiate once: createOffer, wait ICE, POST to /offer, setRemote
       const negotiate = async () => {
         try {
           const offer = await pc.createOffer();
@@ -167,19 +165,17 @@ export default function WebRTC({traineeId}) {
           console.log("🚨 ICE disconnected or failed! Attempting restar…");
           cleanup();
           setTimeout(() => {
-            setupPeerConnection(); // re-create everything, triggers fresh negotiation
+            setupPeerConnection(); 
           }, 10000);
         }
       };
 
-      // Start negotiation
+      
       await negotiate();
     };
 
-    // INITIALIZE
     setupPeerConnection();
 
-    // Cleanup on unmount or when mediaStream changes
     return cleanup;
   }, [mediaStream, setControlChannel]);
 

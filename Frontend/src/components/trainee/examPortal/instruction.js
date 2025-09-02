@@ -33,13 +33,11 @@ function Instruction(props) {
     }
   };
 
-  // Proceed only if permission is granted
   const handleProceed = async () => {
     if (!permissionGranted) {
       message.error("Please grant camera and microphone permission before proceeding.");
       return;
     }
-    // Now start the streaming and test logic.
     setStreamingStarted(true);
     props.ProceedtoTest(props.trainee.testid, props.trainee.traineeid, () => {
       props.fetchTestdata(props.trainee.testid, props.trainee.traineeid);
@@ -60,7 +58,6 @@ function Instruction(props) {
         <li>Once you have proceeded to the exam <strong> Do not refresh the page </strong>.</li>
       </ul>
 
-      {/* Exam Instructions */}
       <h2>Exam Instructions:</h2>
       <ul>
         <li>All questions are compulsory.</li>

@@ -12,7 +12,6 @@ HEAD_LABELS = ['Left', 'Down', 'Up', 'Center', 'Right']
 GAZE_LABELS = ['Left', 'Up', 'Down', 'Center', 'Right', 'Closed']
 LIP_LABELS  = ['No Movement', 'Talking']
 
-# Model definition
 class MultiHeadNet(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -26,12 +25,9 @@ class MultiHeadNet(torch.nn.Module):
         x = self.backbone(x).view(x.size(0), -1)
         return self.head(x), self.gaze(x), self.lip(x)
 
-# Load model
 vision_model = MultiHeadNet().to(DEVICE)
 vision_model.load_state_dict(torch.load(VISION_PATH, map_location=DEVICE, weights_only=True))
-# print("[DEBUG bias] head:", vision_model.head.bias.data)
-# print("[DEBUG bias] gaze:", vision_model.gaze.bias.data)
-# print("[DEBUG bias] lip: ", vision_model.lip.bias.data)
+
 
 vision_model.eval()
 
@@ -45,9 +41,7 @@ def predict_head(frame_png: bytes):
     inp = vision_transform(img).unsqueeze(0).to(DEVICE)
     with torch.no_grad():
         ph, pg, pl = vision_model(inp)
-    # print("[DEBUG logits] head:", ph.cpu().numpy(),
-    #   "\ngaze:", pg.cpu().numpy(),
-    #   "\nlip: ", pl.cpu().numpy())
+    
     h_idx = int(ph.argmax(1)[0])
     g_idx = int(pg.argmax(1)[0])
     l_idx = int(pl.argmax(1)[0])

@@ -73,7 +73,6 @@ class AllTests extends Component {
             highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
             searchWords={[this.props.trainer.TestsearchText]}
             autoEscape
-            // String(undefined) === "undefined", so you might still want to guard empty
             textToHighlight={String(text || '')}
           />
         ),

@@ -1,0 +1,411 @@
+[
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "io",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "io",
+        "description": "io",
+        "detail": "io",
+        "documentation": {}
+    },
+    {
+        "label": "numpy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "numpy",
+        "description": "numpy",
+        "detail": "numpy",
+        "documentation": {}
+    },
+    {
+        "label": "tensorflow",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "tensorflow",
+        "description": "tensorflow",
+        "detail": "tensorflow",
+        "documentation": {}
+    },
+    {
+        "label": "librosa",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "librosa",
+        "description": "librosa",
+        "detail": "librosa",
+        "documentation": {}
+    },
+    {
+        "label": "torch",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torch",
+        "description": "torch",
+        "detail": "torch",
+        "documentation": {}
+    },
+    {
+        "label": "Image",
+        "importPath": "PIL",
+        "description": "PIL",
+        "isExtraImport": true,
+        "detail": "PIL",
+        "documentation": {}
+    },
+    {
+        "label": "transforms",
+        "importPath": "torchvision",
+        "description": "torchvision",
+        "isExtraImport": true,
+        "detail": "torchvision",
+        "documentation": {}
+    },
+    {
+        "label": "models",
+        "importPath": "torchvision",
+        "description": "torchvision",
+        "isExtraImport": true,
+        "detail": "torchvision",
+        "documentation": {}
+    },
+    {
+        "label": "asyncio",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "asyncio",
+        "description": "asyncio",
+        "detail": "asyncio",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "wave",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "wave",
+        "description": "wave",
+        "detail": "wave",
+        "documentation": {}
+    },
+    {
+        "label": "web",
+        "importPath": "aiohttp",
+        "description": "aiohttp",
+        "isExtraImport": true,
+        "detail": "aiohttp",
+        "documentation": {}
+    },
+    {
+        "label": "aiohttp_cors",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "aiohttp_cors",
+        "description": "aiohttp_cors",
+        "detail": "aiohttp_cors",
+        "documentation": {}
+    },
+    {
+        "label": "RTCPeerConnection",
+        "importPath": "aiortc",
+        "description": "aiortc",
+        "isExtraImport": true,
+        "detail": "aiortc",
+        "documentation": {}
+    },
+    {
+        "label": "RTCSessionDescription",
+        "importPath": "aiortc",
+        "description": "aiortc",
+        "isExtraImport": true,
+        "detail": "aiortc",
+        "documentation": {}
+    },
+    {
+        "label": "MediaStreamTrack",
+        "importPath": "aiortc",
+        "description": "aiortc",
+        "isExtraImport": true,
+        "detail": "aiortc",
+        "documentation": {}
+    },
+    {
+        "label": "InvalidStateError",
+        "importPath": "aiortc.exceptions",
+        "description": "aiortc.exceptions",
+        "isExtraImport": true,
+        "detail": "aiortc.exceptions",
+        "documentation": {}
+    },
+    {
+        "label": "MediaStreamError",
+        "importPath": "aiortc.mediastreams",
+        "description": "aiortc.mediastreams",
+        "isExtraImport": true,
+        "detail": "aiortc.mediastreams",
+        "documentation": {}
+    },
+    {
+        "label": "predict_head",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "predict_audio",
+        "importPath": "models",
+        "description": "models",
+        "isExtraImport": true,
+        "detail": "models",
+        "documentation": {}
+    },
+    {
+        "label": "AUDIO_LABELS",
+        "importPath": "models.audio",
+        "description": "models.audio",
+        "isExtraImport": true,
+        "detail": "models.audio",
+        "documentation": {}
+    },
+    {
+        "label": "GAZE_LABELS",
+        "importPath": "models.Head_movement",
+        "description": "models.Head_movement",
+        "isExtraImport": true,
+        "detail": "models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "LIP_LABELS",
+        "importPath": "models.Head_movement",
+        "description": "models.Head_movement",
+        "isExtraImport": true,
+        "detail": "models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "predict_audio",
+        "kind": 2,
+        "importPath": "AI Server.models.audio",
+        "description": "AI Server.models.audio",
+        "peekOfCode": "def predict_audio(wav: np.ndarray, orig_sr: int, target_sr=16000):\n    if orig_sr != target_sr:\n        wav = librosa.resample(wav, orig_sr=orig_sr, target_sr=target_sr)\n    if len(wav) >= target_sr:\n        wav = wav[:target_sr]\n    else:\n        wav = np.pad(wav, (0, target_sr - len(wav)))\n    spec = np.abs(librosa.stft(wav, n_fft=256, hop_length=128))\n    spec = spec.T[np.newaxis, ..., np.newaxis]\n    probs = audio_model.predict(spec, verbose=0)[0]",
+        "detail": "AI Server.models.audio",
+        "documentation": {}
+    },
+    {
+        "label": "BASE",
+        "kind": 5,
+        "importPath": "AI Server.models.audio",
+        "description": "AI Server.models.audio",
+        "peekOfCode": "BASE = os.path.dirname(__file__)\nMODEL_PATH = os.path.join(BASE, 'audio_classifier_4class.h5')\naudio_model = tf.keras.models.load_model(MODEL_PATH, compile=False)\nAUDIO_LABELS = ['background', 'normal', 'cheating']\ndef predict_audio(wav: np.ndarray, orig_sr: int, target_sr=16000):\n    if orig_sr != target_sr:\n        wav = librosa.resample(wav, orig_sr=orig_sr, target_sr=target_sr)\n    if len(wav) >= target_sr:\n        wav = wav[:target_sr]\n    else:",
+        "detail": "AI Server.models.audio",
+        "documentation": {}
+    },
+    {
+        "label": "MODEL_PATH",
+        "kind": 5,
+        "importPath": "AI Server.models.audio",
+        "description": "AI Server.models.audio",
+        "peekOfCode": "MODEL_PATH = os.path.join(BASE, 'audio_classifier_4class.h5')\naudio_model = tf.keras.models.load_model(MODEL_PATH, compile=False)\nAUDIO_LABELS = ['background', 'normal', 'cheating']\ndef predict_audio(wav: np.ndarray, orig_sr: int, target_sr=16000):\n    if orig_sr != target_sr:\n        wav = librosa.resample(wav, orig_sr=orig_sr, target_sr=target_sr)\n    if len(wav) >= target_sr:\n        wav = wav[:target_sr]\n    else:\n        wav = np.pad(wav, (0, target_sr - len(wav)))",
+        "detail": "AI Server.models.audio",
+        "documentation": {}
+    },
+    {
+        "label": "audio_model",
+        "kind": 5,
+        "importPath": "AI Server.models.audio",
+        "description": "AI Server.models.audio",
+        "peekOfCode": "audio_model = tf.keras.models.load_model(MODEL_PATH, compile=False)\nAUDIO_LABELS = ['background', 'normal', 'cheating']\ndef predict_audio(wav: np.ndarray, orig_sr: int, target_sr=16000):\n    if orig_sr != target_sr:\n        wav = librosa.resample(wav, orig_sr=orig_sr, target_sr=target_sr)\n    if len(wav) >= target_sr:\n        wav = wav[:target_sr]\n    else:\n        wav = np.pad(wav, (0, target_sr - len(wav)))\n    spec = np.abs(librosa.stft(wav, n_fft=256, hop_length=128))",
+        "detail": "AI Server.models.audio",
+        "documentation": {}
+    },
+    {
+        "label": "AUDIO_LABELS",
+        "kind": 5,
+        "importPath": "AI Server.models.audio",
+        "description": "AI Server.models.audio",
+        "peekOfCode": "AUDIO_LABELS = ['background', 'normal', 'cheating']\ndef predict_audio(wav: np.ndarray, orig_sr: int, target_sr=16000):\n    if orig_sr != target_sr:\n        wav = librosa.resample(wav, orig_sr=orig_sr, target_sr=target_sr)\n    if len(wav) >= target_sr:\n        wav = wav[:target_sr]\n    else:\n        wav = np.pad(wav, (0, target_sr - len(wav)))\n    spec = np.abs(librosa.stft(wav, n_fft=256, hop_length=128))\n    spec = spec.T[np.newaxis, ..., np.newaxis]",
+        "detail": "AI Server.models.audio",
+        "documentation": {}
+    },
+    {
+        "label": "MultiHeadNet",
+        "kind": 6,
+        "importPath": "AI Server.models.Head_movement",
+        "description": "AI Server.models.Head_movement",
+        "peekOfCode": "class MultiHeadNet(torch.nn.Module):\n    def __init__(self):\n        super().__init__()\n        base = models.resnet18(pretrained=True)\n        self.backbone = torch.nn.Sequential(*list(base.children())[:-1])\n        self.head = torch.nn.Linear(512, len(HEAD_LABELS))\n        self.gaze = torch.nn.Linear(512, len(GAZE_LABELS))\n        self.lip  = torch.nn.Linear(512, len(LIP_LABELS))\n    def forward(self, x):\n        x = self.backbone(x).view(x.size(0), -1)",
+        "detail": "AI Server.models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "predict_head",
+        "kind": 2,
+        "importPath": "AI Server.models.Head_movement",
+        "description": "AI Server.models.Head_movement",
+        "peekOfCode": "def predict_head(frame_png: bytes):\n    img = Image.open(io.BytesIO(frame_png)).convert('RGB')\n    inp = vision_transform(img).unsqueeze(0).to(DEVICE)\n    with torch.no_grad():\n        ph, pg, pl = vision_model(inp)\n    h_idx = int(ph.argmax(1)[0])\n    g_idx = int(pg.argmax(1)[0])\n    l_idx = int(pl.argmax(1)[0])\n    return {\n        'head_idx': h_idx, 'head': HEAD_LABELS[h_idx],",
+        "detail": "AI Server.models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "BASE",
+        "kind": 5,
+        "importPath": "AI Server.models.Head_movement",
+        "description": "AI Server.models.Head_movement",
+        "peekOfCode": "BASE = os.path.dirname(__file__)\nVISION_PATH = os.path.join(BASE, 'best_multihead.pt')\nDEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nHEAD_LABELS = ['Left', 'Down', 'Up', 'Center', 'Right']\nGAZE_LABELS = ['Left', 'Up', 'Down', 'Center', 'Right', 'Closed']\nLIP_LABELS  = ['No Movement', 'Talking']\nclass MultiHeadNet(torch.nn.Module):\n    def __init__(self):\n        super().__init__()\n        base = models.resnet18(pretrained=True)",
+        "detail": "AI Server.models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "VISION_PATH",
+        "kind": 5,
+        "importPath": "AI Server.models.Head_movement",
+        "description": "AI Server.models.Head_movement",
+        "peekOfCode": "VISION_PATH = os.path.join(BASE, 'best_multihead.pt')\nDEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nHEAD_LABELS = ['Left', 'Down', 'Up', 'Center', 'Right']\nGAZE_LABELS = ['Left', 'Up', 'Down', 'Center', 'Right', 'Closed']\nLIP_LABELS  = ['No Movement', 'Talking']\nclass MultiHeadNet(torch.nn.Module):\n    def __init__(self):\n        super().__init__()\n        base = models.resnet18(pretrained=True)\n        self.backbone = torch.nn.Sequential(*list(base.children())[:-1])",
+        "detail": "AI Server.models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "DEVICE",
+        "kind": 5,
+        "importPath": "AI Server.models.Head_movement",
+        "description": "AI Server.models.Head_movement",
+        "peekOfCode": "DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nHEAD_LABELS = ['Left', 'Down', 'Up', 'Center', 'Right']\nGAZE_LABELS = ['Left', 'Up', 'Down', 'Center', 'Right', 'Closed']\nLIP_LABELS  = ['No Movement', 'Talking']\nclass MultiHeadNet(torch.nn.Module):\n    def __init__(self):\n        super().__init__()\n        base = models.resnet18(pretrained=True)\n        self.backbone = torch.nn.Sequential(*list(base.children())[:-1])\n        self.head = torch.nn.Linear(512, len(HEAD_LABELS))",
+        "detail": "AI Server.models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "HEAD_LABELS",
+        "kind": 5,
+        "importPath": "AI Server.models.Head_movement",
+        "description": "AI Server.models.Head_movement",
+        "peekOfCode": "HEAD_LABELS = ['Left', 'Down', 'Up', 'Center', 'Right']\nGAZE_LABELS = ['Left', 'Up', 'Down', 'Center', 'Right', 'Closed']\nLIP_LABELS  = ['No Movement', 'Talking']\nclass MultiHeadNet(torch.nn.Module):\n    def __init__(self):\n        super().__init__()\n        base = models.resnet18(pretrained=True)\n        self.backbone = torch.nn.Sequential(*list(base.children())[:-1])\n        self.head = torch.nn.Linear(512, len(HEAD_LABELS))\n        self.gaze = torch.nn.Linear(512, len(GAZE_LABELS))",
+        "detail": "AI Server.models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "GAZE_LABELS",
+        "kind": 5,
+        "importPath": "AI Server.models.Head_movement",
+        "description": "AI Server.models.Head_movement",
+        "peekOfCode": "GAZE_LABELS = ['Left', 'Up', 'Down', 'Center', 'Right', 'Closed']\nLIP_LABELS  = ['No Movement', 'Talking']\nclass MultiHeadNet(torch.nn.Module):\n    def __init__(self):\n        super().__init__()\n        base = models.resnet18(pretrained=True)\n        self.backbone = torch.nn.Sequential(*list(base.children())[:-1])\n        self.head = torch.nn.Linear(512, len(HEAD_LABELS))\n        self.gaze = torch.nn.Linear(512, len(GAZE_LABELS))\n        self.lip  = torch.nn.Linear(512, len(LIP_LABELS))",
+        "detail": "AI Server.models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "vision_model",
+        "kind": 5,
+        "importPath": "AI Server.models.Head_movement",
+        "description": "AI Server.models.Head_movement",
+        "peekOfCode": "vision_model = MultiHeadNet().to(DEVICE)\nvision_model.load_state_dict(torch.load(VISION_PATH, map_location=DEVICE, weights_only=True))\nvision_model.eval()\nvision_transform = transforms.Compose([\n    transforms.Resize((224,224)),\n    transforms.ToTensor(),\n])\ndef predict_head(frame_png: bytes):\n    img = Image.open(io.BytesIO(frame_png)).convert('RGB')\n    inp = vision_transform(img).unsqueeze(0).to(DEVICE)",
+        "detail": "AI Server.models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "vision_transform",
+        "kind": 5,
+        "importPath": "AI Server.models.Head_movement",
+        "description": "AI Server.models.Head_movement",
+        "peekOfCode": "vision_transform = transforms.Compose([\n    transforms.Resize((224,224)),\n    transforms.ToTensor(),\n])\ndef predict_head(frame_png: bytes):\n    img = Image.open(io.BytesIO(frame_png)).convert('RGB')\n    inp = vision_transform(img).unsqueeze(0).to(DEVICE)\n    with torch.no_grad():\n        ph, pg, pl = vision_model(inp)\n    h_idx = int(ph.argmax(1)[0])",
+        "detail": "AI Server.models.Head_movement",
+        "documentation": {}
+    },
+    {
+        "label": "safe_send",
+        "kind": 2,
+        "importPath": "AI Server.server",
+        "description": "AI Server.server",
+        "peekOfCode": "def safe_send(dc, payload, label):\n    \"\"\"\n    Send over a data‑channel only if it’s still open / connected.\n    Silences InvalidStateError and ConnectionError coming from aiortc’s\n    internal _transmit() task.\n    \"\"\"\n    if dc.readyState != \"open\":\n        print(f\"[DATA] ✋ {label}: data‑channel not open, skipping send\")\n        return\n    try:",
+        "detail": "AI Server.server",
+        "documentation": {}
+    },
+    {
+        "label": "assign_behaviour",
+        "kind": 2,
+        "importPath": "AI Server.server",
+        "description": "AI Server.server",
+        "peekOfCode": "def assign_behaviour(vision_res: dict, audio_res: dict) -> str:\n    \"\"\"\n    vision_res: { head_idx, head, gaze_idx, gaze, lip_idx, lip }\n    audio_res:  { audio_idx, audio, confidence? }\n    \"\"\"\n    h_idx = vision_res.get(\"head_idx\", -1)\n    g_idx = vision_res.get(\"gaze_idx\", -1)\n    l_idx = vision_res.get(\"lip_idx\",  -1)\n    a_idx = audio_res.get(\"audio_idx\", -1)\n    audio_label = AUDIO[a_idx] if a_idx >= 0 and a_idx < len(AUDIO) else \"unknown\"",
+        "detail": "AI Server.server",
+        "documentation": {}
+    },
+    {
+        "label": "int16_to_float32",
+        "kind": 2,
+        "importPath": "AI Server.server",
+        "description": "AI Server.server",
+        "peekOfCode": "def int16_to_float32(arr: np.ndarray) -> np.ndarray:\n    return arr.astype(np.float32) / 32768.0\nasync def consume_audio(track: MediaStreamTrack, dc, context):\n    print(\"[AUDIO] ▶️ starting audio consumer\")\n    buf = np.empty((0,), dtype=np.float32)\n    sr = None\n    while True:\n        try:\n            frame = await track.recv()\n        except MediaStreamError:",
+        "detail": "AI Server.server",
+        "documentation": {}
+    },
+    {
+        "label": "suspicious_counts",
+        "kind": 5,
+        "importPath": "AI Server.server",
+        "description": "AI Server.server",
+        "peekOfCode": "suspicious_counts = {}\nREPETITION_THRESHOLD = 500\ndef safe_send(dc, payload, label):\n    \"\"\"\n    Send over a data‑channel only if it’s still open / connected.\n    Silences InvalidStateError and ConnectionError coming from aiortc’s\n    internal _transmit() task.\n    \"\"\"\n    if dc.readyState != \"open\":\n        print(f\"[DATA] ✋ {label}: data‑channel not open, skipping send\")",
+        "detail": "AI Server.server",
+        "documentation": {}
+    },
+    {
+        "label": "REPETITION_THRESHOLD",
+        "kind": 5,
+        "importPath": "AI Server.server",
+        "description": "AI Server.server",
+        "peekOfCode": "REPETITION_THRESHOLD = 500\ndef safe_send(dc, payload, label):\n    \"\"\"\n    Send over a data‑channel only if it’s still open / connected.\n    Silences InvalidStateError and ConnectionError coming from aiortc’s\n    internal _transmit() task.\n    \"\"\"\n    if dc.readyState != \"open\":\n        print(f\"[DATA] ✋ {label}: data‑channel not open, skipping send\")\n        return",
+        "detail": "AI Server.server",
+        "documentation": {}
+    },
+    {
+        "label": "pcs",
+        "kind": 5,
+        "importPath": "AI Server.server",
+        "description": "AI Server.server",
+        "peekOfCode": "pcs = set()\nasync def consume_video(track: MediaStreamTrack, dc, context):\n    print(\"[VIDEO] ▶️ starting video consumer\")\n    while True:\n        try:\n            frame = await track.recv()\n        except MediaStreamError:\n            print(\"[VIDEO] 📹 video track ended\")\n            break\n        print(f\"[VIDEO] got frame pts={frame.pts}\")",
+        "detail": "AI Server.server",
+        "documentation": {}
+    },
+    {
+        "label": "app",
+        "kind": 5,
+        "importPath": "AI Server.server",
+        "description": "AI Server.server",
+        "peekOfCode": "app = web.Application()\ncors = aiohttp_cors.setup(app, defaults={\n    \"http://localhost:3000\": aiohttp_cors.ResourceOptions(\n        allow_credentials=True,\n        expose_headers=\"*\",\n        allow_headers=\"*\"\n    )\n})\noffer_route = app.router.add_post(\"/offer\", offer)\ncors.add(offer_route)",
+        "detail": "AI Server.server",
+        "documentation": {}
+    },
+    {
+        "label": "cors",
+        "kind": 5,
+        "importPath": "AI Server.server",
+        "description": "AI Server.server",
+        "peekOfCode": "cors = aiohttp_cors.setup(app, defaults={\n    \"http://localhost:3000\": aiohttp_cors.ResourceOptions(\n        allow_credentials=True,\n        expose_headers=\"*\",\n        allow_headers=\"*\"\n    )\n})\noffer_route = app.router.add_post(\"/offer\", offer)\ncors.add(offer_route)\napp.on_shutdown.append(on_shutdown)",
+        "detail": "AI Server.server",
+        "documentation": {}
+    },
+    {
+        "label": "offer_route",
+        "kind": 5,
+        "importPath": "AI Server.server",
+        "description": "AI Server.server",
+        "peekOfCode": "offer_route = app.router.add_post(\"/offer\", offer)\ncors.add(offer_route)\napp.on_shutdown.append(on_shutdown)\nif __name__ == \"__main__\":\n    print(\"======== Starting aiortc server on port 5020 ========\")\n    web.run_app(app, port=5020)",
+        "detail": "AI Server.server",
+        "documentation": {}
+    }
+]

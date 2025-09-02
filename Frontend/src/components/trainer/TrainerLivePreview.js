@@ -1,4 +1,3 @@
-// TrainerLivePreview.js
 import React, { useEffect, useRef } from 'react';
 
 const TrainerLivePreview = ({ traineeId }) => {
@@ -7,20 +6,17 @@ const TrainerLivePreview = ({ traineeId }) => {
   const wsRef = useRef(null);
 
   useEffect(() => {
-    // Helper function to send signaling messages
     const sendSignal = (data) => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify(data));
       }
     };
 
-    // 1. Create RTCPeerConnection with a STUN server.
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     });
     pcRef.current = pc;
 
-    // 2. When remote track arrives, attach it to the video element.
     pc.ontrack = (event) => {
       console.log('Remote track received:', event);
       if (remoteVideoRef.current) {
@@ -29,7 +25,6 @@ const TrainerLivePreview = ({ traineeId }) => {
       }
     };
 
-    // 3. ICE candidate event: send candidates to signaling server.
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         console.log('Sending ICE candidate:', event.candidate);
@@ -37,7 +32,6 @@ const TrainerLivePreview = ({ traineeId }) => {
       }
     };
 
-    // 4. Connect to the signaling server as trainer.
     wsRef.current = new WebSocket(`ws://localhost:8080/?role=trainer&traineeid=${traineeId}`);
     wsRef.current.onopen = () => {
       console.log("Trainer signaling socket connected");
@@ -45,7 +39,6 @@ const TrainerLivePreview = ({ traineeId }) => {
       sendSignal({ type: 'request-offer' });
     };
 
-    // 5. Handle incoming messages from the trainee.
     wsRef.current.onmessage = async (event) => {
       let data;
       if (event.data instanceof Blob) {

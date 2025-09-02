@@ -19,7 +19,6 @@ app.use(function(req, res, next) {
 });
 
 app.use(expressValidator());
-//import other files
 var mongoose = require("./services/connection");
 var admin = require("./routes/admin");
 var login = require("./routes/login");
@@ -36,7 +35,6 @@ var dummy = require("./routes/dummy");
 const { upload, router: fileUploadRouter } = require('./routes/fileUpload');
 
 
-// Serve uploaded files under /uploads
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 

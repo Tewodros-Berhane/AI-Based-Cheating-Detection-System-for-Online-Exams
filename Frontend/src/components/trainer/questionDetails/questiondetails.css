@@ -1,18 +1,18 @@
-/* ─── Dashboard Scope ────────────────────────────────────────────── */
+
 .question-details-dashboard {
   background: #161b22;
   color:      #c9d1d9;
   padding:    24px;
 }
 
-/* Skeleton Loader */
+
 .question-details-dashboard .ant-skeleton-title,
 .question-details-dashboard .ant-skeleton-paragraph {
   background: #161b22 !important;
   color:      #c9d1d9 !important;
 }
 
-/* Tabs */
+
 .question-details-dashboard .ant-tabs-nav-wrap {
   background:    #0d1117 !important;
   border-bottom: 1px solid #30363d !important;
@@ -27,7 +27,7 @@
   background: #58a6ff !important;
 }
 
-/* Descriptions */
+
 .question-details-dashboard .ant-descriptions-bordered {
   background: #0d1117 !important;
   border:     1px solid #30363d !important;
@@ -43,7 +43,7 @@
   border-bottom: 1px solid #30363d !important;
 }
 
-/* Body & Image */
+
 .question-details-dashboard .questionDetailsBody,
 .question-details-dashboard .questionDetailsImageContainer {
   background:    #0d1117;
@@ -58,7 +58,7 @@
   border-radius: 4px;
 }
 
-/* Option Rows */
+
 .question-details-dashboard .QuestionDetailsOptions {
   background:    #0d1117;
   border:        1px solid #30363d;
@@ -67,14 +67,14 @@
   margin-bottom: 24px;
 }
 
-/* ─── TEXT COLORS ─────────────────────────────────────────────────── */
-/* Force all option text (labels, bodies, descriptions) to light gray */
+
+
 .question-details-dashboard .QuestionDetailsOptions,
 .question-details-dashboard .QuestionDetailsOptions .ant-col {
   color: #c9d1d9 !important;
 }
 
-/* Divider & Icons */
+
 .question-details-dashboard .ant-divider {
   border-top: 1px solid #30363d !important;
 }

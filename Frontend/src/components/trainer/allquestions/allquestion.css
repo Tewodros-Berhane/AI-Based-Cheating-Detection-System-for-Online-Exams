@@ -1,16 +1,16 @@
-/* ─── Dashboard Wrapper ─────────────────────────────────────────────────── */
+
 .questions-dashboard.admin-table-container {
   background: #161b22;
   color:      #c9d1d9;
   padding:    24px;
 }
 
-/* ─── Header Title ──────────────────────────────────────────────────────── */
+
 .questions-dashboard .register-trainer-form-header .ant-typography {
   color: #c9d1d9 !important;
 }
 
-/* ─── Table Overrides ───────────────────────────────────────────────────── */
+
 .questions-dashboard .ant-table {
   background: #0d1117 !important;
   border:     1px solid #30363d !important;
@@ -29,7 +29,7 @@
   background: #21262d !important;
 }
 
-/* ─── Filter Dropdown ───────────────────────────────────────────────────── */
+
 .questions-dashboard .ant-table-filter-dropdown {
   background: #161b22 !important;
   border:     1px solid #30363d !important;
@@ -47,12 +47,12 @@
   opacity: 0.85;
 }
 
-/* ─── Highlight in Search ───────────────────────────────────────────────── */
+
 .questions-dashboard .ant-table-tbody tr .ant-table-cell .highlight {
   background-color: #ffc069 !important;
 }
 
-/* ─── Primary & Danger Buttons ──────────────────────────────────────────── */
+
 .questions-dashboard .ant-btn {
   background:    #238636 !important;
   border-color: #238636 !important;
@@ -72,12 +72,12 @@
   border-color: #d44441 !important;
 }
 
-/* ─── Icons ─────────────────────────────────────────────────────────────── */
+
 .questions-dashboard .anticon {
   color: #8b949e !important;
 }
 
-/* ─── Popconfirm/Popover ───────────────────────────────────────────────── */
+
 .questions-dashboard .ant-popover,
 .questions-dashboard .ant-popconfirm-inner,
 .questions-dashboard .ant-popover-content {
@@ -97,12 +97,12 @@
   border-color: #da3633 !important;
 }
 
-/* ─── Divider ──────────────────────────────────────────────────────────── */
+
 .questions-dashboard .ant-divider-horizontal {
   border-top: 1px solid #30363d !important;
 }
 
-/* ─── Alerts ───────────────────────────────────────────────────────────── */
+
 .questions-dashboard .ant-alert {
   background: #0d1117 !important;
   border:     1px solid #30363d !important;
@@ -114,7 +114,7 @@
   color: #8b949e !important;
 }
 
-/* ─── Scrollbars (optional polish) ─────────────────────────────────────── */
+
 .questions-dashboard ::-webkit-scrollbar {
   width: 8px;
 }
@@ -129,8 +129,8 @@
   background: #424a53;
 }
 
-/* ─── NewQuestion Form Overrides (scoped) ──────────────────────────────── */
-/* Form container & labels */
+
+
 .questions-dashboard .register-subject-form,
 .questions-dashboard .register-trainer-form-body {
   background: #161b22;
@@ -140,7 +140,7 @@
   color: #c9d1d9 !important;
 }
 
-/* Inputs, TextAreas, Selectors, InputNumber */
+
 .questions-dashboard .ant-input,
 .questions-dashboard .ant-input-affix-wrapper,
 .questions-dashboard .ant-input-textarea textarea,
@@ -159,7 +159,7 @@
   opacity: 1;
 }
 
-/* Hover & Focus */
+
 .questions-dashboard .ant-input:hover,
 .questions-dashboard .ant-input-affix-wrapper:hover,
 .questions-dashboard .ant-select-selector:hover,
@@ -174,7 +174,7 @@
   box-shadow:   0 0 0 2px rgba(88,166,255,0.2) !important;
 }
 
-/* Dropdown menus */
+
 .questions-dashboard .ant-select-dropdown,
 .questions-dashboard .ant-select-dropdown-menu {
   background: #0d1117 !important;
@@ -190,7 +190,7 @@
   color:      #58a6ff !important;
 }
 
-/* Checkboxes */
+
 .questions-dashboard .ant-checkbox .ant-checkbox-inner {
   background: #0d1117 !important;
   border:     1px solid #30363d !important;
@@ -204,7 +204,7 @@
   border-bottom: 1px solid #30363d !important;
 }
 
-/* Divider & Icons */
+
 .questions-dashboard .ant-divider-horizontal {
   border-top: 1px solid #30363d !important;
 }

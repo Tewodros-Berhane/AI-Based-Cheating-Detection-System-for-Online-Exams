@@ -111,7 +111,6 @@ class Candidates extends Component {
     });
   };
 
-  // New function to open the preview modal for a candidate.
   handlePreview = (candidate) => {
     this.setState({ previewVisible: true, previewCandidate: candidate });
   };
@@ -194,7 +193,6 @@ class Candidates extends Component {
           loading={this.state.loading}
         />
 
-        {/* Modal to display candidate's live feed */}
         <Modal
           title="Student Live Feed"
           visible={this.state.previewVisible}

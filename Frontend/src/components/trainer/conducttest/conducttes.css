@@ -41,19 +41,19 @@
 
 
 
-/* ─── GitHub-Dark Theme for ConductTest Views ───────────────────────── */
+
 .conduct-test-dashboard {
   background:        #161b22;
   color:             #c9d1d9;
 }
 
-/* Ensure all nested text is light */
+
 .conduct-test-dashboard,
 .conduct-test-dashboard * {
   color:            #c9d1d9 !important;
 }
 
-/* ─── Inputs, TextAreas, Selects, Buttons ──────────────────────────── */
+
 .conduct-test-dashboard .ant-input,
 .conduct-test-dashboard .ant-input-affix-wrapper,
 .conduct-test-dashboard .ant-input-textarea textarea,
@@ -112,7 +112,7 @@
 }
 
 
-/* Placeholder text */
+
 .conduct-test-dashboard .ant-input::placeholder,
 .conduct-test-dashboard .ant-input-textarea textarea::placeholder,
 .conduct-test-dashboard .ant-input-number input::placeholder {
@@ -120,14 +120,14 @@
   opacity:          1 !important;
 }
 
-/* Button hover/focus */
+
 .conduct-test-dashboard .ant-btn:hover,
 .conduct-test-dashboard .ant-btn:focus {
   background:       rgba(56, 139, 253, 0.15) !important;
   border-color:    #58a6ff !important;
 }
 
-/* ─── Tabs ─────────────────────────────────────────────────────────── */
+
 .conduct-test-dashboard .ant-tabs-nav-wrap {
   background:       #0d1117 !important;
   border-bottom:    1px solid #30363d !important;
@@ -142,10 +142,10 @@
   background:       #58a6ff !important;
 }
 
-/* ─── Descriptions & Cards ────────────────────────────────────────── */
+
 .conduct-test-dashboard .ant-descriptions-bordered {
   background:       #161b22 !important;
-  /* border:           1px solid #30363d !important; */
+  
 }
 .conduct-test-dashboard .ant-descriptions-item-label {
   color:            #8b949e !important;
@@ -156,7 +156,7 @@
   background:       #0d1117;
 }
 
-/* ─── Tables ───────────────────────────────────────────────────────── */
+
 .conduct-test-dashboard .ant-table {
   background:       #0d1117 !important;
   border:           1px solid #30363d !important;
@@ -175,7 +175,7 @@
   background:       #21262d !important;
 }
 
-/* Filter dropdowns */
+
 .conduct-test-dashboard .ant-table-filter-dropdown {
   background:       #161b22 !important;
   border:           1px solid #30363d !important;
@@ -185,7 +185,7 @@
   color:            #c9d1d9 !important;
 }
 
-/* ─── Modals & Popconfirms ───────────────────────────────────────── */
+
 .conduct-test-dashboard .ant-modal-content,
 .conduct-test-dashboard .ant-popconfirm-inner-content {
   background:       #161b22 !important;
@@ -216,7 +216,7 @@
   background:       #161b22 !important;
   border-top:       1px solid #30363d !important;
 }
-/* Modal buttons */
+
 .conduct-test-dashboard .ant-modal-content .ant-btn,
 .conduct-test-dashboard .ant-popconfirm-buttons .ant-btn {
   background:       #238636 !important;
@@ -229,7 +229,7 @@
   border-color:    #2ea043 !important;
 }
 
-/* ─── Scrollbars (Optional) ─────────────────────────────────────── */
+
 .conduct-test-dashboard ::-webkit-scrollbar {
   width:            8px;
 }

@@ -16,31 +16,31 @@ class Feedback extends Component {
             star: 0,
             comment: '',
             loading: false,
-            error: '' // For storing error messages
+            error: '' 
         };
     }
 
     handleStarChange = (star) => {
         console.log(star);
-        this.setState({ star: star, error: '' }); // Clear error when rating is selected
+        this.setState({ star: star, error: '' }); 
     };
 
     onCommentChange = (comment) => {
-        this.setState({ comment: comment.target.value, error: '' }); // Clear error when comment is typed
+        this.setState({ comment: comment.target.value, error: '' }); 
     };
 
     submitFeedback = () => {
-        this.setState({ loading: true, error: '' }); // Reset loading and error
+        this.setState({ loading: true, error: '' }); 
 
         let { star, comment } = this.state;
 
-        // Validation: Check if both star rating and comment are provided
+        
         if (star === 0 || comment.trim().length === 0) {
             this.setState({ loading: false, error: 'Both rating and comment are required!' });
-            return; // Prevent form submission if validation fails
+            return; 
         }
 
-        // If validation passes, submit feedback
+        
         Post({
             url: apis.GIVE_FEEDBACK,
             data: {
@@ -79,7 +79,7 @@ class Feedback extends Component {
                     </span>
                 </div>
 
-                {/* Show error message if validation fails */}
+                {}
                 {this.state.error && <div className="error-message" style={{ color: 'red' }}>{this.state.error}</div>}
 
                 <div className="pp">

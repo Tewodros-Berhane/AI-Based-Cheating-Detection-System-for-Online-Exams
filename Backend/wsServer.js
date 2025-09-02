@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-const clients = {}; // Store connected clients
+const clients = {}; 
 
 wss.on('connection', (ws, req) => {
     const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
@@ -26,7 +26,6 @@ wss.on('connection', (ws, req) => {
         console.log(`Received from ${role} (${traineeId}):`, parsedMessage.type);
 
         if (role === 'trainee') {
-            // Send to trainer if connected
             if (clients[traineeId].trainer) {
                 clients[traineeId].trainer.send(message);
             }

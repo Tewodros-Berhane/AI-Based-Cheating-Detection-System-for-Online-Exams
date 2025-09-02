@@ -39,8 +39,8 @@
 }
 .instruction-page-inner{
     width:100%;
-    background-color: #e7e8e9; /* Dark background for the instruction box */
-    border: 3px solid #e7e8e9; /* Green border for the instruction box */
+    background-color: #e7e8e9; 
+    border: 3px solid #e7e8e9; 
     border-radius: 5px;
     padding:10px;
 }
@@ -59,7 +59,6 @@
 }
 
 .side-panel-in-exam-dashboard{
-    /*background: rgb(65,170,200);*/
     background: #2b2929;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
     position: fixed;
@@ -94,7 +93,6 @@
 }
 .clock-container{
     font-size: 35px;
-    /* font-family: ; */
     letter-spacing: 7px;
     color: rgb(0, 0, 0);
 }
@@ -122,9 +120,7 @@
     background: rgb(255, 255, 255);
     padding:30px; 
     height: auto;  
-    /* display: flex;
-    align-items: center;
-    justify-content: left; */
+    
 }
 
 
@@ -171,21 +167,3 @@
 }
 
 
-
-/* @media(max-device-width : 768px){
-    .Test-portal-not-started-yet-inner{
-        width:90%;
-        min-height: 400px;
-        margin-left: 5%;
-    }
-    .question-holder{
-        width: 100%;
-    }
-}
-.good-luck {
-    text-align: center;
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #fcfffc; 
-    margin-top: 40px;
-  } */
