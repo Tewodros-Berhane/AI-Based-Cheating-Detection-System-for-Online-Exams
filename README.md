@@ -16,8 +16,6 @@ Revolutionizing academic integrity in online exams, this AI-powered system detec
   - Whisper/murmur detection using audio frequency analysis  
 - **Real-Time Alerts**  
   Immediate notifications for suspicious activity during exams  
-- **Ethiopian Exam Integration**  
-  Optimized for GAT, Exit Exams, and university assessments  
 - **Privacy-First Design**  
   Minimal data retention with encrypted streams  
 
