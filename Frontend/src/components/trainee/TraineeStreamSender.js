@@ -2,9 +2,8 @@
 import React, { useEffect, useRef, useContext } from 'react';
 import { MediaStreamContext } from '../../contexts/MediaStreamContext';
 import apis from '../../services/Apis';
-import { Post } from '../../services/axiosCall';
 
-const TraineeStreamSender = ({ traineeId, testid }) => {
+const TraineeStreamSender = ({ traineeId, testId }) => {
   const localVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const socketRef = useRef(null);
@@ -24,9 +23,22 @@ const TraineeStreamSender = ({ traineeId, testid }) => {
 
 
         // 2. Create RTCPeerConnection and add local tracks
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        });
+        const iceServers = [];
+        if (apis.RTC_STUN_URLS.length > 0) {
+          iceServers.push({ urls: apis.RTC_STUN_URLS });
+        }
+        if (
+          apis.RTC_TURN_URLS.length > 0 &&
+          apis.RTC_TURN_USERNAME &&
+          apis.RTC_TURN_CREDENTIAL
+        ) {
+          iceServers.push({
+            urls: apis.RTC_TURN_URLS,
+            username: apis.RTC_TURN_USERNAME,
+            credential: apis.RTC_TURN_CREDENTIAL
+          });
+        }
+        const pc = new RTCPeerConnection({ iceServers });
         peerConnectionRef.current = pc;
         stream.getTracks().forEach((track) => {
           pc.addTrack(track, stream);
@@ -40,7 +52,16 @@ const TraineeStreamSender = ({ traineeId, testid }) => {
         };
 
         // 4. Connect to signaling server as trainee (using local WebSocket)
-        socketRef.current = new WebSocket(`ws://localhost:8080/?role=trainee&traineeid=${traineeId}`);
+        const params = new URLSearchParams({
+          role: 'trainee',
+          traineeid: traineeId
+        });
+        if (testId) {
+          params.set('testid', testId);
+          params.set('sessionid', `${testId}:${traineeId}`);
+        }
+
+        socketRef.current = new WebSocket(`${apis.WS_SIGNALING_URL}/?${params.toString()}`);
         socketRef.current.onopen = async () => {
           console.log("Trainee signaling socket connected");
           // Create and send initial offer
@@ -98,7 +119,7 @@ const TraineeStreamSender = ({ traineeId, testid }) => {
         socketRef.current.close();
       }
     };
-  }, [traineeId, setMediaStream]);
+  }, [traineeId, testId, setMediaStream]);
 
   return (
     <div>

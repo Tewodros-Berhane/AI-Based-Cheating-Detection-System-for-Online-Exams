@@ -1,7 +1,7 @@
 import React from 'react';
 import './feedback.css';
-import { Rate } from 'antd';
-import { Modal, Button } from 'antd';
+import { Rate } from 'antd-compat';
+import { Modal, Button } from 'antd-compat';
 
 
 export default class Feedback extends React.Component {
@@ -28,4 +28,5 @@ export default class Feedback extends React.Component {
         )
     }
 }
+
 

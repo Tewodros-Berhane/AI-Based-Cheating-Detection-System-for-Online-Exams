@@ -2,7 +2,7 @@ import React,{ useState, useEffect } from 'react'
 import './portal.css';
 import Sidepanel from './sidepanel'
 import Question from './question';
-import {Drawer} from "antd";
+import {Drawer} from "antd-compat";
 
 
 function getWindowDimensions() {
@@ -30,32 +30,33 @@ function useWindowDimensions() {
 
 
 export default function TestBoard(props) {
-    const { height, width } = useWindowDimensions();
+    const { width } = useWindowDimensions();
     const [visible,setVisible]=useState(false);
+    const isMobile = width <= 980;
 
     let onClose=()=>setVisible(false);
     let onOpen=()=>setVisible(true);
-    if(width>768){
+    if(!isMobile){
         return (
             <div className="exam-dashboard-wrapper">
-                <Question mode={width>768?"desktop":"mobile"} triggerSidebar={onOpen}/>
-                <Sidepanel mode={width>768?"desktop":"mobile"} />
+                <Question mode="desktop" triggerSidebar={onOpen}/>
+                <Sidepanel mode="desktop" />
             </div>
         )
     }
     else{
         return (
             <div className="exam-dashboard-wrapper">
-                <Question mode={width>768?"desktop":"mobile"} triggerSidebar={onOpen} />
+                <Question mode="mobile" triggerSidebar={onOpen} />
                 <Drawer
                     title="Toolbar"
                     placement="right"
                     closable={true}
                     onClose={onClose}
-                    visible={visible}
+                    open={visible}
                     width="100%"
                 >
-                    <Sidepanel mode={width>768?"desktop":"mobile"}/>    
+                    <Sidepanel mode="mobile"/>    
                 </Drawer>
             </div>
         )

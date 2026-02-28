@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Alert from '../../common/alert';
 import apis from '../../../services/Apis';
 import { Post } from '../../../services/axiosCall';
-import { Icon, Button, Row, Col, Radio, Checkbox } from 'antd';
+import { Button, Row, Col, Checkbox, Tag } from 'antd-compat';
 import { switchQuestion, updateIsMarked, fetchTestdata } from '../../../actions/traineeAction';
 import './singleQuestion.css';
 import './portal.css';
@@ -19,7 +19,7 @@ class SingleQuestion extends React.Component {
     };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.setState((prevState) => {
       let t = 0;
       const s = prevState.options.map((d) => {
@@ -134,54 +134,66 @@ class SingleQuestion extends React.Component {
 
   render() {
     const opts = ['A', 'B', 'C', 'D', 'E'];
+    const currentQuestion = this.props.trainee.questions[this.props.trainee.activeQuestionIndex];
+    const totalQuestions = this.props.trainee.questions.length;
 
     return (
-      <div>
-          <Row className="question-header">
-            <Col span={2}>
-              <Button className="question-button">
-                {this.props.trainee.activeQuestionIndex + 1}
-              </Button>
-            </Col>
-            <Col span={22}>
-              <Radio.Group className="question-type">
-                <Radio.Button className="radio-button">
-                  {this.props.trainee.questions[this.props.trainee.activeQuestionIndex].anscount === 1 ? "Single answer" : "Multiple answers"}
-                </Radio.Button>
-                <Radio.Button className="radio-button">
-                  Marks: {this.props.trainee.questions[this.props.trainee.activeQuestionIndex].weightage}
-                </Radio.Button>
-              </Radio.Group>
-            </Col>
-          </Row>
-          <div className="question-body">
-            <h3>{this.props.trainee.questions[this.props.trainee.activeQuestionIndex].body}</h3>
-            {this.props.trainee.questions[this.props.trainee.activeQuestionIndex].quesimg && (
-              <img alt="Question" src={this.props.trainee.questions[this.props.trainee.activeQuestionIndex].quesimg} className="question-image" />
-            )}
+      <div className="single-question-shell">
+        <div className="question-header">
+          <div className="question-index">
+            <span>Question</span>
+            <strong>{this.props.trainee.activeQuestionIndex + 1}</strong>
           </div>
-          <div className="options">
-            <Row>
-              {this.state.options.map((d, i) => (
-                <Col span={24} key={i} className="option-col">
+          <div className="question-meta">
+            <Tag className="question-meta-tag">
+              {currentQuestion.anscount === 1 ? 'Single answer' : 'Multiple answers'}
+            </Tag>
+            <Tag className="question-meta-tag">
+              {`Marks: ${currentQuestion.weightage}`}
+            </Tag>
+            <Tag className="question-meta-tag subtle">
+              {`${this.props.trainee.activeQuestionIndex + 1} / ${totalQuestions}`}
+            </Tag>
+          </div>
+          {this.props.mode === 'mobile' && (
+            <Button className="open-sidebar-button" onClick={this.props.triggerSidebar}>
+              Open Panel
+            </Button>
+          )}
+        </div>
+        <div className="question-body">
+          <h3>{currentQuestion.body}</h3>
+          {currentQuestion.quesimg && (
+            <img alt="Question" src={currentQuestion.quesimg} className="question-image" />
+          )}
+        </div>
+        <div className="options">
+          <Row gutter={[0, 10]}>
+            {this.state.options.map((d, i) => (
+              <Col span={24} key={i} className="option-col">
+                <label className={`option-card ${d.checked ? 'selected' : ''}`}>
                   <Checkbox
                     checked={d.checked}
                     onChange={(e) => { this.onAnswerChange(i, e.target.checked, d._id) }}
                     className="option-checkbox"
-                  >
-                    <span className="option-label">{opts[i]}. {d.optbody}</span>
-                    {d.optimg && <img alt="Option" src={d.optimg} className="option-image" />}
-                  </Checkbox>
-                </Col>
-              ))}
-            </Row>
-          </div>
-          <div className="control-buttons">
-            <Button className="control-button previous-btn" onClick={this.previous}>Previous</Button>
-            <Button className="control-button mark-btn" onClick={this.mark}>{!this.props.trainee.answers[this.props.trainee.activeQuestionIndex].isMarked ? "Mark" : "Unmark"} Question</Button>
-            <Button className="control-button next-btn" onClick={this.next}>{this.state.AnswerSelected ? "Save & Next" : "Next"}</Button>
-          </div>
-        
+                  />
+                  <span className="option-index">{opts[i]}</span>
+                  <span className="option-label">{d.optbody}</span>
+                  {d.optimg && <img alt="Option" src={d.optimg} className="option-image" />}
+                </label>
+              </Col>
+            ))}
+          </Row>
+        </div>
+        <div className="control-buttons">
+          <Button className="control-button previous-btn" onClick={this.previous}>Previous</Button>
+          <Button className="control-button mark-btn" onClick={this.mark}>
+            {!this.props.trainee.answers[this.props.trainee.activeQuestionIndex].isMarked ? 'Flag Question' : 'Remove Flag'}
+          </Button>
+          <Button className="control-button next-btn" onClick={this.next}>
+            {this.state.AnswerSelected ? 'Save & Next' : 'Next'}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -196,3 +208,4 @@ export default connect(mapStateToProps, {
   updateIsMarked,
   fetchTestdata
 })(SingleQuestion);
+

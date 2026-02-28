@@ -1,108 +1,62 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { connect } from 'react-redux';
-import { LocaltestDone, fetchTestdata } from '../../../actions/traineeAction';
+import { fetchTestdata } from '../../../actions/traineeAction';
 import './portal.css';
-import apis from '../../../services/Apis';
-import { Post } from '../../../services/axiosCall';
 import Alert from '../../common/alert';
 import { MediaStreamContext } from '../../../contexts/MediaStreamContext';
+import { endTraineeTest } from '../../../services/traineeSession';
 
-const Clock = ({ trainee, LocaltestDone, fetchTestdata }) => {
-  const [localMinutes, setLocalMinutes] = useState(trainee.m_left);
-  const [localSeconds, setLocalSeconds] = useState(trainee.s_left);
+const Clock = ({ trainee, fetchTestdata }) => {
+  const [remainingSeconds, setRemainingSeconds] = useState(trainee.m_left * 60 + trainee.s_left);
   const { controlChannel, mediaStream, setMediaStream } = useContext(MediaStreamContext);
-  const finishSockRef = useRef(null);
-  const t_id = trainee.traineeid;
 
-
-  const [isWsReady, setIsWsReady] = useState(false);
-  
-    useEffect(() => {
-      const ws = new WebSocket(`ws://localhost:8081/?role=trainee&traineeid=${t_id}`);
-      
-      ws.onopen = () => {
-        finishSockRef.current = ws;
-        setIsWsReady(true);
-      };
-  
-      return () => {
-        setIsWsReady(false);
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.close();
-        }
-      };
-    }, [t_id]);
-
-
-  const endTest = () => {
-    Post({
-      url: `${apis.END_TEST}`,
-      data: {
-        testid: trainee.testid,
-        userid: trainee.traineeid
-      }
-    }).then((response) => {
-      if (response.data.success) {
-        if (controlChannel && controlChannel.readyState === 'open') {
-          controlChannel.send(JSON.stringify({ action: 'endTest' }));
-          console.log('🛑 Sent endTest to server');
-        }
-
-        const sendAIResult = () => {
-          if (
-            finishSockRef.current && 
-            finishSockRef.current.readyState === WebSocket.OPEN
-          ) {
-            finishSockRef.current.send(
-              JSON.stringify({ type: 'ai-result', t_id, behaviour: 'finished' })
-            );
-            console.log('📡 Finish exam relayed');
-          } else {
-            setTimeout(sendAIResult, 100); 
-          }
-        };
-        sendAIResult();
-
-        if (mediaStream) {
-          mediaStream.getTracks().forEach(track => track.stop());
-          setMediaStream(null);
-          console.log("Media stream stopped due to test end." ` ${mediaStream}`);
-        }
-
-        fetchTestdata(trainee.testid, trainee.traineeid);
-      } else {
-        Alert('error', 'Error!', response.data.message);
-      }
-    }).catch((error) => {
-      Alert('error', 'Error!', 'Error');
+  const endTest = useCallback(async () => {
+    const response = await endTraineeTest({
+      traineeId: trainee.traineeid,
+      testId: trainee.testid,
+      controlChannel,
+      mediaStream,
+      setMediaStream,
+      refreshTestState: fetchTestdata
     });
-  };
+
+    if (!response.success) {
+      Alert('error', 'Error!', response.message || 'Unable to end test.');
+    }
+  }, [
+    trainee.traineeid,
+    trainee.testid,
+    controlChannel,
+    mediaStream,
+    setMediaStream,
+    fetchTestdata
+  ]);
 
   useEffect(() => {
+    setRemainingSeconds(trainee.m_left * 60 + trainee.s_left);
+  }, [trainee.m_left, trainee.s_left]);
+
+  useEffect(() => {
+    if (remainingSeconds <= 0) {
+      endTest();
+      return undefined;
+    }
+
     const clockInterval = setInterval(() => {
-      setLocalSeconds((prevSeconds) => {
-        if (prevSeconds === 1 && localMinutes === 0) {
-          clearInterval(clockInterval);
-          endTest();
-          return 0;
-        }
-        
-        if (prevSeconds === 0) {
-          setLocalMinutes((prevMinutes) => prevMinutes - 1);
-          return 59;
-        }
-        
-        return prevSeconds - 1;
-      });
+      setRemainingSeconds((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(clockInterval);
-  }, [localMinutes]);
+  }, [remainingSeconds, endTest]);
+
+  const localMinutes = Math.floor(remainingSeconds / 60);
+  const localSeconds = remainingSeconds % 60;
 
   return (
     <div className="clock-wrapper">
+      <p className="clock-label">Time Remaining</p>
       <div className="clock-container">
-        {localMinutes.toString().padStart(2, '0')} : 
+        {localMinutes.toString().padStart(2, '0')} :
         {localSeconds.toString().padStart(2, '0')}
       </div>
     </div>
@@ -114,6 +68,5 @@ const mapStateToProps = state => ({
 });
 
 export default connect(mapStateToProps, {
-  LocaltestDone,
   fetchTestdata
 })(Clock);

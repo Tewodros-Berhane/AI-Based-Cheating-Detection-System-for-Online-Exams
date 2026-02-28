@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { Post } from '../../../services/axiosCall';
 import apis from '../../../services/Apis';
 import Alert from '../../common/alert';
-import { Rate, Input, Button } from 'antd';
+import { Rate, Input, Button } from 'antd-compat';
 import { FeedbackStatus } from '../../../actions/traineeAction';
 
 const { TextArea } = Input;
@@ -102,3 +102,4 @@ const mapStateToProps = (state) => ({
 export default connect(mapStateToProps, {
     FeedbackStatus
 })(Feedback);
+

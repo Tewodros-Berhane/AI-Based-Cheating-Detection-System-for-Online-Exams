@@ -1,15 +1,13 @@
 import React, { Component } from 'react';
 import './trainerRegister.css';
-import { Row, Col, Form, Icon, Input, Button, Select, Typography, Upload } from 'antd';
-import queryString from 'query-string';
+import { Row, Col, Form, Icon, Input, Button, Typography, Upload } from 'antd-compat';
 import apis from '../../../services/Apis';
 import { Post } from '../../../services/axiosCall';
 import Alert from '../../common/alert';
 import 'react-phone-input-2/lib/style.css';
 import PhoneInput from 'react-phone-input-2';
+import withRouter from '../../../utils/withRouter';
 
-
-const { Option } = Select;
 const { Title } = Typography;
 
 class TraineeRegisterForm extends Component {
@@ -24,10 +22,9 @@ class TraineeRegisterForm extends Component {
     }
 
     componentDidMount() {
-        let params = queryString.parse(this.props.location.search);
-        console.log(params);
+        const params = new URLSearchParams(this.props.location.search);
         this.setState({
-            testid: params.testid
+            testid: params.get('testid')
         });
     }
 
@@ -107,7 +104,7 @@ class TraineeRegisterForm extends Component {
                         <Form onSubmit={this.handleSubmit} className="login-form">
                             <Row>
                                 <Col span={12} style={{ padding: '5px' }}>
-                                    <Form.Item label="Name" hasFeedback>
+                                    <Form.Item label="Name">
                                         {getFieldDecorator('name', {
                                             rules: [{ required: true, message: 'Please input your name' },
                                                    ],
@@ -120,7 +117,7 @@ class TraineeRegisterForm extends Component {
                                     </Form.Item>
                                 </Col>
                                 <Col span={12} style={{ padding: '5px' }}>
-                                    <Form.Item label="Email Id" hasFeedback>
+                                    <Form.Item label="Email Id">
                                         {getFieldDecorator('email', {
                                             rules: [
                                                 {
@@ -141,7 +138,7 @@ class TraineeRegisterForm extends Component {
                                     </Form.Item>
                                 </Col>
                                 <Col span={12} style={{ padding: '5px' }}>
-                                    <Form.Item label="Phone Number" hasFeedback>
+                                    <Form.Item label="Phone Number">
                                         {getFieldDecorator('contact', {
                                             rules: [{ required: true, message: 'Please input your phone number!' }],
                                             getValueFromEvent: (value) => value,
@@ -154,7 +151,7 @@ class TraineeRegisterForm extends Component {
                                         )}
                                     </Form.Item>
 
-                                    <Form.Item label="Organisation" hasFeedback>
+                                    <Form.Item label="Organisation">
                                         {getFieldDecorator('organisation', {
                                             rules: [{
                                                 required: true,
@@ -169,7 +166,7 @@ class TraineeRegisterForm extends Component {
                                     </Form.Item>
                                 </Col>
                                 <Col span={12} style={{ padding: '5px' }}>
-                                    <Form.Item label="Location" hasFeedback>
+                                    <Form.Item label="Location">
                                         {getFieldDecorator('location', {
                                             rules: [{ required: true, message: 'Please input your location' }],
                                         })(
@@ -210,7 +207,7 @@ class TraineeRegisterForm extends Component {
                         </Form>
                         <hr></hr>
                         <p> <span style={{ color: 'red' }}  >NB:</span> The image you upload should be as latest as possible. Older images may not be recognized as you.</p>
-                        <p>To take this exam you should first install Safe Exam Browser in you machine. To download Safe Exam Browser click <a href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noopener noreferrer"><strong>here </strong></a>.</p>
+                        <p>Use the exam link sent to your email to start your test session.</p>
                     </div>
                     
                     :
@@ -224,4 +221,5 @@ class TraineeRegisterForm extends Component {
 }
 
 const TraineeRegister = Form.create({ name: 'Trainee Registration' })(TraineeRegisterForm);
-export default TraineeRegister;
+export default withRouter(TraineeRegister);
+

@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { Post } from '../../services/axiosCall';
 import apis from '../../services/Apis';
 import { fetchTestdata } from '../../actions/traineeAction';
-import { Modal, Button, message } from 'antd';
+import { Modal, Button, message } from 'antd-compat';
 import { MediaStreamContext } from '../../contexts/MediaStreamContext';
 
 export default function FaceRecognition({
@@ -228,3 +228,4 @@ export default function FaceRecognition({
     </>
   );
 }
+

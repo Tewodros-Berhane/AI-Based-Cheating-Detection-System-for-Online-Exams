@@ -1,17 +1,16 @@
-import React, { Component, Fragment } from 'react';
+import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router-dom';
-import { Typography, Skeleton, Form, Input, Button, Row, Col, Alert } from 'antd'; // Added Alert for better error display
+import { Typography, Skeleton, Form, Input, Button, Row, Col, Alert } from 'antd-compat'; // Added Alert for better error display
 import './portal.css';
 import Instruction from './instruction';
 import TestBoard from './testBoard';
 import Answer from '../answersheet/answer';
 import { fetchTraineedata, setTestDetsils, fetchTestdata, fetchTraineeByTraineeID, fetchTestByExamID } from '../../../actions/traineeAction'; // Assuming these actions update loading/error states in Redux
-import queryString from 'query-string';
 import { MediaStreamContext } from '../../../contexts/MediaStreamContext';
 import TraineeStreamSender from '../TraineeStreamSender';
 import WebRTCServer from '../WebRTCServer';
-import FaceRecognition from '../FaceRecognition';
+import TraineeSessionManager from '../TraineeSessionManager';
+import withRouter from '../../../utils/withRouter';
 
 const { Title } = Typography;
 
@@ -20,23 +19,25 @@ class MainPortal extends Component {
 
     constructor(props) {
         super(props);
-        let params = queryString.parse(this.props.location.search);
+        const params = new URLSearchParams(this.props.location.search);
+        const testid = params.get('testid');
+        const traineeid = params.get('traineeid');
         this.state = {
             // testDetails will now primarily be driven by Redux state once IDs are known,
             // but we can use it for initial URL params.
-            initialTestIdFromUrl: params.testid || null,
-            initialTraineeIdFromUrl: params.traineeid || null,
-            showIdForm: !params.testid || !params.traineeid,
-            formTestId: params.testid || '', // Pre-fill if available, though form is hidden then
-            formTraineeId: params.traineeid || '', // Pre-fill
+            initialTestIdFromUrl: testid || null,
+            initialTraineeIdFromUrl: traineeid || null,
+            showIdForm: !testid || !traineeid,
+            formTestId: testid || '', // Pre-fill if available, though form is hidden then
+            formTraineeId: traineeid || '', // Pre-fill
             formSubmissionError: null, // For errors specific to form submission (e.g., invalid IDs)
             attemptedFetchWithFormIds: false, // Flag to know if a fetch was tried with form IDs
         };
 
-        if (params.testid && params.traineeid) {
+        if (testid && traineeid) {
             // Dispatch action to set IDs in Redux store.
             // The actual data fetching will be triggered based on Redux state or in componentDidMount.
-            this.props.setTestDetsils(params.testid, params.traineeid);
+            this.props.setTestDetsils(testid, traineeid);
         }
     }
 
@@ -143,10 +144,10 @@ handleIdSubmit = async (e) => {
     this.props.fetchTraineedata(traineeMongoId);
     
     // 4. Update URL
-    const newSearch = queryString.stringify({
+    const newSearch = new URLSearchParams({
       testid: testMongoId,
       traineeid: traineeMongoId
-    });
+    }).toString();
     this.props.history.push(`${this.props.location.pathname}?${newSearch}`);
 
   } catch (error) {
@@ -300,7 +301,7 @@ handleIdSubmit = async (e) => {
             return (
                 <div className="Test-portal-not-started-yet-wrapper">
                     <div className="Test-portal-not-started-yet-inner">
-                        <Title className="Test-portal-not-started-yet-inner-message" style={{ color: '#24292f' }} level={4}>The Exam is Over!<br /> The examiner has ended the exam.</Title>
+                        <Title className="Test-portal-not-started-yet-inner-message" style={{ color: '#eef4ff' }} level={4}>The Exam is Over!<br /> The examiner has ended the exam.</Title>
                     </div>
                 </div>
             );
@@ -309,7 +310,7 @@ handleIdSubmit = async (e) => {
             return (
                 <div className="Test-portal-not-started-yet-wrapper">
                     <div className="Test-portal-not-started-yet-inner">
-                        <Title className="Test-portal-not-started-yet-inner-message" style={{ color: '#24292f' }} level={4}>The exam has not started yet. You will be redirected once the exam starts.</Title>
+                        <Title className="Test-portal-not-started-yet-inner-message" style={{ color: '#eef4ff' }} level={4}>The exam has not started yet. You will be redirected once the exam starts.</Title>
                     </div>
                 </div>
             );
@@ -317,6 +318,7 @@ handleIdSubmit = async (e) => {
         if (startedWriting) {
             return (
                 <div>
+                    {traineeid && <TraineeSessionManager traineeId={traineeid} testId={testid} />}
                     <TestBoard />
                     {traineeid && testid &&
                         <TraineeStreamSender traineeId={traineeid} testId={testid} />
@@ -347,3 +349,4 @@ export default withRouter(connect(mapStateToProps, {
     fetchTraineeByTraineeID,
     fetchTestByExamID,
 })(MainPortal));
+
