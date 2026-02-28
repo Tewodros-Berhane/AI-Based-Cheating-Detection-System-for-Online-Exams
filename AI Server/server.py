@@ -3,6 +3,7 @@ import asyncio
 import json
 import io
 import wave
+import os
 
 from aiohttp import web
 import numpy as np
@@ -17,6 +18,12 @@ from models.Head_movement import GAZE_LABELS, LIP_LABELS
 
 suspicious_counts = {}
 REPETITION_THRESHOLD = 500
+AI_SERVER_PORT = int(os.getenv("AI_SERVER_PORT", "5020"))
+AI_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("AI_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
 
 def safe_send(dc, payload, label):
     """
@@ -249,13 +256,15 @@ async def on_shutdown(app):
     pcs.clear()
 
 app = web.Application()
-cors = aiohttp_cors.setup(app, defaults={
-    "http://localhost:3000": aiohttp_cors.ResourceOptions(
+cors_defaults = {
+    origin: aiohttp_cors.ResourceOptions(
         allow_credentials=True,
         expose_headers="*",
         allow_headers="*"
     )
-})
+    for origin in AI_ALLOWED_ORIGINS
+}
+cors = aiohttp_cors.setup(app, defaults=cors_defaults)
 offer_route = app.router.add_post("/offer", offer)
 cors.add(offer_route)
 app.on_shutdown.append(on_shutdown)
@@ -263,5 +272,5 @@ app.on_shutdown.append(on_shutdown)
 
 
 if __name__ == "__main__":
-    print("======== Starting aiortc server on port 5020 ========")
-    web.run_app(app, port=5020)
+    print(f"======== Starting aiortc server on port {AI_SERVER_PORT} ========")
+    web.run_app(app, port=AI_SERVER_PORT)
