@@ -10,6 +10,12 @@ Revolutionizing academic integrity in online exams, this AI-powered system detec
 
 ---
 
+## Docker Deployment
+
+For full Docker Desktop setup and one-command startup instructions, see:
+
+- [docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md)
+
 ## Key Features 🚨
 - **Multi-Modal Detection**  
   - Head pose estimation & gaze tracking via computer vision  
