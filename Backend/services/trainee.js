@@ -1,4 +1,5 @@
 const path = require('path');
+var config = require('config');
 var TraineeEnterModel = require("../models/trainee");
 var TestPaperModel = require("../models/testpaper");
 var FeedbackModel = require("../models/feedback");
@@ -7,6 +8,22 @@ var QuestionModel = require("../models/questions");
 var options = require("../models/option");
 var AnswersheetModel = require("../models/answersheet");
 var AnswersModel = require("../models/answers");
+var logger = require("./logger");
+const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMachine");
+
+let getFrontendBaseUrl = (req) => {
+    if (config.has('services.frontendBaseUrl')) {
+        let configured = config.get('services.frontendBaseUrl') || '';
+        if (configured) {
+            return configured.replace(/\/+$/, '');
+        }
+    }
+    return `${req.protocol}://${req.get('host')}`;
+};
+
+let buildTestLink = (req, testid, traineeid) => {
+    return `${getFrontendBaseUrl(req)}/trainee/taketest?testid=${testid}&traineeid=${traineeid}`;
+};
 
 let traineeenter = (req, res, next) => {
   // ── Validate incoming fields ──────────────────────────────────────────────
@@ -88,7 +105,7 @@ let traineeenter = (req, res, next) => {
             return;
         }
 
-        const testLink = `${req.protocol}://localhost:3000/trainee/taketest?testid=${testid}&traineeid=${u._id}`;
+        const testLink = buildTestLink(req, testid, u._id);
         // const logoUrl = `${req.protocol}://${req.get('host')}/logo.jpg`;
         const examID = test.examID;
         const traineeID = u.traineeID;
@@ -119,15 +136,10 @@ let traineeenter = (req, res, next) => {
                 </div>
 
                 <h3 style="color: #58a6ff; margin-top: 25px;">Important Instructions</h3>
-                <p>Please download and keep the attached file named <strong>trainee_exam_config.seb</strong>. This file is essential to launch and authenticate your test environment.</p>
                 <ul style="padding-left: 20px; line-height: 1.6;">
-                <li>You must download this file to start taking the Exam.</li>
-                <li>After you download this file you will open it and you will be asked to enter a password.</li>
-                <li>The password is: <strong>123123123</strong></li>
-                <li>After you enter the password, You will be asked to enter your ID and the Exam ID that is given to you above.</li>
-                <li>Do not rename or alter the file in any way.</li>
-                <li>Keep it secure and do not share it with anyone.</li>
-                <li>If you lose this file, you may not be able to proceed with the test.</li>
+                <li>Use only the secure exam link below to join your exam session.</li>
+                <li>Do not share this link with anyone.</li>
+                <li>Join a few minutes early and verify your camera and microphone permissions.</li>
                 </ul>
 
                 <div style="margin: 25px 0; text-align: center;">
@@ -150,10 +162,6 @@ let traineeenter = (req, res, next) => {
             htmlContent,
             [
                 {
-                    filename: 'trainee_exam_config.seb',
-                    path: path.join(__dirname, '../config/trainee_exam_config.seb') 
-                },
-                {
                     filename: 'logo.jpg',
                     path: path.join(__dirname, '../public/logo.jpg'),
                     cid: 'examshieldlogo' 
@@ -175,9 +183,6 @@ let traineeenter = (req, res, next) => {
       res.status(500).json({ success: false, message: 'Server error!' });
     });
 };
-
-module.exports = traineeenter;
-
 
 let correctAnswers = (req,res,next)=>{
     var _id = req.body._id;
@@ -295,7 +300,7 @@ let resendmail = (req, res, next) => {
           });
         }
 
-        const testLink = `${req.protocol}://localhost:3000/trainee/taketest?testid=${info.testid}&traineeid=${info._id}`;
+        const testLink = buildTestLink(req, info.testid, info._id);
         // const logoUrl = `${req.protocol}://${req.get('host')}/logo.jpg`;
 
         const htmlContent = `
@@ -321,15 +326,10 @@ let resendmail = (req, res, next) => {
                 </div>
 
                 <h3 style="color: #58a6ff; margin-top: 25px;">Important Instructions</h3>
-                <p>Please download and keep the attached file named <strong>trainee_exam_config.seb</strong>. This file is essential to launch and authenticate your test environment.</p>
                 <ul style="padding-left: 20px; line-height: 1.6;">
-                <li>You must download this file to start taking the Exam.</li>
-                <li>After you download this file you will open it and you will be asked to enter a password.</li>
-                <li>The password is: <strong>123123123</strong></li>
-                <li>After you enter the password, You will be asked to enter your ID and the Exam ID that is given to you above.</li>
-                <li>Do not rename or alter the file in any way.</li>
-                <li>Keep it secure and do not share it with anyone.</li>
-                <li>If you lose this file, you may not be able to proceed with the test.</li>
+                <li>Use only the secure exam link below to join your exam session.</li>
+                <li>Do not share this link with anyone.</li>
+                <li>Join a few minutes early and verify your camera and microphone permissions.</li>
                 </ul>
 
                 <div style="margin: 25px 0; text-align: center;">
@@ -350,10 +350,6 @@ let resendmail = (req, res, next) => {
           'You’ve been registered—please view this email in HTML format.',
           htmlContent,
           [
-            {
-                filename: 'trainee_exam_config.seb',
-                path: path.join(__dirname, '../config/trainee_exam_config.seb')
-            },
             {
                 filename: 'logo.jpg',
                 path: path.join(__dirname, '../public/logo.jpg'),
@@ -429,77 +425,74 @@ let Testquestions = (req,res,next)=>{
 
 }
 
-let Answersheet = (req,res,next)=>{
+let Answersheet = async (req,res,next)=>{
     var userid = req.body.userid;
     var testid = req.body.testid;
-    var p1= TraineeEnterModel.find({_id:userid,testid:testid});
-    var p2 = TestPaperModel.find({_id:testid,testbegins : true, testconducted : false});
-    
-    Promise.all([p1,p2]).then((info)=>{
-        if(info[0].length && info[1].length){
-            AnswersheetModel.find({userid:userid,testid:testid}).then((data)=>{
-                if(data.length){
-                    res.json({
-                        success : true,
-                        message : 'Answer Sheet already exists!',
-                        data : data
-                    })
-                }
-                else{ 
-                    var qus = info[1][0].questions;
-                    var answer = qus.map((d,i)=>{
-                        return({
-                            questionid:d,
-                            chosenOption:[],
-                            userid:userid
-                        })
-                    })
-                    AnswersModel.insertMany(answer,(err,ans)=>{
-                        if(err){
-                            console.log(err);
-                            res.status(500).json({
-                                success : false,
-                                message : "Unable to create Answersheet!"
-                            })
-                        }else{
-                            var startTime = new Date();
-                            var tempdata = AnswersheetModel({
-                                startTime:startTime,
-                                questions : qus,
-                                answers:ans,
-                                testid:testid,
-                                userid:userid
-                            })
-                            tempdata.save().then((Answersheet)=>{
-                                res.json({
-                                    success : true,
-                                    message : 'Test has started!'
-                                })
 
-                            }).catch((error)=>{
-                                res.status(500).json({
-                                    success : false,
-                                    message : "Unable to fetch details"
-                                })
-                            })
-                        }
-                    })
-                }
-            })
-        }
-        else{
-            res.json({
+    try{
+        const [trainee, test] = await Promise.all([
+            TraineeEnterModel.findOne({_id:userid,testid:testid},{_id:1}),
+            TestPaperModel.findById(testid,{questions:1,testbegins:1,testconducted:1,isResultgenerated:1})
+        ]);
+
+        if(!trainee || !test){
+            return res.json({
                 success : false,
                 message :'Invalid URL'
-            })
+            });
         }
-    }).catch((err)=>{
-        console.log(err)
+
+        const gate = canApplyAction(test, ExamActions.TRAINEE_START);
+        if(!gate.ok){
+            return res.json({
+                success : false,
+                message : gate.reason,
+                state : gate.state
+            });
+        }
+
+        const existing = await AnswersheetModel.find({userid:userid,testid:testid});
+        if(existing.length){
+            return res.json({
+                success : true,
+                message : 'Answer Sheet already exists!',
+                data : existing
+            });
+        }
+
+        var qus = test.questions;
+        var answer = qus.map((d,i)=>{
+            return({
+                questionid:d,
+                chosenOption:[],
+                userid:userid
+            })
+        });
+        const ans = await AnswersModel.insertMany(answer);
+        var startTime = new Date();
+        var tempdata = AnswersheetModel({
+            startTime:startTime,
+            questions : qus,
+            answers:ans,
+            testid:testid,
+            userid:userid
+        });
+        await tempdata.save();
+        return res.json({
+            success : true,
+            message : 'Test has started!'
+        });
+    }catch(err){
+        logger.error('create_answersheet_failed', {
+            userId: userid,
+            testId: testid,
+            error: logger.normalizeError(err)
+        });
         res.status(500).json({
             success : false,
             message : "Unable to fetch details"
-        })
-    })
+        });
+    }
 }
 
 let flags = (req,res,next)=>{
@@ -533,7 +526,8 @@ let flags = (req,res,next)=>{
                                 testconducted:info[2].testconducted,
                                 startedWriting:startedWriting,
                                 pending : pending,
-                                completed : true
+                                completed : true,
+                                examState: deriveExamState(info[2])
                             }
                         })
                     }).catch((error)=>{
@@ -551,7 +545,8 @@ let flags = (req,res,next)=>{
                             testconducted:info[2].testconducted,
                             startedWriting:startedWriting,
                             pending : pending,
-                            completed : info[0].completed
+                            completed : info[0].completed,
+                            examState: deriveExamState(info[2])
                         }
                     })
                 }
@@ -565,7 +560,8 @@ let flags = (req,res,next)=>{
                         testconducted:info[2].testconducted,
                         startedWriting:startedWriting,
                         pending : pending,
-                        completed : false
+                        completed : false,
+                        examState: deriveExamState(info[2])
                     }
                 })
 
@@ -632,91 +628,122 @@ let chosenOptions = (req,res,next)=>{
 
 }
 
-let UpdateAnswers = (req,res,next)=>{
+let UpdateAnswers = async (req,res,next)=>{
     var testid = req.body.testid;
     var userid = req.body.userid;
     var questionid = req.body.qid;
     var newAnswer = req.body.newAnswer;
-    const p1 = TestPaperModel.findById(testid,{duration : 1});
-    const p2 = AnswersheetModel.findOne({testid : testid,userid:userid,completed : false},{_id:1,startTime:1});
-    
     var present = new Date();
-    Promise.all([p1,p2])
-    .then((info)=>{
-        if(info[1]){
-            var pending=null;
-            pending = info[0].duration*60 - ((present - info[1].startTime)/(1000))
-            if(pending>0){
-                AnswersModel.findOneAndUpdate({questionid : questionid,userid:userid},{chosenOption : newAnswer}).then((info)=>{
-                    console.log(info)
-                    if(info){
-                        res.json({
-                            success : true,
-                            message : 'Answer Updated',
-                            data : info
-                        })
-                    }else{
-                        res.json({
-                            success : false,
-                            message : 'Question is required!'
-                        })
-                    }
-                   
-                }).catch((error)=>{
-                    console.log(error)
-                    res.status(500).json({
-                        success : false,
-                        message : "Error occured!"
-                    })
-                })
-            }else{
-                AnswersheetModel.findByIdAndUpdate({testid : testid,userid:userid},{completed : true}).then(()=>{
-                    res.json({
-                        success : false,
-                        message : 'Time is up!'
-                    })
-                }).catch((error)=>{
-                    res.status(500).json({
-                        success : false,
-                        message : "Error occured!"
-                    })
-                })
-            }   
-        }else{
-            res.json({
+
+    try{
+        const [test, answerSheet] = await Promise.all([
+            TestPaperModel.findById(testid,{duration : 1,testbegins:1,testconducted:1,isResultgenerated:1}),
+            AnswersheetModel.findOne({testid : testid,userid:userid,completed : false},{_id:1,startTime:1})
+        ]);
+
+        if(!test){
+            return res.json({
+                success : false,
+                message : 'Invalid test id.'
+            });
+        }
+
+        const gate = canApplyAction(test, ExamActions.TRAINEE_UPDATE_ANSWER);
+        if(!gate.ok){
+            return res.json({
+                success : false,
+                message : gate.reason,
+                state : gate.state
+            });
+        }
+
+        if(!answerSheet){
+            return res.json({
                 success : false,
                 message : 'Unable to update answer'
-            })
+            });
         }
-    }).catch((error)=>{
+
+        var pending = test.duration*60 - ((present - answerSheet.startTime)/(1000));
+        if(pending>0){
+            const info = await AnswersModel.findOneAndUpdate({questionid : questionid,userid:userid},{chosenOption : newAnswer});
+            if(info){
+                return res.json({
+                    success : true,
+                    message : 'Answer Updated',
+                    data : info
+                });
+            }
+            return res.json({
+                success : false,
+                message : 'Question is required!'
+            });
+        }
+
+        await AnswersheetModel.findOneAndUpdate({testid : testid,userid:userid},{completed : true});
+        return res.json({
+            success : false,
+            message : 'Time is up!'
+        });
+    }catch(error){
+        logger.error('update_answer_failed', {
+            userId: userid,
+            testId: testid,
+            questionId: questionid,
+            error: logger.normalizeError(error)
+        });
         res.status(500).json({
             success : false,
             message : "Error occured!"
-        })
-    })
+        });
+    }
 }
 
-let EndTest = (req,res,next)=>{
+let EndTest = async (req,res,next)=>{
     var testid = req.body.testid;
     var userid = req.body.userid;
-    AnswersheetModel.findOneAndUpdate({testid:testid,userid:userid},{completed : true}).then((info)=>{
+
+    try{
+        const test = await TestPaperModel.findById(testid,{testbegins:1,testconducted:1,isResultgenerated:1});
+        if(!test){
+            return res.json({
+                success : false,
+                message : 'Invalid test id.'
+            });
+        }
+
+        const gate = canApplyAction(test, ExamActions.TRAINEE_SUBMIT);
+        if(!gate.ok){
+            return res.json({
+                success : false,
+                message : gate.reason,
+                state : gate.state
+            });
+        }
+
+        const info = await AnswersheetModel.findOneAndUpdate({testid:testid,userid:userid},{completed : true});
         if(info){
-            res.json({
+            return res.json({
                 success : true,
                 message : 'Your answers have been submitted'
-            })
-        }else{
-            res.json({
-                success : false,
-                message : 'Unable to submit answers!'
-            })
+            });
         }
-    }).catch((error)=>{
+
+        return res.json({
+            success : false,
+            message : 'Unable to submit answers!'
+        });
+    }catch(error){
+        logger.error('end_test_failed', {
+            userId: userid,
+            testId: testid,
+            error: logger.normalizeError(error)
+        });
         res.status(500).json({
             success : false,
             message : "Error occured!"
-        })
-    })
+        });
+    }
 }
  
 let getQuestion = (req,res,next)=>{

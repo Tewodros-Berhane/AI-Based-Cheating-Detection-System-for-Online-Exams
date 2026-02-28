@@ -15,37 +15,34 @@ passport.use('login',new LocalStrategy({
   passwordField : 'password',
   passReqToCallback : true 
   },
-  function(req,emailid, password, done) {
-    UserModel.findOne({ 'emailid' : emailid, 'status' : true }, function (err, user) {
-      if (err) {
-          return done(err,false,{
-              success: false,
-              message: "Server Error"
-          }); 
-      }
+  async function(req,emailid, password, done) {
+    try {
+      const user = await UserModel.findOne({ 'emailid' : emailid, 'status' : true });
       if (!user) {
-          return done(null, false,{
-              success: false,
-              message: "Invalid emailid"
-          });
+        return done(null, false,{
+          success: false,
+          message: "Invalid emailid"
+        });
       }
-      else{
-          bcrypt.compare(password, user.password).then(function(res) {
-            if(res){
-              return done(null, user,{
-                success: true,
-                message: "logged in successfully"
-              });
-            }
-            else{
-              return done(null, false,{
-                success: false,
-                message: "Invalid Password"
-              });
-            }
-          });
-        }
-    });
+
+      const isValid = await bcrypt.compare(password, user.password);
+      if (isValid) {
+        return done(null, user,{
+          success: true,
+          message: "logged in successfully"
+        });
+      }
+
+      return done(null, false,{
+        success: false,
+        message: "Invalid Password"
+      });
+    } catch (err) {
+      return done(err,false,{
+        success: false,
+        message: "Server Error"
+      });
+    }
   }
 ));
 
@@ -53,31 +50,30 @@ passport.use('login',new LocalStrategy({
 
 
 //options jwt
-var opts = {}
-//opts.jwtFromRequest = ExtractJwt.fromHeader('authorization');
-opts.jwtFromRequest = ExtractJwt.fromUrlQueryParameter('Token');
+var opts = {};
+opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
 opts.secretOrKey = config.get('jwt.secret');
 
-passport.use('user-token',new JwtStrategy(opts, function(jwt_payload, done) {
-  UserModel.findById(jwt_payload._id, function(err, user) {
-        if (err) {
-            return done(err, false,{
-                success: false,
-                message: "Server Error"
-            }); 
-        }
-        if (user) {
-            return done(null, user,{
-                success: true,
-                message: "Successfull"
-            }); 
-        } else {
-            return done(null, false,{
-                success: false,
-                message: "Authentication Failed"
-            });
-        }
+passport.use('user-token',new JwtStrategy(opts, async function(jwt_payload, done) {
+  try {
+    const user = await UserModel.findById(jwt_payload._id);
+    if (user) {
+      return done(null, user,{
+        success: true,
+        message: "Successfull"
+      });
+    }
+
+    return done(null, false,{
+      success: false,
+      message: "Authentication Failed"
     });
+  } catch (err) {
+    return done(err, false,{
+      success: false,
+      message: "Server Error"
+    });
+  }
 }));
 
 

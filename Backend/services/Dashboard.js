@@ -59,7 +59,9 @@ async function getAdminDashboard() {
  * @param {mongoose.Types.ObjectId|string} userId - Logged-in trainer's ObjectId
  */
 async function getTrainerDashboard(userId) {
-  const objectId = mongoose.Types.ObjectId(userId);
+  const objectId = userId instanceof mongoose.Types.ObjectId
+    ? userId
+    : new mongoose.Types.ObjectId(String(userId));
 
   // Get all exams created by this trainer
   const myExams = await TestModel.find({ createdBy: objectId })

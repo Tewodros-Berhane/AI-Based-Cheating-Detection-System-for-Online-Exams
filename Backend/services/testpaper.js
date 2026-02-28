@@ -6,6 +6,8 @@ let options = require("../models/option");
 let SubjectModel = require("../models/subject");
 let result  =require("../services/excel").result;
 let ResultModel = require("../models/results");
+let logger = require("./logger");
+const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMachine");
 
 
 let createEditTest = (req,res,next)=>{
@@ -148,8 +150,15 @@ let getSingletest = (req,res,next)=>{
 
 let getAlltests = (req,res,next)=>{
     if(req.user.type==='TRAINER'){
-        var title = req.body.title;
-            TestPaperModel.find({createdBy : req.user._id,status : 1},{status : 0})
+        const body = req.body || {};
+        const title = typeof body.title === 'string' ? body.title.trim() : '';
+        const query = { createdBy: req.user._id, status: 1 };
+
+        if (title) {
+            query.title = { $regex: title, $options: 'i' };
+        }
+
+            TestPaperModel.find(query,{status : 0})
             .populate('questions' , 'body')
             .populate({
                 path: 'subjects',
@@ -275,7 +284,10 @@ let basicTestdetails = (req,res,next)=>{
                     res.json({
                         success : true,
                         message : 'Success',
-                        data : basicTestdetails
+                        data : {
+                            ...basicTestdetails.toObject(),
+                            examState: deriveExamState(basicTestdetails)
+                        }
                     })
 
                 }
@@ -407,92 +419,111 @@ let basicTestdetails = (req,res,next)=>{
     }
  }
 
- let beginTest = (req,res,next)=>{
-    if(req.user.type==="TRAINER"){
-        var id = req.body.id;
-        TestPaperModel.findOneAndUpdate({_id:id,testconducted : false},{testbegins:1,isRegistrationavailable:0},{new: true})
-        .then((data)=>{
-            if(data){
-                res.json({
-                    success : true,
-                    message : 'Test has been started.',
-                    data : {
-                        isRegistrationavailable: data.isRegistrationavailable,
-                        testbegins : data.testbegins,
-                        testconducted : data.testconducted,
-                        isResultgenerated : data.isResultgenerated
-                    }
-                })
-            }
-            else{
-                res.json({
-                    success : false,
-                    message : "Unable to start test."
-                })
-            }
-        }).catch((err)=>{
-            res.status(500).json({
-                success : false,
-                message : "Server Error"
-            })
-        })
-    }
-    else{
-        res.status(401).json({
+ let beginTest = async (req,res,next)=>{
+    if(req.user.type!=="TRAINER"){
+        return res.status(401).json({
             success : false,
             message : "Permissions not granted!"
-        })
+        });
+    }
+
+    var id = req.body.id;
+    try{
+        const test = await TestPaperModel.findOne({_id:id,createdBy:req.user._id},{testbegins:1,testconducted:1,isResultgenerated:1,isRegistrationavailable:1});
+        if(!test){
+            return res.json({
+                success : false,
+                message : "Invalid test id."
+            });
+        }
+
+        const gate = canApplyAction(test, ExamActions.START_EXAM);
+        if(!gate.ok){
+            return res.json({
+                success : false,
+                message : gate.reason,
+                state : gate.state
+            });
+        }
+
+        const data = await TestPaperModel.findOneAndUpdate(
+            {_id:id,createdBy:req.user._id},
+            {testbegins:true,isRegistrationavailable:false,isResultgenerated:false},
+            {new: true}
+        );
+
+        return res.json({
+            success : true,
+            message : 'Exam has been started.',
+            data : {
+                isRegistrationavailable: data.isRegistrationavailable,
+                testbegins : data.testbegins,
+                testconducted : data.testconducted,
+                isResultgenerated : data.isResultgenerated,
+                examState: deriveExamState(data)
+            }
+        });
+    }catch(err){
+        logger.error('begin_test_failed', { testId: id, trainerId: req.user && req.user._id, error: logger.normalizeError(err) });
+        return res.status(500).json({
+            success : false,
+            message : "Server Error"
+        });
     }
  }
 
- let endTest = (req,res,next)=>{
-    if(req.user.type==="TRAINER"){
-        var id = req.body.id;
-        TestPaperModel.findOneAndUpdate({_id:id,testconducted:0,testbegins:1,isResultgenerated:0},{testbegins:false,testconducted:true, isResultgenerated:true},{
-            new: true
-          })
-        .then((info)=>{
-            if(info){
-                console.log(info);
-                result(id,MaxMarks).then((sheet)=>{
-                    res.json({
-                        success : true,
-                        message : 'The test has ended.',
-                        data : {
-                            isRegistrationavailable : info.isRegistrationavailable,
-                            testbegins : info.testbegins,
-                            testconducted : info.testconducted,
-                            isResultgenerated : info.isResultgenerated
-                        }
-                    })
-                }).catch((error)=>{
-                    console.log(error)
-                    res.status(500).json({
-                        success : false,
-                        message : "Server Error"
-                    })
-                })
-            }
-            else{
-                res.json({
-                    success : false,
-                    message : "Invalid inputs!"
-                })
-            }  
-           
-        }).catch((err)=>{
-            console.log(err)
-            res.status(500).json({
-                success : false,
-                message : "Server Error"
-            })
-        })
-    }
-    else{
-        res.status(401).json({
+ let endTest = async (req,res,next)=>{
+    if(req.user.type!=="TRAINER"){
+        return res.status(401).json({
             success : false,
             message : "Permissions not granted!"
-        })
+        });
+    }
+
+    var id = req.body.id;
+    try{
+        const test = await TestPaperModel.findOne({_id:id,createdBy:req.user._id},{testbegins:1,testconducted:1,isResultgenerated:1,isRegistrationavailable:1});
+        if(!test){
+            return res.json({
+                success : false,
+                message : "Invalid test id."
+            });
+        }
+
+        const gate = canApplyAction(test, ExamActions.END_EXAM);
+        if(!gate.ok){
+            return res.json({
+                success : false,
+                message : gate.reason,
+                state : gate.state
+            });
+        }
+
+        const info = await TestPaperModel.findOneAndUpdate(
+            {_id:id,createdBy:req.user._id},
+            {testbegins:false,testconducted:true,isResultgenerated:true,isRegistrationavailable:false},
+            {new: true}
+        );
+
+        await result(id,MaxMarks);
+
+        return res.json({
+            success : true,
+            message : 'The exam has ended.',
+            data : {
+                isRegistrationavailable : info.isRegistrationavailable,
+                testbegins : info.testbegins,
+                testconducted : info.testconducted,
+                isResultgenerated : info.isResultgenerated,
+                examState: deriveExamState(info)
+            }
+        });
+    }catch(err){
+        logger.error('end_test_failed', { testId: id, trainerId: req.user && req.user._id, error: logger.normalizeError(err) });
+        return res.status(500).json({
+            success : false,
+            message : "Server Error"
+        });
     }
  }
 
