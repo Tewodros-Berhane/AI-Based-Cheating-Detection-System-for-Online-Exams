@@ -13,18 +13,42 @@ import ErrorPage from './errorPage';
 import { login, logout } from '../../actions/loginAction';
 import { changeActiveRoute } from '../../actions/useraction';
 import Alert from '../common/alert';
-import { Link } from 'react-router-dom';
-import queryString from 'query-string';
-import { Layout, Menu,Button, Icon, Tooltip } from 'antd';
-import main from './main.jpg';
+import { Link, Navigate } from 'react-router-dom';
+import { Layout, Menu,Button, Tooltip } from 'antd-compat';
+import brandMark from '../../assets/examshield-mark.svg';
+import withRouter from '../../utils/withRouter';
+import { ADMIN_PERMISSIONS, TRAINER_PERMISSIONS } from '../../services/userOption';
+import {
+    BookOpenText,
+    ClipboardList,
+    FilePlus2,
+    FileQuestion,
+    LayoutDashboard,
+    LogOut,
+    MonitorPlay,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Users
+} from 'lucide-react';
 const { Header, Sider, Content } = Layout;
+
+const sidebarIconMap = {
+    dashboard: LayoutDashboard,
+    examiners: Users,
+    courses: BookOpenText,
+    questions: FileQuestion,
+    exams: ClipboardList,
+    newExam: FilePlus2,
+    liveSession: MonitorPlay
+};
 
 class Dashboard extends React.Component{
     constructor(props){
         super(props);
         this.state={
             LocalIsLoggedIn : this.props.user.isLoggedIn,
-            collapsed: true
+            collapsed: true,
+            authBootstrapping: true
         }
     }
 
@@ -34,47 +58,79 @@ class Dashboard extends React.Component{
         });
     };
 
-    logOut =()=>{
-        auth.deleteToken();
-        window.location.href='/';
+    redirectToHome = () => {
+        if (this.props.history && this.props.history.replace) {
+            this.props.history.replace('/');
+            return;
+        }
+        window.location.replace('/');
     }
 
-    componentWillMount(){
-        console.log(this.state.LocalIsLoggedIn);
+    logOut =()=>{
+        this.props.logout();
+        auth.deleteToken();
+        this.setState({ LocalIsLoggedIn: false });
+        this.redirectToHome();
+    }
+
+    renderSidebarIcon = (iconKey)=>{
+        const IconComponent = sidebarIconMap[iconKey] || LayoutDashboard;
+        return <IconComponent className="dashboard-menu-icon" size={18} strokeWidth={2.1} />;
+    }
+
+    componentDidMount(){
         var t = auth.retriveToken();
-        if(this.state.LocalIsLoggedIn){
-            
+        if(!t || t === 'undefined'){
+            this.setState({ authBootstrapping: false });
+            this.logOut();
+            return;
+        }
+        if(this.state.LocalIsLoggedIn && this.props.user && this.props.user.userDetails && this.props.user.userDetails.type){
+            this.setState({ authBootstrapping: false });
+            var existingSubUrl = (this.props.match && this.props.match.params && this.props.match.params.options) ? this.props.match.params.options : 'home';
+            var existingPermissions = this.props.user.userDetails.type === 'ADMIN' ? ADMIN_PERMISSIONS : TRAINER_PERMISSIONS;
+            var existingTargetLink = `/user/${existingSubUrl}`;
+            var existingRouteIndex = existingPermissions.findIndex((o)=>o.link === existingTargetLink);
+            this.props.changeActiveRoute(String(existingRouteIndex === -1 ? 0 : existingRouteIndex));
+            if(existingRouteIndex === -1){
+                this.props.history.replace(existingPermissions[0].link);
+            }
         }
         else if(t && t!=='undefined'){
-            auth.FetchAuth(t).then((response)=>{
-                console.log(response.data);
-                this.props.login(response.data.user);
+            auth.FetchAuth().then((response)=>{
+                var user = response && response.data ? response.data.user : null;
+                if(!user || !user.type){
+                    throw new Error('Invalid user payload');
+                }
+                this.props.login(user);
+                var permissions = user.type === 'ADMIN' ? ADMIN_PERMISSIONS : TRAINER_PERMISSIONS;
+                var subUrl = (this.props.match && this.props.match.params && this.props.match.params.options) ? this.props.match.params.options : 'home';
+                var targetLink = `/user/${subUrl}`;
+                var routeIndex = permissions.findIndex((o)=>o.link === targetLink);
+
                 this.setState({
-                    LocalIsLoggedIn : true
-                })
-                var subUrl = this.props.match.params.options;
-                console.log(subUrl);
-                var obj = this.props.user.userOptions.find((o,i)=>{
-                    if(o.link ===`/user/${subUrl}`){
-                        return o
-                    }
+                    LocalIsLoggedIn : true,
+                    authBootstrapping: false
                 });
-                var tt=this.props.user.userOptions.indexOf(obj);
-                if(tt===-1){
-                    window.location.href=`${this.props.user.userOptions[0].link}`;
+                if(routeIndex===-1){
+                    this.props.changeActiveRoute('0');
+                    this.props.history.replace(permissions[0].link);
                 }
                 else{
-                    this.props.changeActiveRoute(String(tt));
+                    this.props.changeActiveRoute(String(routeIndex));
                 }
             }).catch((error)=>{
-                Alert('warning','Warning!','Server Error.');
-                auth.deleteToken();
-                window.location.href='/';
+                this.setState({ authBootstrapping: false });
+                var message =
+                    (error && error.response && error.response.data && error.response.data.message) ||
+                    'Session validation failed. Please sign in again.';
+                Alert('warning','Warning!',message);
+                this.logOut();
                 
             })
         }
         else{
-            window.location='/';
+            this.logOut();
         }
         
     }
@@ -82,27 +138,66 @@ class Dashboard extends React.Component{
 
 
     render(){
+        const token = auth.retriveToken();
+        if(!token || token === 'undefined'){
+            return <Navigate to="/" replace />;
+        }
+        if (this.state.authBootstrapping) {
+            return (
+                <div className="dashboard-boot-loading">
+                    <div className="app-route-loader">Loading workspace...</div>
+                </div>
+            );
+        }
+        const outerMargin = 10;
+        const frameGap = 10;
+        const headerHeight = 74;
+        const routeOption = (this.props.match && this.props.match.params && this.props.match.params.options) ? this.props.match.params.options : 'home';
+        const sectionTitles = {
+            home: 'Command Center',
+            listtrainers: 'Examiner Management',
+            listsubjects: 'Course Management',
+            listquestions: 'Question Library',
+            listtests: 'Exam Library',
+            newtest: 'Create Exam',
+            conducttest: 'Live Exam Operations'
+        };
+        const sectionSubtitles = {
+            home: 'Overview of platform health and recent activity',
+            listtrainers: 'Invite, edit, and monitor examiner accounts',
+            listsubjects: 'Maintain course taxonomy for test creation',
+            listquestions: 'Curate and audit question quality',
+            listtests: 'Track and review all published exams',
+            newtest: 'Configure a new exam from question pools',
+            conducttest: 'Run active sessions and monitor candidates'
+        };
+        const sectionTitle = sectionTitles[routeOption] || 'Workspace';
+        const sectionSubtitle = sectionSubtitles[routeOption] || 'Manage and review exam workflows';
+        const userName = this.props.user?.userDetails?.name || 'Operator';
+        const userRole = this.props.user?.userDetails?.type || 'USER';
+        const siderWidth = this.state.collapsed ? 92 : 252;
+        const contentOffset = outerMargin + siderWidth + frameGap;
         let torender = null;
-        if(this.props.match.params.options==='listtrainers'){
+        if(routeOption==='listtrainers'){
             torender = <AllTrainer/>;
         }
-        else if(this.props.match.params.options==='listsubjects'){
+        else if(routeOption==='listsubjects'){
             torender = <AllTopics/>
         }
-        else if(this.props.match.params.options==='listquestions'){
+        else if(routeOption==='listquestions'){
             torender = <AllQuestions/>
         }
-        else if(this.props.match.params.options==='listtests'){
+        else if(routeOption==='listtests'){
             torender = <AllTests/>
         }
-        else if(this.props.match.params.options==='home'){
+        else if(routeOption==='home'){
             torender=<Welcome />
         }
-        else if(this.props.match.params.options==='newtest'){
+        else if(routeOption==='newtest'){
             torender=<NewTest />
         }
-        else if(this.props.match.params.options==='conducttest'){
-            let params = queryString.parse(this.props.location.search)
+        else if(routeOption==='conducttest'){
+            const params = Object.fromEntries(new URLSearchParams(this.props.location.search).entries());
             console.log(params)
             torender=<ConductTest {...params}/>
         }
@@ -110,20 +205,34 @@ class Dashboard extends React.Component{
             torender=<ErrorPage />
         }
         return (
-            <Layout>
-                <Sider trigger={null} collapsible collapsed={this.state.collapsed}
+            <Layout className="dashboard-layout-root">
+                <Sider className="dashboard-sider" trigger={null} collapsible collapsed={this.state.collapsed} width={252} collapsedWidth={92}
                     style={{
                         overflow: 'hidden',
-                        height: '100vh',
+                        height: `calc(100vh - ${outerMargin * 2}px)`,
+                        top: outerMargin,
                         position: 'fixed',
-                        background: '#0d1117',
-                        left: 0,
-                        zIndex:5
+                        background: 'rgba(16, 26, 46, 0.74)',
+                        left: outerMargin,
+                        zIndex:5,
+                        padding: '6px',
+                        border: '1px solid var(--border-soft)',
+                        borderRadius: '16px',
+                        boxShadow: 'var(--shadow-soft)',
+                        backdropFilter: 'blur(10px)'
                       }}
                     >
-                    <div className="logo11" />
+                    <div className={`dashboard-brand${this.state.collapsed ? ' is-collapsed' : ''}`}>
+                        <img src={brandMark} alt="Exam Shield" className="dashboard-brand-mark" />
+                        {!this.state.collapsed && (
+                            <div className="dashboard-brand-text">
+                                <h1>Exam Shield</h1>
+                                <p>Operations Console</p>
+                            </div>
+                        )}
+                    </div>
                     <Menu 
-                        defaultSelectedKeys={[this.props.user.activeRoute]}
+                        selectedKeys={[String(this.props.user.activeRoute)]}
                         mode="inline"
                         className="navy-menu"
 
@@ -131,52 +240,56 @@ class Dashboard extends React.Component{
                         {
                             this.props.user.userOptions.map((d,i)=>{
                                 return(
-                                    <Menu.Item key={i}>
-                                        <Icon type={d.icon} />
-                                        <span>{d.display}</span>
-                                        <Link to={d.link}></Link>
+                                    <Menu.Item key={String(i)} onClick={() => this.props.changeActiveRoute(String(i))}>
+                                        {this.renderSidebarIcon(d.iconKey)}
+                                        <span className="dashboard-menu-label">{d.display}</span>
+                                        <Link to={d.link} className="dashboard-nav-link"></Link>
                                     </Menu.Item>
                                 )
                             })
                         }
                     </Menu>
                 </Sider>
-                <Layout style={{
-                        background: '#161b22',
-                      }}>
-                    <Header className="navy-header" style={{ position:'fixed', width:'100vw', paddingLeft:'10px', zIndex:'1000' }}>
-                    
-                        <Icon
-                            className="trigger"
-                            type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
-                            onClick={this.toggle}
-                            style={{color:'#35f85c',fontSize:'20px'}}
-                            />
-                        <ul className="user-options-list">
-                            <li>
-                                <Tooltip placement="bottom" title="Log Out">
-                                    <Button size="large" shape="circle" onClick={this.logOut} className="logout-button">
-                                        <Icon type="logout" />
-                                    </Button>
-                                </Tooltip>
-                            </li>
-                            <li>
-                                <img src={main} alt="company logo" className="d-logo" />
-                            </li>
-                        </ul>
-                            
+                <Layout style={{ background: 'transparent' }}>
+                    <Header className="navy-header" style={{ position:'fixed', top: outerMargin, left: contentOffset, right: outerMargin, zIndex:'1000' }}>
+                        <div className="dashboard-header-left">
+                            <Button className="trigger-button" shape="circle" onClick={this.toggle}>
+                                {this.state.collapsed ? (
+                                    <PanelLeftOpen className="dashboard-action-icon" size={17} strokeWidth={2.2} />
+                                ) : (
+                                    <PanelLeftClose className="dashboard-action-icon" size={17} strokeWidth={2.2} />
+                                )}
+                            </Button>
+                            <div>
+                                <h2 className="dashboard-route-title">{sectionTitle}</h2>
+                                <p className="dashboard-route-subtitle">{sectionSubtitle}</p>
+                            </div>
+                        </div>
+                        <div className="dashboard-header-right">
+                            <div className="dashboard-user-meta">
+                                <span className="dashboard-user-name">{userName}</span>
+                                <span className="dashboard-user-role">{userRole}</span>
+                            </div>
+                            <Tooltip placement="bottom" title="Sign out">
+                                <Button shape="circle" onClick={this.logOut} className="logout-button">
+                                    <LogOut className="dashboard-action-icon" size={17} strokeWidth={2.3} />
+                                </Button>
+                            </Tooltip>
+                        </div>
                     </Header>
                     <Content 
                         className='content'
                         style={{
-                        margin: '24px 16px',
-                        padding: 24,
-                        marginTop:'80px',
-                        minHeight: '100vh',
-                        marginLeft:'95px'
+                        margin: 0,
+                        marginTop: outerMargin + headerHeight + frameGap,
+                        marginLeft: contentOffset,
+                        marginRight: outerMargin,
+                        marginBottom: outerMargin,
+                        height: `calc(100vh - ${outerMargin + headerHeight + frameGap + outerMargin}px)`,
+                        padding: 0
                         }}
                     >
-                        <div style={{ width:'100%', }}>
+                        <div className="dashboard-content-shell">
                             {torender}
                         </div>
                     </Content>
@@ -194,8 +307,9 @@ const mapStateToProps = state => ({
 
 
 
-export default connect(mapStateToProps,{
+export default withRouter(connect(mapStateToProps,{
     changeActiveRoute,
     login, 
     logout
-})(Dashboard);
+})(Dashboard));
+
