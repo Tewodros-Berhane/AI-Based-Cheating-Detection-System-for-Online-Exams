@@ -1,0 +1,94 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: exam-shield-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-online_exam}
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: exam-shield-backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      PORT: ${BACKEND_PORT:-5001}
+      MONGODB_URI: mongodb://mongo:27017/${MONGO_DB_NAME:-online_exam}
+      JWT_SECRET: ${JWT_SECRET:-change_me}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      WS_SIGNALING_PORT: ${WS_SIGNALING_PORT:-8080}
+      WS_RESULT_PORT: ${WS_RESULT_PORT:-8081}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
+      SERVICE_NAME: ${SERVICE_NAME:-exam-shield-backend}
+      NODE_ID: ${NODE_ID:-docker-node-1}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      FAILURE_ALERT_WEBHOOK_URL: ${FAILURE_ALERT_WEBHOOK_URL:-}
+      FAILURE_ALERT_DEDUPE_MS: ${FAILURE_ALERT_DEDUPE_MS:-60000}
+      RELAY_HEARTBEAT_INTERVAL_MS: ${RELAY_HEARTBEAT_INTERVAL_MS:-30000}
+      RELAY_MAX_PARTICIPANTS: ${RELAY_MAX_PARTICIPANTS:-20}
+      RELAY_REDIS_URL: ${RELAY_REDIS_URL:-}
+      RELAY_CHANNEL_PREFIX: ${RELAY_CHANNEL_PREFIX:-exam-shield}
+    ports:
+      - "${BACKEND_PORT:-5001}:${BACKEND_PORT:-5001}"
+      - "${WS_SIGNALING_PORT:-8080}:${WS_SIGNALING_PORT:-8080}"
+      - "${WS_RESULT_PORT:-8081}:${WS_RESULT_PORT:-8081}"
+    volumes:
+      - backend_uploads:/app/public/uploads
+      - backend_results:/app/public/result
+
+  ai-server:
+    build:
+      context: "./AI Server"
+      dockerfile: Dockerfile
+    container_name: exam-shield-ai
+    restart: unless-stopped
+    environment:
+      AI_SERVER_PORT: ${AI_SERVER_PORT:-5020}
+      AI_ALLOWED_ORIGINS: ${AI_ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "${AI_SERVER_PORT:-5020}:${AI_SERVER_PORT:-5020}"
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
+        REACT_APP_API_BASE_URL: ${REACT_APP_API_BASE_URL:-http://localhost:5001}
+        REACT_APP_WS_SIGNALING_URL: ${REACT_APP_WS_SIGNALING_URL:-ws://localhost:8080}
+        REACT_APP_WS_RESULT_URL: ${REACT_APP_WS_RESULT_URL:-ws://localhost:8081}
+        REACT_APP_AI_SERVER_URL: ${REACT_APP_AI_SERVER_URL:-http://localhost:5020}
+        REACT_APP_RTC_STUN_URLS: ${REACT_APP_RTC_STUN_URLS:-stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302}
+        REACT_APP_RTC_TURN_URLS: ${REACT_APP_RTC_TURN_URLS:-}
+        REACT_APP_RTC_TURN_USERNAME: ${REACT_APP_RTC_TURN_USERNAME:-}
+        REACT_APP_RTC_TURN_CREDENTIAL: ${REACT_APP_RTC_TURN_CREDENTIAL:-}
+    container_name: exam-shield-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+      ai-server:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+volumes:
+  mongo_data:
+  backend_uploads:
+  backend_results:
