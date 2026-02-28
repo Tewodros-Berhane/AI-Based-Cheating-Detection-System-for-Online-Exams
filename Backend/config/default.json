@@ -3,10 +3,27 @@
         "connectionString": "mongodb://localhost:27017/online_exam"
     },
     "jwt": {
-        "secret" : "Examination Portal Application"
+        "secret" : "CHANGE_ME_IN_ENV"
     },
     "mail-credentials" : {
         "userid" :"",
         "password" : ""
+    },
+    "services": {
+        "serviceName": "exam-shield-backend",
+        "nodeId": "",
+        "logLevel": "info",
+        "wsSignalingPort": 8080,
+        "wsResultPort": 8081,
+        "frontendBaseUrl": "http://localhost:3000",
+        "metricsToken": "",
+        "failureAlertWebhook": "",
+        "failureAlertDedupeMs": 60000,
+        "relay": {
+            "heartbeatIntervalMs": 30000,
+            "maxParticipantsPerSession": 20,
+            "redisUrl": "",
+            "channelPrefix": "exam-shield"
+        }
     }
 }

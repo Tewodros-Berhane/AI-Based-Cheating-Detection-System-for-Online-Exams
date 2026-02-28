@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon"
+    "start": "nodemon",
+    "seed:admin": "node scripts/createAdmin.js"
   },
   "repository": {
     "type": "git",
@@ -18,25 +19,26 @@
   },
   "homepage": "https://github.com/sitrain-online/backend#readme",
   "dependencies": {
-    "app-root-path": "^2.2.1",
-    "bcryptjs": "2.4.3",
-    "body-parser": "^1.19.0",
-    "config": "^3.1.0",
-    "cors": "^2.8.5",
-    "exceljs": "^1.13.0",
-    "express": "^4.17.1",
-    "express-fileupload": "^1.1.5",
-    "express-validator": "^5.3.1",
-    "helmet": "^3.18.0",
-    "http-errors": "^1.7.2",
-    "mongoose": "5.7.5",
-    "morgan": "^1.9.1",
-    "multer": "^1.4.1",
-    "nodemailer": "^6.2.1",
-    "passport": "^0.4.0",
-    "passport-jwt": "^4.0.0",
+    "app-root-path": "^3.1.0",
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^2.2.2",
+    "config": "^4.4.1",
+    "cors": "^2.8.6",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "express-fileupload": "^1.5.2",
+    "helmet": "^8.1.0",
+    "http-errors": "^2.0.1",
+    "mongoose": "^9.2.3",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "nodemailer": "^8.0.1",
+    "nodemon": "^3.1.14",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
-    "ws": "^8.18.1",
-    "xlsx": "^0.14.4"
+    "validator": "^13.15.26",
+    "ws": "^8.19.0",
+    "xlsx": "^0.18.5"
   }
 }

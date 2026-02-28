@@ -1,43 +1,17 @@
-const WebSocket = require('ws');
+const config = require('config');
+const createRelayServer = require('./services/relay/createRelayServer');
 
-const wss = new WebSocket.Server({ port: 8080 });
+const SIGNALING_PORT =
+  process.env.WS_SIGNALING_PORT ||
+  (config.has('services.wsSignalingPort') ? config.get('services.wsSignalingPort') : 8080);
 
-const clients = {}; 
-
-wss.on('connection', (ws, req) => {
-    const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
-    const role = urlParams.get('role');
-    const traineeId = urlParams.get('traineeid');
-
-    console.log(traineeId);
-
-    if (!traineeId) {
-        ws.close();
-        return;
-    }
-
-    if (!clients[traineeId]) clients[traineeId] = {};
-    clients[traineeId][role] = ws;
-
-    console.log(`${role} for trainee ${traineeId} connected`);
-
-    ws.on('message', (message) => {
-        const parsedMessage = JSON.parse(message);
-        console.log(`Received from ${role} (${traineeId}):`, parsedMessage.type);
-
-        if (role === 'trainee') {
-            if (clients[traineeId].trainer) {
-                clients[traineeId].trainer.send(message);
-            }
-        } else if (role === 'trainer' && clients[traineeId].trainee) {
-            clients[traineeId].trainee.send(message);
-        }
-    });
-
-    ws.on('close', () => {
-        console.log(`${role} for trainee ${traineeId} disconnected`);
-        delete clients[traineeId][role];
-    });
+module.exports = createRelayServer({
+  name: 'signaling',
+  port: SIGNALING_PORT,
+  roleRoutes: {
+    trainee: ['trainer', 'proctor'],
+    trainer: ['trainee'],
+    proctor: ['trainee']
+  }
 });
 
-console.log("Signaling server running on ws://localhost:8080");

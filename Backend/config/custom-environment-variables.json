@@ -1,0 +1,29 @@
+{
+  "mongodb": {
+    "connectionString": "MONGODB_URI"
+  },
+  "jwt": {
+    "secret": "JWT_SECRET"
+  },
+  "mail-credentials": {
+    "userid": "MAIL_USER",
+    "password": "MAIL_PASSWORD"
+  },
+  "services": {
+    "serviceName": "SERVICE_NAME",
+    "nodeId": "NODE_ID",
+    "logLevel": "LOG_LEVEL",
+    "wsSignalingPort": "WS_SIGNALING_PORT",
+    "wsResultPort": "WS_RESULT_PORT",
+    "frontendBaseUrl": "FRONTEND_BASE_URL",
+    "metricsToken": "METRICS_TOKEN",
+    "failureAlertWebhook": "FAILURE_ALERT_WEBHOOK_URL",
+    "failureAlertDedupeMs": "FAILURE_ALERT_DEDUPE_MS",
+    "relay": {
+      "heartbeatIntervalMs": "RELAY_HEARTBEAT_INTERVAL_MS",
+      "maxParticipantsPerSession": "RELAY_MAX_PARTICIPANTS",
+      "redisUrl": "RELAY_REDIS_URL",
+      "channelPrefix": "RELAY_CHANNEL_PREFIX"
+    }
+  }
+}

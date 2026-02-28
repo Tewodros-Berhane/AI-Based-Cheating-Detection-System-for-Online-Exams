@@ -2,23 +2,32 @@ const PORT = process.env.PORT || 5001
 var createError = require('http-errors');
 var express = require('express');
 const helmet = require('helmet')
+const cors = require('cors');
 var path = require('path');
-var logger = require('morgan');
+var morgan = require('morgan');
+var config = require('config');
 var bodyParser = require('body-parser');
-const expressValidator = require('express-validator');
+const validatorCompat = require('./services/validatorCompat');
 var passport = require("./services/passportconf");
 var tool = require("./services/tool");
+var appLogger = require("./services/logger");
+var metrics = require("./services/metrics");
+var sendFailureAlert = require("./services/alerts").sendFailureAlert;
 var app = express();
 
 
-app.use(helmet());
-app.use(function(req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, access-control-allow-origin");
-    next();
-});
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
+}));
+app.options(/.*/, cors());
 
-app.use(expressValidator());
+app.use(validatorCompat);
 var mongoose = require("./services/connection");
 var admin = require("./routes/admin");
 var login = require("./routes/login");
@@ -42,18 +51,46 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 //configs
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(logger('dev'));
+app.use(morgan('dev', {
+    stream: {
+        write: (line) => appLogger.info('http_access', { line: line.trim() })
+    }
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(metrics.httpMetricsMiddleware);
 
 
 
 //passport
 app.use(passport.initialize());
-app.use(passport.session());
 
 
 //bind routes
+app.get('/api/v1/system/health', (req, res) => {
+    res.json({
+        success: true,
+        status: 'ok',
+        uptime: process.uptime()
+    });
+});
+
+app.get('/api/v1/system/metrics', (req, res) => {
+    const metricsToken =
+        process.env.METRICS_TOKEN ||
+        (config.has('services.metricsToken') ? config.get('services.metricsToken') : '');
+
+    if (metricsToken && req.get('x-metrics-token') !== metricsToken) {
+        return res.status(403).json({
+            success: false,
+            message: 'Forbidden'
+        });
+    }
+
+    res.set('Content-Type', 'text/plain; version=0.0.4');
+    res.send(metrics.renderMetrics());
+});
+
 app.use("/api/v1/admin",passport.authenticate('user-token', { session : false }),admin);
 app.use("/api/v1/user",passport.authenticate('user-token', { session : false }),user);
 app.use('/api/v1/subject',passport.authenticate('user-token', { session : false }),universal);
@@ -82,7 +119,13 @@ app.use('/api/v1/lala',dummy);
 
 app.use('/api/v1/login',login);
 
-app.get('*', (req,res) =>{
+app.get(/^(?!\/api\/).*/, (req,res) =>{
+    if (req.path.startsWith('/result/')) {
+        return res.status(404).json({
+            success: false,
+            message: 'Result file not found'
+        });
+    }
     res.sendFile(path.join(__dirname+'/public/index.html'));
 });
 
@@ -96,8 +139,26 @@ app.use(function(req, res, next) {
 });
 
 app.use((err, req, res, next)=>{
-    console.log(err);
-    res.status(err.status).json({
+    const status = err.status || 500;
+    appLogger.error('request_failure', {
+        route: req.originalUrl,
+        method: req.method,
+        status,
+        error: appLogger.normalizeError(err)
+    });
+    sendFailureAlert({
+        source: 'http-api',
+        event: 'request_failure',
+        severity: status >= 500 ? 'critical' : 'error',
+        message: err.message || 'Unhandled request error',
+        details: {
+            route: req.originalUrl,
+            method: req.method,
+            status
+        }
+    });
+
+    res.status(status).json({
         success : false,
         message : err.message
     });
@@ -105,11 +166,36 @@ app.use((err, req, res, next)=>{
 
 app.listen(PORT,(err)=>{
     if(err){
-      console.log(err);
+      appLogger.error('server_start_failed', { error: appLogger.normalizeError(err) });
+      return;
     }
-    console.log(`Server Started. Server listening to port ${PORT}`);
+    appLogger.info('server_started', { port: PORT });
 });
 
 require('./wsServer');
 require('./resultServer');
 
+process.on('unhandledRejection', (reason) => {
+    appLogger.error('unhandled_rejection', { error: appLogger.normalizeError(reason) });
+    sendFailureAlert({
+        source: 'node-process',
+        event: 'unhandled_rejection',
+        severity: 'critical',
+        message: 'Unhandled promise rejection',
+        details: appLogger.normalizeError(reason)
+    });
+});
+
+process.on('uncaughtException', (error) => {
+    appLogger.error('uncaught_exception', { error: appLogger.normalizeError(error) });
+    sendFailureAlert({
+        source: 'node-process',
+        event: 'uncaught_exception',
+        severity: 'critical',
+        message: error.message || 'Uncaught exception',
+        details: appLogger.normalizeError(error)
+    });
+    setTimeout(() => {
+        process.exit(1);
+    }, 1000);
+});
