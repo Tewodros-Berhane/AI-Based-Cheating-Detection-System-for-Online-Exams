@@ -1,9 +1,11 @@
 import React, { Component } from 'react';
 import './testdetails.css';
-import { Card,Row,Col  } from 'antd';
+import { Row, Col } from 'antd-compat';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js';
 import {bgcolor,bordercolor} from '../../../services/bgcolor';
 
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
 
 export default class Stats extends Component {
@@ -24,8 +26,43 @@ export default class Stats extends Component {
 
         } 
     }
+
+    extractFileName = (url = '') => {
+        try {
+            const clean = String(url).split('?')[0];
+            return clean.substring(clean.lastIndexOf('/') + 1) || 'exam-results.xlsx';
+        } catch (error) {
+            return 'exam-results.xlsx';
+        }
+    }
+
+    downloadExcel = async () => {
+        const fileUrl = this.props.file;
+        if (!fileUrl) {
+            return;
+        }
+
+        try {
+            const response = await fetch(fileUrl, { method: 'GET' });
+            if (!response.ok) {
+                throw new Error(`Download failed with status ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const objectUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = this.extractFileName(fileUrl);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(objectUrl);
+        } catch (error) {
+            window.open(fileUrl, '_blank', 'noopener,noreferrer');
+        }
+    }
     
-    componentWillMount(){
+    componentDidMount(){
         let {bgColor1,borcolor1}=this.state;
         var maxi=-1;
         let p=0;
@@ -37,8 +74,9 @@ export default class Stats extends Component {
         let p50_60=0;
         let below50=0;
         var pc=0;
-        this.state.stats.map((d,i)=>{
-            pc=(d.score/this.state.maxmMarks)*100;
+        this.state.stats.forEach((d)=>{
+            const safeMaxMarks = this.state.maxmMarks > 0 ? this.state.maxmMarks : 1;
+            pc=(d.score/safeMaxMarks)*100;
             if(pc>=91){
                 p90_100++;
             }
@@ -79,7 +117,7 @@ export default class Stats extends Component {
 
         }
         
-        this.state.stats.map((d,i)=>{
+        this.state.stats.forEach((d)=>{
             dp[d.score]++;
         })  
         this.setState({
@@ -124,52 +162,63 @@ export default class Stats extends Component {
             }]
         }
         return (
-            <div>
-                <div>
-                    <Card >
-                        <div className="download-section">
-                            <b>Download the test result excel sheet.</b>
-                            <a href={this.props.file} target="_blank" className="download-xlsx">Download</a>
-                        </div>
-                    </Card>
-                </div> 
-                <div style={{marginTop:'10px'}}>
-                    <Card >
-                        <div style={{padding:'10px 10px 0px 10px'}}>
-                            <b>Score vs No of students.</b>
-                        </div>
-                        <div style={{padding:'0px 10px 10px 10px'}}>
-                            <Bar
-                                data={barData}
-                                options={{ maintainAspectRatio: false }}
-                            />
-                        </div>
-                    </Card>
-                </div>
-                <div style={{marginTop:'10px'}}>
-                    <Card >
-                        <Row>
-                            <Col span={12}>
-                                <div style={{padding:'10px 10px 0px 10px'}}>
-                                    <b>Pass/Fail.</b>
+            <div className="testdetails-stats-stack">
+                <section className="testdetails-block">
+                    <div className="testdetails-block-head">
+                        <h4>Result Export</h4>
+                        <p>Download the generated score report for archive or offline review.</p>
+                    </div>
+                    <div className="download-section">
+                        <button type="button" className="download-xlsx" onClick={this.downloadExcel}>Download Excel</button>
+                    </div>
+                </section>
+
+                <section className="testdetails-block">
+                    <div className="testdetails-block-head">
+                        <h4>Score Distribution</h4>
+                        <p>Compare score spread against candidate count.</p>
+                    </div>
+                    <div className="testdetails-chart-wrap testdetails-chart-wrap-bar">
+                        <Bar
+                            data={barData}
+                            options={{
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false }
+                                }
+                            }}
+                        />
+                    </div>
+                </section>
+
+                <section className="testdetails-block">
+                    <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                            <div className="testdetails-chart-block">
+                                <div className="testdetails-block-head">
+                                    <h4>Pass / Fail</h4>
+                                    <p>Outcome split based on 50% threshold.</p>
                                 </div>
-                                <div style={{padding:'0px 10px 10px 10px'}}>
+                                <div className="testdetails-chart-wrap">
                                     <Doughnut data={DoughNutData1} />
                                 </div>
-                            </Col>
-                            <Col span={12}>
-                                <div style={{padding:'10px 10px 0px 10px'}}>
-                                    <b>Percentage wise category.</b>
+                            </div>
+                        </Col>
+                        <Col xs={24} md={12}>
+                            <div className="testdetails-chart-block">
+                                <div className="testdetails-block-head">
+                                    <h4>Score Bands</h4>
+                                    <p>Candidate distribution by percentage range.</p>
                                 </div>
-                                <div style={{padding:'0px 10px 10px 10px'}}>
+                                <div className="testdetails-chart-wrap">
                                     <Doughnut data={DoughNutData2} />
                                 </div>
-                            </Col>
-                        </Row>
-                        
-                    </Card>
-                </div>                
+                            </div>
+                        </Col>
+                    </Row>
+                </section>
             </div>
         )
     }
 }
+

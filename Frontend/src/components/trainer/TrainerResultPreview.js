@@ -1,12 +1,21 @@
 // src/components/trainer/TrainerResultPreview.js
 import React, { useEffect, useRef, useState } from 'react';
 import { FaCircle } from 'react-icons/fa';   
-export default function TrainerResultPreview({ traineeId }) {
+import apis from '../../services/Apis';
+export default function TrainerResultPreview({ traineeId, testId }) {
   const [result, setResult] = useState(null);     
   const wsRef = useRef(null);
 
   useEffect(() => {
-    const url = `ws://localhost:8081/?role=trainer&traineeid=${traineeId}`;
+    const params = new URLSearchParams({
+      role: 'trainer',
+      traineeid: traineeId
+    });
+    if (testId) {
+      params.set('testid', testId);
+      params.set('sessionid', `${testId}:${traineeId}`);
+    }
+    const url = `${apis.WS_RESULT_URL}/?${params.toString()}`;
     wsRef.current = new WebSocket(url);
 
     wsRef.current.onopen = () => {
@@ -28,7 +37,7 @@ export default function TrainerResultPreview({ traineeId }) {
     wsRef.current.onclose   = () => console.log('result‑socket closed for', traineeId);
 
     return () => wsRef.current && wsRef.current.close();
-  }, [traineeId]);
+  }, [traineeId, testId]);
 
   const colours = {
     cheating:   '#ff4444',   

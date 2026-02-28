@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
-import { Button, Skeleton,Modal,Form,InputNumber,Transfer,Row,Col } from 'antd';
+import { Button, Skeleton,Modal,Form,InputNumber,Transfer } from 'antd-compat';
 import { connect } from 'react-redux';
-import { changeStep,changeMode,removeQuestionFromMainQueue,changeBasicNewTestDetails,fetchSubjectWiseQuestion,pushQuestionToQueue } from '../../../actions/testAction';
+import { changeMode,changeBasicNewTestDetails,fetchSubjectWiseQuestion,pushQuestionToQueue } from '../../../actions/testAction';
 import './newtest.css';
 import Alert from '../../common/alert';
 import apis from '../../../services/Apis';
 import { Post } from '../../../services/axiosCall';
+import { CircleHelp, Sparkles } from 'lucide-react';
 
 class GeneraterandomQuestionO extends Component {
     constructor(props){
@@ -52,9 +53,11 @@ class GeneraterandomQuestionO extends Component {
 
     renderItem = item => {
         const customLabel = (
-          <span className="custom-item">
-                <Button shape="circle" onClick={()=>{this.OpenModel(item._id)}} icon="info" style={{background:'linear-gradient(to right,rgb(80,190,189),rgb(0,153,153),rgb(0,153,203))',color:'greenblue'}} size="small" ></Button>
-                {item.body}
+          <span className="newtest-transfer-item">
+                <Button className="newtest-info-btn" shape="circle" size="small" onClick={()=>{this.OpenModel(item._id)}}>
+                    <CircleHelp size={13} strokeWidth={2.2} />
+                </Button>
+                <span className="newtest-transfer-item-text">{item.body}</span>
           </span>
         )
         return {
@@ -83,46 +86,49 @@ class GeneraterandomQuestionO extends Component {
     render() {
         const { getFieldDecorator } = this.props.form;
         return (
-            <div>
-                <Row>
-                    <Col span={5} style={{padding:'20px 0px'}}>
-                        <div className={`random-question-generation ${this.props.mode ==="random"? "notblind" : "blind"}`}>
-                            <Form onSubmit={this.handleSubmit} >
-                                <Form.Item label="Enter No. of questions" hasFeedback>
+            <div className={`newtest-question-picker ${this.props.mode === "manual" ? "is-manual" : "is-random"}`}>
+                <div className={`random-question-generation newtest-random-panel ${this.props.mode ==="random"? "notblind" : "blind"}`}>
+                    <div className="newtest-random-head">
+                        <h5>Auto Generate</h5>
+                        <p>Pick a random subset from your available question pool.</p>
+                    </div>
+                    <Form className="newtest-form-grid newtest-random-form" layout="vertical" hideRequiredMark onSubmit={this.handleSubmit} >
+                        <Form.Item>
+                                    <div className="admin-field-label">Number of Questions</div>
                                     {getFieldDecorator('no', {
                                         rules: [{ required: true, message: 'Please enter no. of question' }],
                                     })(
                                         <InputNumber style={{width:'100%'}}  placeholder="No of question"/>
                                     )}
                                 </Form.Item> 
-                                <Form.Item>
-                                    <Button type="default" htmlType="submit" block disabled={!this.state.autogenerate}>
-                                        Generate Test Paper
-                                    </Button>
-                                </Form.Item>
-                            </Form>
-                        </div>
-                    </Col>
-                    <Col span={19} style={{padding:'20px'}}>
-                        <Transfer
-                            disabled={this.props.mode ==="random"? true : false}
-                            rowKey={record => record._id}
-                            dataSource={this.props.test.questionsAvailablebasedonSubject}
-                            listStyle={{
-                                width: '45%',
-                                height: 500,
-                                color: '#c9d1d9'
-                            }}
-                            targetKeys={this.props.test.newtestFormData.testQuestions}
-                            render={this.renderItem}
-                            onChange={this.handleChange}
-                        />
-                    </Col>
-                </Row>
+                        <Form.Item>
+                            <Button type="primary" htmlType="submit" className="admin-submit-btn newtest-primary-btn" block disabled={!this.state.autogenerate}>
+                                <Sparkles size={14} strokeWidth={2.3} /> Generate Questions
+                            </Button>
+                        </Form.Item>
+                    </Form>
+                </div>
+
+                <div className="newtest-transfer-shell">
+                    <Transfer
+                        disabled={this.props.mode ==="random"? true : false}
+                        rowKey={record => record._id}
+                        dataSource={this.props.test.questionsAvailablebasedonSubject}
+                        listStyle={{
+                            width: '48%',
+                            height: 470
+                        }}
+                        targetKeys={this.props.test.newtestFormData.testQuestions}
+                        render={this.renderItem}
+                        onChange={this.handleChange}
+                    />
+                </div>
+
                 <Modal
                     destroyOnClose={true}
                     width="70%"
                     style={{top:'30px'}}
+                    wrapClassName="newtest-question-preview-modal"
                     title="Question details"
                     visible={this.state.Mvisible}
                     onOk={this.handleCancel}
@@ -143,11 +149,9 @@ const mapStateToProps = state => ({
 });
 
 export default connect(mapStateToProps,{
-    changeStep,
     changeBasicNewTestDetails,
     fetchSubjectWiseQuestion,
     pushQuestionToQueue,
-    removeQuestionFromMainQueue,
     changeMode
 })(GeneraterandomQuestion);
 
@@ -198,48 +202,30 @@ class SingleQuestionDetails extends React.Component{
         let Optiondata=this.state.qdetails;
         if(Optiondata!==null){
             return (
-                <div>
-                    <div className="mainQuestionDetailsContaine">
-                        <div className="questionDetailsBody">
-                            {Optiondata.body}
+                <div className="newtest-preview-details">
+                    <div className="newtest-preview-question">{Optiondata.body}</div>
+                    {Optiondata.quesimg?
+                        <div className="newtest-preview-image-wrap">
+                            <img alt="Question" className="newtest-preview-image" src={Optiondata.quesimg} />  
                         </div>
-                        {Optiondata.quesimg?
-                            <div className="questionDetailsImageContainer">
-                                <img alt="Question" className="questionDetailsImage" src={Optiondata.quesimg} />  
-                            </div>
-                            : null
-                        }
-                        <div>
-                            {Optiondata.options.map((d,i)=>{
-                                return(
-                                    <div key={i}>
-                                        <Row type="flex" justify="center" className="QuestionDetailsOptions">
-                                            <Col span={2}>
-                                                {
-                                                    d.isAnswer?<Button className="green" shape="circle">{optn[i]}</Button>:<Button type="primary" shape="circle">{optn[i]}</Button>
-                                                }
-                                                
-                                            </Col>
-                                            {d.optimg?
-                                                <Col span={6} style={{padding:'5px'}}>
-                                                    <img alt="options" className="questionDetailsImage" src={d.optimg} />
-                                                </Col>
-                                            :
-                                                null
-                                            }
-                                            {d.optimg?
-                                                <Col span={14}>{d.optbody}</Col>
-                                            :
-                                                <Col span={20}>{d.optbody}</Col>
-                                            }
-                                        </Row>
-                                    
+                        : null
+                    }
+                    <div className="newtest-preview-options">
+                        {(Optiondata.options || []).map((d,i)=>{
+                            return(
+                                <div key={i} className={`newtest-preview-option${d.isAnswer ? ' is-answer' : ''}`}>
+                                    <span className="newtest-preview-option-index">{optn[i] || i + 1}</span>
+                                    <div className="newtest-preview-option-content">
+                                        <p>{d.optbody || '-'}</p>
+                                        {d.optimg?
+                                            <img alt="options" className="newtest-preview-option-image" src={d.optimg} />
+                                        : null}
                                     </div>
-                                )
-                            })}
-                        </div>
+                                    {d.isAnswer ? <span className="newtest-preview-option-badge">Correct</span> : null}
+                                </div>
+                            )
+                        })}
                     </div>
-    
                 </div>
             )
         }

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
+import apis from '../../services/Apis';
 
-const TrainerLivePreview = ({ traineeId }) => {
+const TrainerLivePreview = ({ traineeId, testId }) => {
   const remoteVideoRef = useRef(null);
   const pcRef = useRef(null);
   const wsRef = useRef(null);
@@ -12,9 +13,22 @@ const TrainerLivePreview = ({ traineeId }) => {
       }
     };
 
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    });
+    const iceServers = [];
+    if (apis.RTC_STUN_URLS.length > 0) {
+      iceServers.push({ urls: apis.RTC_STUN_URLS });
+    }
+    if (
+      apis.RTC_TURN_URLS.length > 0 &&
+      apis.RTC_TURN_USERNAME &&
+      apis.RTC_TURN_CREDENTIAL
+    ) {
+      iceServers.push({
+        urls: apis.RTC_TURN_URLS,
+        username: apis.RTC_TURN_USERNAME,
+        credential: apis.RTC_TURN_CREDENTIAL
+      });
+    }
+    const pc = new RTCPeerConnection({ iceServers });
     pcRef.current = pc;
 
     pc.ontrack = (event) => {
@@ -32,7 +46,16 @@ const TrainerLivePreview = ({ traineeId }) => {
       }
     };
 
-    wsRef.current = new WebSocket(`ws://localhost:8080/?role=trainer&traineeid=${traineeId}`);
+    const params = new URLSearchParams({
+      role: 'trainer',
+      traineeid: traineeId
+    });
+    if (testId) {
+      params.set('testid', testId);
+      params.set('sessionid', `${testId}:${traineeId}`);
+    }
+
+    wsRef.current = new WebSocket(`${apis.WS_SIGNALING_URL}/?${params.toString()}`);
     wsRef.current.onopen = () => {
       console.log("Trainer signaling socket connected");
       console.log("Trainee " + traineeId);
@@ -81,7 +104,7 @@ const TrainerLivePreview = ({ traineeId }) => {
       if (pcRef.current) pcRef.current.close();
       if (wsRef.current) wsRef.current.close();
     };
-  }, [traineeId]);
+  }, [traineeId, testId]);
 
   return (
     <div>

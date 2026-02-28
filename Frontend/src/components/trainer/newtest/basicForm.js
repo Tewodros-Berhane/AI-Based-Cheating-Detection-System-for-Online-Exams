@@ -1,11 +1,10 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux';
-import { Form, InputNumber , Input, Button,Select  } from 'antd';
+import { Form, InputNumber , Input, Button,Select  } from 'antd-compat';
 import { changeStep,changeBasicNewTestDetails } from '../../../actions/testAction';
 import { SecurePost } from '../../../services/axiosCall';
 import './newtest.css';
 import apis from '../../../services/Apis'
-const { Option } = Select;
 
 
 class BasicTestFormO extends Component {
@@ -81,10 +80,15 @@ class BasicTestFormO extends Component {
     render() {
         const { getFieldDecorator } = this.props.form;
         return (
-            <div className="basic-test-form-outer">
+            <section className="newtest-stage-card basic-test-form-outer">
+                <div className="newtest-stage-head">
+                    <h4>Basic Info</h4>
+                    <p>Set core details before moving to question selection.</p>
+                </div>
                 <div className="basic-test-form-inner">
-                    <Form onSubmit={this.handleSubmit}> 
-                        <Form.Item label="Exam Title"  hasFeedback validateStatus={this.state.checkingName}>
+                    <Form className="newtest-form-grid" layout="vertical" hideRequiredMark onSubmit={this.handleSubmit}> 
+                        <Form.Item validateStatus={this.state.checkingName}>
+                            <div className="admin-field-label">Exam Title</div>
                             {getFieldDecorator('title', {
                                 initialValue : this.props.test.newtestFormData.testTitle,
                                 rules: [
@@ -97,7 +101,8 @@ class BasicTestFormO extends Component {
                                 <Input placeholder="Exam Title" />
                             )}
                         </Form.Item>
-                        <Form.Item label="Course"  hasFeedback>
+                        <Form.Item>
+                            <div className="admin-field-label">Course</div>
                             {getFieldDecorator('subjects', {
                                 initialValue : this.props.test.newtestFormData.testSubject,
                                 rules: [{ required: true, message: 'Please select a Exam type' }],
@@ -117,7 +122,8 @@ class BasicTestFormO extends Component {
                                 </Select>
                             )}
                         </Form.Item>
-                        <Form.Item label="Exam Duration ( Min. test duration-60m )" hasFeedback>
+                        <Form.Item>
+                            <div className="admin-field-label">Exam Duration (Minutes)</div>
                             {getFieldDecorator('duration', {
                                 initialValue : this.props.test.newtestFormData.testDuration,
                                 rules: [{ required: true, message: 'Please give exam duration' }],
@@ -125,21 +131,22 @@ class BasicTestFormO extends Component {
                                 <InputNumber style={{width:'100%'}}  placeholder="Exam Duration" min={1} max={180}/>
                             )}
                         </Form.Item> 
-                        <Form.Item label="Organisation Name"  hasFeedback>
+                        <Form.Item>
+                            <div className="admin-field-label">Organization Name</div>
                             {getFieldDecorator('organisation', {
                                 initialValue : this.props.test.newtestFormData.OrganisationName
                             })(
                                 <Input placeholder="Organisation Name" />
                             )}
                         </Form.Item>
-                        <Form.Item>
-                            <Button type="primary" htmlType="submit" block>
-                                Next
+                        <Form.Item className="newtest-form-actions">
+                            <Button type="primary" htmlType="submit" className="admin-submit-btn newtest-primary-btn">
+                                Continue to Question Selection
                             </Button>
                         </Form.Item>
                     </Form>
                 </div>
-            </div>
+            </section>
         )
     }
 }

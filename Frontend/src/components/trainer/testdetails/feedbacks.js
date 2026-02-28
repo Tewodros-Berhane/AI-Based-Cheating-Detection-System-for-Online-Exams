@@ -1,40 +1,50 @@
 import React from 'react';
-import { Card,Rate, Comment, Avatar  } from 'antd';
+import { Avatar, Rate } from 'antd-compat';
 import './testdetails.css';
+
+function getInitial(name = '') {
+  const trimmed = String(name).trim();
+  return trimmed ? trimmed[0].toUpperCase() : '?';
+}
+
 export default function FeedBacks(props) {
-    console.log(props.feedbacks);
-    return (
-        <div> 
-            <Card >
-                <div className="download-section" >
-                    <h3 style={{color: '#c9d1d9',}}><b>Feedbacks</b></h3>
-                    <div style={{color: '#c9d1d9',}}>
-                        {props.feedbacks.map((d,i)=>{
-                            return(
-                                <Card key={i} style={{marginBottom:'10px'}}>
-                                    <Comment
-                                        author={`${d.userid.name} - ${d.userid.organisation} `}
-                                        avatar={
-                                            <Avatar
-                                                src={d.userid.faceImageUrl}
-                                                alt={d.userid.name}
-                                            />
-                                        }
-                                        content={
-                                            <span style={{color: '#c9d1d9',}}>
-                                                <Rate disabled value={Number(d.rating)} style={{ fontSize: '14px' }} />
-                                                <p style={{color: '#c9d1d9',}}>
-                                                    {d.feedback}
-                                                </p>
-                                            </span>
-                                        }
-                                    />
-                                </Card>
-                            ) 
-                        })}
-                    </div>
+  const feedbacks = props.feedbacks || [];
+
+  return (
+    <section className="testdetails-block">
+      <div className="testdetails-block-head">
+        <h4>Feedback Stream</h4>
+        <p>Candidate sentiment captured after exam completion.</p>
+      </div>
+
+      {feedbacks.length === 0 ? (
+        <div className="testdetails-empty">No feedback has been submitted.</div>
+      ) : (
+        <div className="testdetails-feedback-list">
+          {feedbacks.map((item) => {
+            const user = item.userid || {};
+            const rating = Number(item.rating || 0);
+            return (
+              <article className="testdetails-feedback-card" key={item._id || `${user._id}-${rating}`}>
+                <div className="testdetails-feedback-head">
+                  <Avatar src={user.faceImageUrl} className="testdetails-feedback-avatar">
+                    {getInitial(user.name)}
+                  </Avatar>
+                  <div className="testdetails-feedback-meta">
+                    <span className="testdetails-feedback-name">{user.name || 'Unknown'}</span>
+                    <span className="testdetails-feedback-org">{user.organisation || 'No organization'}</span>
+                  </div>
                 </div>
-            </Card>
+
+                <div className="testdetails-feedback-body">
+                  <Rate disabled value={rating} style={{ fontSize: '14px' }} />
+                  <p>{item.feedback || 'No comment provided.'}</p>
+                </div>
+              </article>
+            );
+          })}
         </div>
-    )
+      )}
+    </section>
+  );
 }
