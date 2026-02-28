@@ -23,7 +23,7 @@ const initialState = {
 }
 
 
-export default (state = initialState, action )=>{
+const traineeReducer = (state = initialState, action )=>{
     switch(action.type){
         case 'SET_HAS_GIVEN_FEEDBACK':
             return{
@@ -35,6 +35,9 @@ export default (state = initialState, action )=>{
                 ...state,
                 testid:action.payload1,
                 traineeid:action.payload2,
+                invalidUrl:false,
+                initialloading1:true,
+                initialloading2:true
             }
         case 'FETCH_TEST_FLAG':
             return{
@@ -45,6 +48,7 @@ export default (state = initialState, action )=>{
                 LocaltestDone:action.payload4,
                 m_left:action.payload5,
                 s_left:action.payload6,
+                invalidUrl:false,
                 initialloading1:false
             }
         case 'INVALID_TEST_URL':
@@ -87,3 +91,5 @@ export default (state = initialState, action )=>{
             return state;
     }
 }
+
+export default traineeReducer;

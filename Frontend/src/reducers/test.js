@@ -15,7 +15,7 @@ const initialState = {
 }
 
 
-export default (state = initialState, action )=>{
+const testReducer = (state = initialState, action )=>{
     switch(action.type){
         case 'CHANGE_ACTIVE_STEP':
             return {
@@ -58,3 +58,5 @@ export default (state = initialState, action )=>{
             return state;
     }
 }
+
+export default testReducer;

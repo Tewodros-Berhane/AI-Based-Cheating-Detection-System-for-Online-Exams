@@ -111,6 +111,7 @@ export const ChangeTestTableData = ()=> dispatch =>{
     });
     SecurePost({
         url : `${apis.GET_ALL_TESTS}`,
+        data: {}
     }).then((response)=>{
         console.log(response.data);
         if(response.data.success){

@@ -1,45 +1,45 @@
 export const ADMIN_PERMISSIONS=[
     {
-        display : 'Welcome',
-        icon : 'home',
+        display : 'Dashboard',
+        iconKey : 'dashboard',
         link : '/user/home'
     },
     {
-        display : 'All Trainers',
-        icon : 'user',
+        display : 'Examiners',
+        iconKey : 'examiners',
         link : '/user/listtrainers'
     },
     {
-        display : 'All Courses',
-        icon : 'book',
+        display : 'Courses',
+        iconKey : 'courses',
         link : '/user/listsubjects' 
     }
 ]   
 
 export const TRAINER_PERMISSIONS=[
     {
-        display : 'Welcome',
-        icon : 'home',
+        display : 'Dashboard',
+        iconKey : 'dashboard',
         link : '/user/home'
     },
     {
-        display : 'All Questions',
-        icon : 'form',
+        display : 'Questions',
+        iconKey : 'questions',
         link : '/user/listquestions'
     },
     {
-        display : 'All Tests',
-        icon : 'copy',
+        display : 'Exams',
+        iconKey : 'exams',
         link : '/user/listtests'
     },
     {
-        display : 'New Test',
-        icon : 'edit',
+        display : 'Create Exam',
+        iconKey : 'newExam',
         link : '/user/newtest'
     },
     {
-        display : 'Conduct Test',
-        icon : 'edit',
+        display : 'Live Session',
+        iconKey : 'liveSession',
         link : '/user/conducttest'
     }
 ]   

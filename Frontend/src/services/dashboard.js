@@ -1,15 +1,10 @@
-import { Get, Post} from './axiosCall';
+import { SecureGet } from './axiosCall';
 import apis from './Apis';
 
 export async function loadDashboard() {
-  const token = localStorage.getItem('Token');
-
   try {
-    const res = await Get({
-      url: apis.GET_DASHBOARD,
-      params : {
-        Token : token
-    }
+    const res = await SecureGet({
+      url: apis.GET_DASHBOARD
     });
     return res.data;
   } catch (err) {

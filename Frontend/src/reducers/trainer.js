@@ -9,6 +9,8 @@ const initialState = {
     fifthoptioAddButtonVisible:true,
     TestTableLoading:false,
     TestTableData:[],
+    TestsearchText:'',
+    TestDetailsmodalOpened:false,
     DataActiveTestDetails : {
         testDetailsId : null,
         testquestions :[]
@@ -16,7 +18,7 @@ const initialState = {
 }
 
 
-export default (state = initialState, action )=>{
+const trainerReducer = (state = initialState, action )=>{
     switch(action.type){
         case 'CHANGE_QUESTION_MODAL_STATE':
             return {
@@ -97,3 +99,5 @@ export default (state = initialState, action )=>{
             return state;
     }
 }
+
+export default trainerReducer;

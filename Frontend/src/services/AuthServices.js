@@ -1,12 +1,10 @@
 import apis from "./Apis";
-import { Get, Post} from './axiosCall';
+import { Post, SecureGet } from './axiosCall';
 
 
 class AuthService{
     constructor(){
         this.token=null;
-        console.log(apis.BASE);
-        console.log(apis.BASE_LOCAL_URL);
     }
     
     retriveToken = ()=>{
@@ -31,16 +29,18 @@ class AuthService{
         })    
     }
 
-    FetchAuth = (t)=>{
-        return Get({
-            url : apis.GETDETAILSUSER,
-            params : {
-                Token : t
-            }
+    FetchAuth = ()=>{
+        return SecureGet({
+            url : apis.GETDETAILSUSER
         })
+    }
+
+    wakeUp = ()=>{
+        return this.FetchAuth();
     }
 
 
 }
+const authService = new AuthService();
 
-export default new AuthService();
+export default authService;

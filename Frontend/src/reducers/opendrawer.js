@@ -5,7 +5,7 @@ const initialState = {
     navigationCollapsed : true
 }
 
-export default (state = initialState, action )=>{
+const openDrawerReducer = (state = initialState, action )=>{
     switch(action.type){
         case TOOGLE_NAVIGATION:
             return {
@@ -16,3 +16,5 @@ export default (state = initialState, action )=>{
             return state;
     }
 }
+
+export default openDrawerReducer;

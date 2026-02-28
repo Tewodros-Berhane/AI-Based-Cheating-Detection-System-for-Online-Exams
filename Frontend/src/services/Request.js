@@ -2,30 +2,34 @@ const axios = require('axios');
 import LocalAuth from './AuthServices';
 const base = require("./conf").base;
 
+const authHeaders = (headers = {}) => {
+    const token = LocalAuth.retriveToken();
+    if (!token) return headers;
+    return {
+        ...headers,
+        Authorization: `Bearer ${token}`
+    };
+};
 
 let get = (uri,params=null)=>{
     return axios({
         method : 'get',
         url : uri,
         baseURL : base,
-        params : {
-            Token : 't',
-            ...params
-        }
+        params : params,
+        headers : authHeaders()
     });
 }
 
 let post = (uri,params=null,data=null,others={})=>{
     return axios({
-        method : 'get',
+        method : 'post',
         url : uri,
         baseURL : base,
-        params : {
-            Token : 't',
-            ...params
-        },
+        params : params,
         data : data,
-        ...others
+        ...others,
+        headers : authHeaders(others.headers)
     });
 }
 

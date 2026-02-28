@@ -1,6 +1,6 @@
 export const steps = [
     {
-      title: 'Basic details'
+      title: 'Basic Info'
     },
     {
       title: 'Select Questions'

@@ -1,6 +1,6 @@
 import apis from '../services/Apis';
 import Alert from '../components/common/alert';
-import { Post, SecurePost } from '../services/axiosCall';
+import { Post } from '../services/axiosCall';
 
 let parse_time = (d)=>{
     console.log(`${d}I am called`)
@@ -88,12 +88,12 @@ export const fetchTestdata =(d1,d2)=>dispatch=>{
         }
         else{
             dispatch({
-                type:'invalidUrl',
+                type:'INVALID_TEST_URL',
             })
         }
     }).catch((err)=>{
         dispatch({
-            type:'invalidUrl',
+            type:'INVALID_TEST_URL',
         })  
     })
 }

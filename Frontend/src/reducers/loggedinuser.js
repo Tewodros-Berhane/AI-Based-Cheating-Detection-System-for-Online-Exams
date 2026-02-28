@@ -9,7 +9,7 @@ const initialState = {
     userOptions:[]
 }
 
-export default (state = initialState, action )=>{
+const loggedInUserReducer = (state = initialState, action )=>{
     switch(action.type){
         case 'CHANGE_ACTIVE_URL':
             return {
@@ -49,9 +49,13 @@ export default (state = initialState, action )=>{
                 isLoggedIn : false,
                 userDetails :{
 
-                }
+                },
+                userOptions : [],
+                activeRoute : '0'
             }
         default:
             return state;
     }
 }
+
+export default loggedInUserReducer;

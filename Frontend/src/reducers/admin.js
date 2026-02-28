@@ -18,7 +18,7 @@ const initialState = {
     subjectDetails :{}    
 }
 
-export default (state = initialState, action )=>{
+const adminReducer = (state = initialState, action )=>{
     switch(action.type){
         case 'CHANGE_TRAINER_MODAL_STATE':
             return {
@@ -74,3 +74,5 @@ export default (state = initialState, action )=>{
             return state;
     }
 }
+
+export default adminReducer;

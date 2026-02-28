@@ -10,7 +10,7 @@ const initialState = {
     registeredCandidates:[],
     questionsOfTest:[]
 }
-export default (state = initialState, action )=>{
+const conductTestReducer = (state = initialState, action )=>{
     switch(action.type){
         case 'SET_CONDUCT_TEST_ID':
             return {
@@ -54,3 +54,5 @@ export default (state = initialState, action )=>{
             return state;
     }
 }
+
+export default conductTestReducer;
