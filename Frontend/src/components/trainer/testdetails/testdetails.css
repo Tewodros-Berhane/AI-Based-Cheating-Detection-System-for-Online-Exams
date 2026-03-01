@@ -355,10 +355,14 @@
 
 .testdetails-question-image {
   margin-top: 10px;
-  max-width: 100%;
+  max-width: min(100%, 340px);
+  max-height: 180px;
+  width: auto;
   border-radius: 8px;
   border: 1px solid var(--border-soft);
   display: block;
+  object-fit: contain;
+  background: rgba(7, 13, 25, 0.88);
 }
 
 .testdetails-question-options-grid {
@@ -399,10 +403,14 @@
 
 .testdetails-option-image {
   margin-top: 6px;
-  max-width: 220px;
-  width: 100%;
+  max-width: min(100%, 180px);
+  max-height: 110px;
+  width: auto;
   border-radius: 8px;
   border: 1px solid var(--border-soft);
+  display: block;
+  object-fit: contain;
+  background: rgba(7, 13, 25, 0.88);
 }
 
 .testdetails-option-badge {
