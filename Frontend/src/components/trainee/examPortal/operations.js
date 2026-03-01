@@ -9,7 +9,6 @@ function Operations({ trainee, switchQuestion }) {
     <div className="question-list-wrapper">
       <div className="question-list-header">
         <h4>Question Navigator</h4>
-        <p>Select a number to jump to that question.</p>
       </div>
       <div className="question-list-inner">
         {trainee.answers.map((answer, index) => {

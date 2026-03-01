@@ -32,6 +32,7 @@ class MainPortal extends Component {
             formTraineeId: traineeid || '', // Pre-fill
             formSubmissionError: null, // For errors specific to form submission (e.g., invalid IDs)
             attemptedFetchWithFormIds: false, // Flag to know if a fetch was tried with form IDs
+            loading: false
         };
 
         if (testid && traineeid) {
@@ -108,7 +109,8 @@ handleIdSubmit = async (e) => {
   this.setState({
     showIdForm: false,
     formSubmissionError: null,
-    loading: true
+    loading: true,
+    attemptedFetchWithFormIds: true
   });
 
   try {
@@ -166,54 +168,55 @@ handleIdSubmit = async (e) => {
 };
 
     renderIdForm() {
-        const { formTestId, formTraineeId, formSubmissionError } = this.state;
+    const { formTestId, formTraineeId, formSubmissionError } = this.state;
         console.log('[renderIdForm] form is rendering');
         return (
-            <div className="id-form-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '20px', background: '#f0f2f5' }}>
+            <div className="id-form-wrapper">
                 <Row justify="center" style={{ width: '100%' }}>
                     <Col xs={24} sm={18} md={12} lg={8} xl={7}>
-                        <div className="id-form-inner" style={{ padding: '30px 40px', border: '1px solid #d9d9d9', borderRadius: '8px', background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                            <Title level={3} style={{ textAlign: 'center', marginBottom: '24px', color: '#333' }}>Access Test Portal</Title>
+                        <div className="id-form-inner app-glass-card">
+                            <div className="id-form-header">
+                                <Title level={3}>Access Exam Workspace</Title>
+                                <p>Enter the IDs from your invitation email to continue.</p>
+                            </div>
                             {formSubmissionError && (
-                                <Alert message={formSubmissionError} type="error" showIcon style={{ marginBottom: '20px' }} />
+                                <Alert message={formSubmissionError} type="error" showIcon className="id-form-alert" />
                             )}
-                            <Form layout="vertical">
+                            <Form layout="vertical" className="trainee-access-form">
                                 <Form.Item
-                                    label="Student ID"
+                                    label="Candidate ID"
                                     name="formTraineeId"
-                                    required
                                     htmlFor="formTraineeId"
-                                // help={formSubmissionError && !formTraineeId ? 'Trainee ID is required' : ''}
                                 >
                                     <Input
                                         id="formTraineeId"
                                         name="formTraineeId"
                                         value={formTraineeId}
                                         onChange={this.handleInputChange}
-                                        placeholder="Enter your Student ID"
+                                        onPressEnter={this.handleIdSubmit}
+                                        placeholder="Enter your candidate ID"
                                         size="large"
                                     />
                                 </Form.Item>
                                 <Form.Item
                                     label="Exam ID"
                                     name="formTestId"
-                                    required
                                     htmlFor="formTestId"
-                                // help={formSubmissionError && !formTestId ? 'Test ID is required' : ''} // Can add individual field errors if needed
                                 >
                                     <Input
                                         id="formTestId"
                                         name="formTestId"
                                         value={formTestId}
                                         onChange={this.handleInputChange}
+                                        onPressEnter={this.handleIdSubmit}
                                         placeholder="Enter the Exam ID"
                                         size="large"
                                     />
                                 </Form.Item>
                                 
-                                <Form.Item style={{ marginTop: '24px' }}>
-                                    <Button type="primary" block size="large" onClick={this.handleIdSubmit}>
-                                        Proceed to Test
+                                <Form.Item className="id-form-action">
+                                    <Button type="primary" block size="large" htmlType="submit" onClick={this.handleIdSubmit} loading={this.state.loading}>
+                                        Enter Testing Room
                                     </Button>
                                 </Form.Item>
                             </Form>
@@ -251,7 +254,7 @@ handleIdSubmit = async (e) => {
 
         if (initialloading1 || initialloading2) {
             return (
-                <div className="skeletor-wrapper" style={{padding: '50px'}}>
+                <div className="skeletor-wrapper">
                     <Skeleton active paragraph={{ rows: 4 }} />
                     <Skeleton active paragraph={{ rows: 4 }} style={{marginTop: '20px'}}/>
                 </div>
@@ -281,13 +284,14 @@ handleIdSubmit = async (e) => {
             // In that case, showing a generic error or redirecting as per original logic might be better.
             // return window.location.href=``; // Original redirect for invalid URL
              return (
-                <div style={{ textAlign: 'center', padding: '50px' }}>
-                    <Title level={4}>Error</Title>
-                    <Typography.Text>Could not load test details. The provided Test ID or Trainee ID might be invalid, or the test is not accessible.</Typography.Text>
-                    <br /><br />
-                    <Button onClick={() => this.setState({ showIdForm: true, initialTestIdFromUrl: null, initialTraineeIdFromUrl: null, formSubmissionError: null, attemptedFetchWithFormIds: false })}>
-                        Enter IDs Again
-                    </Button>
+                <div className="trainee-status-page">
+                    <div className="trainee-status-card app-glass-card">
+                        <Title level={4}>Unable to load exam details</Title>
+                        <Typography.Text>We could not validate the provided IDs or the exam is not currently accessible.</Typography.Text>
+                        <Button className="trainee-status-action" onClick={() => this.setState({ showIdForm: true, initialTestIdFromUrl: null, initialTraineeIdFromUrl: null, formSubmissionError: null, attemptedFetchWithFormIds: false })}>
+                            Re-enter IDs
+                        </Button>
+                    </div>
                 </div>
             );
         }
@@ -300,8 +304,9 @@ handleIdSubmit = async (e) => {
         if (testconducted) {
             return (
                 <div className="Test-portal-not-started-yet-wrapper">
-                    <div className="Test-portal-not-started-yet-inner">
-                        <Title className="Test-portal-not-started-yet-inner-message" style={{ color: '#eef4ff' }} level={4}>The Exam is Over!<br /> The examiner has ended the exam.</Title>
+                    <div className="Test-portal-not-started-yet-inner app-glass-card">
+                        <Title className="Test-portal-not-started-yet-inner-message" level={4}>This exam session has ended.</Title>
+                        <p className="trainee-status-supporting-text">The examiner closed this session. If you need help, contact your examiner.</p>
                     </div>
                 </div>
             );
@@ -309,8 +314,9 @@ handleIdSubmit = async (e) => {
         if (!testbegins) {
             return (
                 <div className="Test-portal-not-started-yet-wrapper">
-                    <div className="Test-portal-not-started-yet-inner">
-                        <Title className="Test-portal-not-started-yet-inner-message" style={{ color: '#eef4ff' }} level={4}>The exam has not started yet. You will be redirected once the exam starts.</Title>
+                    <div className="Test-portal-not-started-yet-inner app-glass-card">
+                        <Title className="Test-portal-not-started-yet-inner-message" level={4}>Exam has not started yet.</Title>
+                        <p className="trainee-status-supporting-text">Keep this page open. You will be redirected automatically once the exam begins.</p>
                     </div>
                 </div>
             );

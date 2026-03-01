@@ -500,17 +500,31 @@ let flags = (req,res,next)=>{
     var traineeid = req.body.traineeid;
     const p1 = AnswersheetModel.findOne({userid : traineeid,testid : testid},{_id : 1,startTime  :1,completed : 1});
     const p2 = TraineeEnterModel.findOne({_id : traineeid , testid : testid},{_id : 1});
-    const p3 = TestPaperModel.findById(testid,{testbegins : 1, testconducted : 1,duration : 1});
+    const p3 = TestPaperModel.findById(testid,{
+        testbegins : 1,
+        testconducted : 1,
+        duration : 1,
+        title : 1,
+        organisation : 1,
+        examID : 1,
+        questions : 1
+    });
     var present = new Date();
 
     Promise.all([p1,p2,p3]).then((info)=>{
-        console.log(info)
-        if(info[1]===null){
+        if(info[1]===null || info[2]===null){
             res.json({
                 success : false,
                 message : 'Invalid URL!'
             })
         }else{
+            const examMeta = {
+                title : info[2].title || '',
+                organisation : info[2].organisation || '',
+                duration : info[2].duration || 0,
+                totalQuestions : Array.isArray(info[2].questions) ? info[2].questions.length : 0,
+                examID : info[2].examID || ''
+            };
             var startedWriting = false;
             var pending=null;
             if(info[0]!==null){
@@ -527,6 +541,7 @@ let flags = (req,res,next)=>{
                                 startedWriting:startedWriting,
                                 pending : pending,
                                 completed : true,
+                                examMeta : examMeta,
                                 examState: deriveExamState(info[2])
                             }
                         })
@@ -546,6 +561,7 @@ let flags = (req,res,next)=>{
                             startedWriting:startedWriting,
                             pending : pending,
                             completed : info[0].completed,
+                            examMeta : examMeta,
                             examState: deriveExamState(info[2])
                         }
                     })
@@ -561,6 +577,7 @@ let flags = (req,res,next)=>{
                         startedWriting:startedWriting,
                         pending : pending,
                         completed : false,
+                        examMeta : examMeta,
                         examState: deriveExamState(info[2])
                     }
                 })

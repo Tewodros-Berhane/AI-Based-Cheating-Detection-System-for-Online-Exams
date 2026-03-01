@@ -46,15 +46,16 @@ export default function TestBoard(props) {
     }
     else{
         return (
-            <div className="exam-dashboard-wrapper">
+            <div className="exam-dashboard-wrapper is-mobile">
                 <Question mode="mobile" triggerSidebar={onOpen} />
                 <Drawer
-                    title="Toolbar"
+                    title="Exam Panel"
                     placement="right"
                     closable={true}
                     onClose={onClose}
                     open={visible}
                     width="100%"
+                    className="exam-mobile-drawer"
                 >
                     <Sidepanel mode="mobile"/>    
                 </Drawer>

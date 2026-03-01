@@ -27,6 +27,16 @@ class Candidates extends Component {
 
   componentDidMount() {
     this.refreshUserList();
+    this.autoRefreshTimer = setInterval(() => {
+      this.refreshUserList();
+    }, 5000);
+  }
+
+  componentWillUnmount() {
+    if (this.autoRefreshTimer) {
+      clearInterval(this.autoRefreshTimer);
+      this.autoRefreshTimer = null;
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -213,8 +223,11 @@ class Candidates extends Component {
                         </td>
                         <td data-label="Alerts">
                           <div className="conduct-alert-cell">
-                            <TrainerResultPreview traineeId={candidate._id} testId={this.props.conduct.id} />
-                            <span className="conduct-alert-caption">Live signal</span>
+                            <TrainerResultPreview
+                              traineeId={candidate._id}
+                              testId={this.props.conduct.id}
+                              statusFallback={candidate?.examProgress?.status}
+                            />
                           </div>
                         </td>
                         <td data-label="Preview">

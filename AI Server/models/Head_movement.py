@@ -15,7 +15,8 @@ LIP_LABELS  = ['No Movement', 'Talking']
 class MultiHeadNet(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        base = models.resnet18(pretrained=True)
+        # Avoid runtime network downloads in container startup.
+        base = models.resnet18(weights=None)
         self.backbone = torch.nn.Sequential(*list(base.children())[:-1])
         self.head = torch.nn.Linear(512, len(HEAD_LABELS))
         self.gaze = torch.nn.Linear(512, len(GAZE_LABELS))

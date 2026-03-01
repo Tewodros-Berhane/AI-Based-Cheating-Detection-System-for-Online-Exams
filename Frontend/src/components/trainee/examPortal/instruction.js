@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { connect } from 'react-redux';
-import { Button, Icon, message } from 'antd-compat';
+import { Button, Icon, message, Tag } from 'antd-compat';
 import { ProceedtoTest, fetchTestdata } from '../../../actions/traineeAction';
 import { MediaStreamContext } from '../../../contexts/MediaStreamContext';
 import './portal.css';
@@ -46,24 +46,29 @@ function Instruction(props) {
       <div className="instruction-page-inner">
         <div className="instruction-header">
           <h2>Exam Readiness Checklist</h2>
-          <p>Review the guidance below before entering the testing room.</p>
+          <p>Complete these checks before entering your testing room.</p>
+          <div className="instruction-meta">
+            <Tag className="instruction-meta-chip">Quiet Environment</Tag>
+            <Tag className="instruction-meta-chip">Camera On</Tag>
+            <Tag className="instruction-meta-chip">Stable Connection</Tag>
+          </div>
         </div>
         <div className="instruction-grid">
           <section className="instruction-block">
-            <h3>Environment & Identity</h3>
+            <h3>Identity & Environment</h3>
             <ul>
-              <li>Your camera image must match your registered profile image.</li>
-              <li>Keep your face visible in frame for the full session.</li>
-              <li>Use a quiet environment and avoid side conversations.</li>
-              <li>Do not refresh or close the tab after the exam begins.</li>
+              <li>Your live camera image must match your registered face image.</li>
+              <li>Keep your face visible and centered for the entire session.</li>
+              <li>Stay in a quiet room and avoid side conversations.</li>
+              <li>Do not refresh or close the page once the test begins.</li>
             </ul>
           </section>
           <section className="instruction-block">
             <h3>Exam Rules</h3>
             <ul>
               <li>All questions are compulsory unless marked otherwise.</li>
-              <li>You can flag questions and revisit them at any time.</li>
-              <li>Answers can be changed until final submission or timeout.</li>
+              <li>You can flag questions and return to them at any time.</li>
+              <li>You may update answers until submission or timeout.</li>
               <li>The timer is always visible and auto-submits at zero.</li>
             </ul>
           </section>
@@ -74,19 +79,21 @@ function Instruction(props) {
         </div>
 
         <div className="instruction-actions">
-          <Button icon="camera" type="default" onClick={handleGivePermission} className="permission-button">
-            Verify Camera & Mic
+          <Button type="default" onClick={handleGivePermission} className="permission-button">
+            <Icon type="camera" className="instruction-action-icon" />
+            <span>Verify Camera & Mic</span>
           </Button>
           <Button
             type="primary"
-            icon="caret-right"
             onClick={handleProceed}
             loading={props.trainee.proceedingToTest}
+            className="instruction-enter-button"
           >
-            Enter Testing Room
+            {!props.trainee.proceedingToTest && <Icon type="caret-right" className="instruction-action-icon" />}
+            <span>Enter Exam Workspace</span>
           </Button>
         </div>
-        <h2 className="instruction-goodluck">Stay focused and do your best.</h2>
+        <h2 className="instruction-goodluck">Stay focused. You are ready to begin.</h2>
       </div>
     </div>
   );

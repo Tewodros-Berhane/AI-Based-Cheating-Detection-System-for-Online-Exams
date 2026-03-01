@@ -117,7 +117,14 @@ export default function WebRTC({ traineeId, testId }) {
           })
         });
 
+        if (!response.ok) {
+          throw new Error(`AI offer negotiation failed (${response.status})`);
+        }
+
         const answer = await response.json();
+        if (!answer || !answer.sdp || !answer.type) {
+          throw new Error('Invalid AI server answer payload');
+        }
         await pc.setRemoteDescription(answer);
       };
 
@@ -143,7 +150,7 @@ export default function WebRTC({ traineeId, testId }) {
 
   return (
     <div>
-      <p>Real-time AI streaming via aiortc and PyAV.</p>
+      <p hidden>Real-time AI streaming via aiortc and PyAV.</p>
     </div>
   );
 }

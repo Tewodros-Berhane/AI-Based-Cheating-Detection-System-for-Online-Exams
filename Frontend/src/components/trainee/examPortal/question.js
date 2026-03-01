@@ -2,6 +2,7 @@ import React, { Component } from 'react'
 import { connect } from 'react-redux';
 import './portal.css';
 import SingleQuestion from './singleQuestion';
+import Clock from './clock';
 import { fetchTraineeTestQuestions,fetchTraineeTestAnswerSheet } from '../../../actions/traineeAction'
 
 class Question extends Component {
@@ -12,8 +13,15 @@ class Question extends Component {
     }
     render() {
         const hasExamData = this.props.trainee.answers.length>0 && this.props.trainee.questions.length>0;
+        const examMeta = this.props.trainee.examMeta || {};
+        const examTitle = examMeta.title || 'Exam Session';
+
         return (
             <div className="question-holder">
+                <div className="exam-session-header">
+                    <h2 className="exam-session-title">{examTitle}</h2>
+                    <Clock variant="inline" />
+                </div>
                 <div className="single-question-container">
                     {hasExamData ? (
                         <SingleQuestion mode={this.props.mode} triggerSidebar={this.props.triggerSidebar}  key={this.props.trainee.activeQuestionIndex} />

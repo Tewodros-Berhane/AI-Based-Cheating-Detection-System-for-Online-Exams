@@ -69,7 +69,8 @@ export const fetchTestdata =(d1,d2)=>dispatch=>{
                     payload3:response.data.data.testconducted,
                     payload4:response.data.data.completed,
                     payload5:0,
-                    payload6:0
+                    payload6:0,
+                    payload7:response.data.data.examMeta || null
                 })
             }
             else{
@@ -81,7 +82,8 @@ export const fetchTestdata =(d1,d2)=>dispatch=>{
                     payload3:response.data.data.testconducted,
                     payload4:response.data.data.completed,
                     payload5:t.m_left,
-                    payload6:t.s_left
+                    payload6:t.s_left,
+                    payload7:response.data.data.examMeta || null
                 })
             }
             

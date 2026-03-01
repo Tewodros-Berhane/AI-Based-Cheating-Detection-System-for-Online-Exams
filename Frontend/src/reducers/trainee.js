@@ -11,6 +11,13 @@ const initialState = {
     LocaltestDone:true,
     m_left:0,
     s_left:0,
+    examMeta:{
+        title:'',
+        organisation:'',
+        duration:0,
+        totalQuestions:0,
+        examID:''
+    },
     traineeDetails:{
         name:"",
         emailid:"",
@@ -37,7 +44,14 @@ const traineeReducer = (state = initialState, action )=>{
                 traineeid:action.payload2,
                 invalidUrl:false,
                 initialloading1:true,
-                initialloading2:true
+                initialloading2:true,
+                examMeta:{
+                    title:'',
+                    organisation:'',
+                    duration:0,
+                    totalQuestions:0,
+                    examID:''
+                }
             }
         case 'FETCH_TEST_FLAG':
             return{
@@ -48,6 +62,7 @@ const traineeReducer = (state = initialState, action )=>{
                 LocaltestDone:action.payload4,
                 m_left:action.payload5,
                 s_left:action.payload6,
+                examMeta:action.payload7 || state.examMeta,
                 invalidUrl:false,
                 initialloading1:false
             }

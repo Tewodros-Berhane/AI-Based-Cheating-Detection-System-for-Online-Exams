@@ -6,6 +6,7 @@ let options = require("../models/option");
 let SubjectModel = require("../models/subject");
 let result  =require("../services/excel").result;
 let ResultModel = require("../models/results");
+let AnswersheetModel = require("../models/answersheet");
 let logger = require("./logger");
 const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMachine");
 
@@ -394,28 +395,110 @@ let basicTestdetails = (req,res,next)=>{
  }
 
 
- let getCandidates = (req,res,next)=>{
-    if(req.user.type==="TRAINER"){
-        var testid = req.body.id;
-        TraineeEnterModel.find({testid:testid},{testid:0})
-        .then((getCandidates)=>{
-            res.json({
-                success: true,
-                message :  "success",
-                data : getCandidates
-            })
-        }).catch((err)=>{
-            res.status(500).json({
-                success : false,
-                message : "Unable to get candidates!"
-            })
-        })
-    }
-    else{
-        res.status(401).json({
+ let getCandidates = async (req,res,next)=>{
+    if(req.user.type!=="TRAINER"){
+        return res.status(401).json({
             success : false,
             message : "Permissions not granted!"
         })
+    }
+
+    var testid = req.body.id;
+    try{
+        const test = await TestPaperModel.findOne(
+            {_id:testid,createdBy:req.user._id},
+            {duration:1,testbegins:1,testconducted:1,isResultgenerated:1}
+        );
+
+        if(!test){
+            return res.json({
+                success : false,
+                message : "Invalid test id."
+            });
+        }
+
+        const candidates = await TraineeEnterModel.find({testid:testid},{testid:0});
+        if(!candidates.length){
+            return res.json({
+                success: true,
+                message :  "success",
+                data : []
+            });
+        }
+
+        const candidateIds = candidates.map((candidate)=>candidate._id);
+        const sheets = await AnswersheetModel.find(
+            {testid:testid, userid: {$in: candidateIds}},
+            {_id:1,userid:1,startTime:1,completed:1}
+        );
+
+        const now = Date.now();
+        const durationSeconds = Number(test.duration || 0) * 60;
+        const sheetByUser = new Map();
+        const expiredSheetIds = [];
+
+        sheets.forEach((sheet)=>{
+            const userKey = String(sheet.userid);
+            const startTimeMs = Number(sheet.startTime || 0);
+            const elapsedSeconds = startTimeMs > 0 ? (now - startTimeMs) / 1000 : 0;
+            const hasExpired = !sheet.completed && durationSeconds > 0 && elapsedSeconds >= durationSeconds;
+
+            if (hasExpired) {
+                sheet.completed = true;
+                expiredSheetIds.push(sheet._id);
+            }
+
+            sheetByUser.set(userKey, sheet);
+        });
+
+        if (expiredSheetIds.length) {
+            await AnswersheetModel.updateMany(
+                {_id: {$in: expiredSheetIds}},
+                {completed: true}
+            );
+        }
+
+        const data = candidates.map((candidate)=>{
+            const sheet = sheetByUser.get(String(candidate._id));
+            const startedWriting = Boolean(sheet);
+            const completed = Boolean(sheet && sheet.completed);
+
+            let pendingSeconds = null;
+            if (sheet && !completed && durationSeconds > 0) {
+                const elapsedSeconds = (now - Number(sheet.startTime || 0)) / 1000;
+                pendingSeconds = Math.max(0, Math.floor(durationSeconds - elapsedSeconds));
+            }
+
+            let status = 'not_started';
+            if (completed) status = 'finished';
+            else if (startedWriting) status = 'in_progress';
+
+            return {
+                ...candidate.toObject(),
+                examProgress: {
+                    status,
+                    startedWriting,
+                    completed,
+                    pendingSeconds
+                }
+            };
+        });
+
+        return res.json({
+            success: true,
+            message :  "success",
+            data
+        });
+    }catch(err){
+        logger.error('get_candidates_failed', {
+            testId: testid,
+            trainerId: req.user && req.user._id,
+            error: logger.normalizeError(err)
+        });
+        return res.status(500).json({
+            success : false,
+            message : "Unable to get candidates!"
+        });
     }
  }
 

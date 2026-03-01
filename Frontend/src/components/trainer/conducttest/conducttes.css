@@ -505,16 +505,85 @@
 }
 
 .conduct-alert-cell {
-  min-height: 22px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.conduct-alert-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 28px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
-.conduct-alert-caption {
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-weight: 600;
+.conduct-alert-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.conduct-alert-dot.pulse {
+  animation: conductAlertPulse 1.15s ease-in-out infinite;
+}
+
+.conduct-alert-pill.critical {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(127, 29, 29, 0.35);
+  color: #fca5a5;
+}
+
+.conduct-alert-pill.warning {
+  border-color: rgba(245, 158, 11, 0.52);
+  background: rgba(120, 53, 15, 0.34);
+  color: #fcd34d;
+}
+
+.conduct-alert-pill.safe {
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(20, 83, 45, 0.35);
+  color: #86efac;
+}
+
+.conduct-alert-pill.finished {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(6, 78, 59, 0.36);
+  color: #99f6e4;
+}
+
+.conduct-alert-pill.monitoring {
+  border-color: rgba(96, 165, 250, 0.5);
+  background: rgba(30, 64, 175, 0.34);
+  color: #bfdbfe;
+}
+
+.conduct-alert-pill.idle {
+  border-color: rgba(148, 163, 184, 0.45);
+  background: rgba(30, 41, 59, 0.42);
+  color: #cbd5e1;
+}
+
+@keyframes conductAlertPulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.92);
+    opacity: 0.65;
+  }
 }
 
 .conduct-preview-shell {

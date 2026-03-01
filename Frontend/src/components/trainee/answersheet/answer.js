@@ -1,13 +1,12 @@
 import React from 'react';
-import { Table, Icon, Tag, Skeleton, Descriptions, Modal, Button, Row, Col } from 'antd-compat';
+import { Table, Icon, Tag, Skeleton, Descriptions, Modal, Button, Row, Col, Empty } from 'antd-compat';
 import './answer.css';
-import './answermobileview.css';
-import './individualquestion_mobileview.css';
 import { connect } from 'react-redux';
 import { Post } from '../../../services/axiosCall';
 import apis from '../../../services/Apis';
 import Alert from '../../common/alert';
 import { Typography } from 'antd-compat';
+import { Eye } from 'lucide-react';
 import Feedback from './feedback';
 import { FeedbackStatus } from '../../../actions/traineeAction';
 
@@ -22,68 +21,100 @@ class Answer extends React.Component {
             TotalScore: null,
             Mvisible: false,
             ActiveQuestionId: null,
+            loadError: '',
         };
     }
 
     componentDidMount() {
-        let { traineeid, testid } = this.props.trainee;
+        this.loadSummary();
+    }
+
+    loadSummary = async () => {
+        const { traineeid, testid } = this.props.trainee;
         this.setState({
             loading: true,
+            loadError: '',
         });
-        let p1 = Post({
+
+        const p1 = Post({
             url: apis.FETCH_OWN_RESULT,
             data: {
                 userid: traineeid,
                 testid: testid,
             },
         });
-        let p2 = Post({
+        const p2 = Post({
             url: `${apis.FETCH_TRAINEE_TEST_QUESTION}`,
             data: {
                 id: testid,
             },
         });
-        let p3 = Post({
+        const p3 = Post({
             url: `${apis.FEEDBACK_STATUS_CHECK}`,
             data: {
                 userid: traineeid,
                 testid: testid,
             },
         });
-        Promise.all([p1, p2, p3])
-            .then((d) => {
-                console.log(d);
-                this.setState({
-                    loading: false,
-                });
-                if (d[0].data.success && d[1].data.success) {
-                    let v = d[1].data.data;
-                    let r = d[0].data.result.result.map((dd, i) => {
-                        return {
-                            ...dd,
-                            ...v[i],
-                        };
-                    });
-                    console.log(r);
-                    this.setState({
-                        data: r,
-                        TotalScore: d[0].data.result.score,
-                    });
-                    if (d[2].data.success) {
-                        this.props.FeedbackStatus(d[2].data.status);
-                    }
-                } else {
-                    Alert('error', 'Error!', `${d[0].data.success ? '' : d[0].data.message} and ${d[1].data.success ? '' : d[1].data.message}`);
-                }
-            })
-            .catch((err) => {
-                console.log(err);
-                this.setState({
-                    loading: false,
-                });
-                Alert('error', 'Error!', 'Server Error');
+
+        const [resultRes, questionsRes, feedbackRes] = await Promise.allSettled([p1, p2, p3]);
+
+        if (feedbackRes.status === 'fulfilled' && feedbackRes.value.data && feedbackRes.value.data.success) {
+            this.props.FeedbackStatus(feedbackRes.value.data.status);
+        }
+
+        if (resultRes.status !== 'fulfilled' || !resultRes.value.data || !resultRes.value.data.success) {
+            const message = resultRes.status === 'fulfilled'
+                ? (resultRes.value.data && resultRes.value.data.message) || 'Unable to load results.'
+                : 'Server Error';
+            this.setState({
+                loading: false,
+                loadError: message,
             });
-    }
+            Alert('error', 'Error!', message);
+            return;
+        }
+
+        if (questionsRes.status !== 'fulfilled' || !questionsRes.value.data || !questionsRes.value.data.success) {
+            const message = questionsRes.status === 'fulfilled'
+                ? (questionsRes.value.data && questionsRes.value.data.message) || 'Unable to load question paper.'
+                : 'Server Error';
+            this.setState({
+                loading: false,
+                loadError: message,
+            });
+            Alert('error', 'Error!', message);
+            return;
+        }
+
+        const questionRows = questionsRes.value.data.data || [];
+        const resultRows = (resultRes.value.data.result && resultRes.value.data.result.result) || [];
+        const questionById = questionRows.reduce((acc, item) => {
+            if (item && item._id) {
+                acc[String(item._id)] = item;
+            }
+            return acc;
+        }, {});
+
+        const mergedRows = resultRows.map((item, index) => {
+            const qid = item && item.qid ? String(item.qid) : '';
+            const question = questionById[qid] || questionRows[index] || {};
+            return {
+                ...question,
+                ...item,
+                qid: qid || question._id || `row-${index}`,
+                correctAnswer: Array.isArray(item && item.correctAnswer) ? item.correctAnswer : [],
+                givenAnswer: Array.isArray(item && item.givenAnswer) ? item.givenAnswer : [],
+            };
+        });
+
+        this.setState({
+            loading: false,
+            data: mergedRows,
+            TotalScore: resultRes.value.data.result ? resultRes.value.data.result.score : null,
+            loadError: '',
+        });
+    };
 
     handleCancel = () => {
         this.setState({
@@ -99,67 +130,85 @@ class Answer extends React.Component {
     };
 
     render() {
+        const renderAnswerTags = (tags, color) => {
+            if (!Array.isArray(tags) || tags.length === 0) {
+                return <span className="result-tag-empty">-</span>;
+            }
+            return (
+                <span>
+                    {tags.map((tag) => (
+                        <Tag color={color} key={`${color}-${tag}`}>
+                            {String(tag).toUpperCase()}
+                        </Tag>
+                    ))}
+                </span>
+            );
+        };
+
         const columns = [
             {
-                title: 'Preview',
+                title: '',
                 key: 'action',
-                render: (text, record) => (
-                    <Button shape="circle" icon="info" type="primary" size="small" onClick={() => { this.OpenModel(text.qid); }}></Button>
+                width: 60,
+                render: (_, record) => (
+                    <Button
+                        shape="circle"
+                        type="primary"
+                        size="small"
+                        className="result-preview-button"
+                        onClick={() => {
+                            this.OpenModel(record.qid);
+                        }}
+                    >
+                        <Eye size={14} strokeWidth={2.2} />
+                    </Button>
                 ),
+            },
+            {
+                title: '#',
+                key: 'index',
+                width: 60,
+                render: (text, record, index) => <span className="result-index">{index + 1}</span>,
             },
             {
                 title: 'Question',
                 dataIndex: 'body',
                 key: 'body',
+                render: (value) => (
+                    <div className="result-question-cell" title={value || '-'}>
+                        {value || '-'}
+                    </div>
+                ),
             },
             {
                 title: 'Correct',
                 key: 'correctAnswer',
                 dataIndex: 'correctAnswer',
-                render: (tags) => (
-                    <span>
-                        {tags.map((tag) => {
-                            return (
-                                <Tag color="green" key={tag}>
-                                    {tag.toUpperCase()}
-                                </Tag>
-                            );
-                        })}
-                    </span>
-                ),
+                render: (tags) => renderAnswerTags(tags, 'green'),
             },
             {
                 title: 'Your Answer',
                 key: 'givenAnswer',
                 dataIndex: 'givenAnswer',
-                render: (tags) => (
-                    <span>
-                        {tags.map((tag) => {
-                            return (
-                                <Tag color="blue" key={tag}>
-                                    {tag.toUpperCase()}
-                                </Tag>
-                            );
-                        })}
-                    </span>
-                ),
+                render: (tags) => renderAnswerTags(tags, 'blue'),
             },
             {
                 title: 'Marks',
                 dataIndex: 'weightage',
                 key: 'weightage',
+                width: 90,
+                align: 'center',
+                render: (value) => <span className="result-marks">{value || 0}</span>,
             },
             {
                 title: 'Status',
                 dataIndex: 'iscorrect',
                 key: 'iscorrect',
-                render: (tags) => (
-                    <span>
-                        {tags ? (
-                            <Icon type="check-circle" theme="twoTone" twoToneColor="#52c41a" />
-                        ) : (
-                            <Icon type="close-circle" theme="twoTone" twoToneColor="red" />
-                        )}
+                width: 100,
+                align: 'center',
+                render: (value) => (
+                    <span className={`result-status-pill ${value ? 'is-correct' : 'is-incorrect'}`}>
+                        <Icon type={value ? 'check-circle' : 'close-circle'} />
                     </span>
                 ),
             },
@@ -175,7 +224,13 @@ class Answer extends React.Component {
                     Exam Result Summary
                 </Title>
                 <div className="answer-table-wrapper">
-                    <Descriptions bordered title={null} border size="small" column={{ xxl: 1, xl: 1, lg: 1, md: 1, sm: 1, xs: 1 }} className="result-meta">
+                    <Descriptions
+                        bordered
+                        title={null}
+                        size="small"
+                        column={{ xxl: 1, xl: 1, lg: 1, md: 1, sm: 1, xs: 1 }}
+                        className="result-meta"
+                    >
                         <Descriptions.Item label="Candidate">{td.name}</Descriptions.Item>
                         <Descriptions.Item label="Email">{td.emailid}</Descriptions.Item>
                         <Descriptions.Item label="Contact">{td.contact}</Descriptions.Item>
@@ -187,9 +242,39 @@ class Answer extends React.Component {
                         <Col xs={12} md={6}><div className="result-summary-card"><span>Incorrect</span><strong>{incorrectAnswers}</strong></div></Col>
                         <Col xs={12} md={6}><div className="result-summary-card"><span>Accuracy</span><strong>{scorePct}%</strong></div></Col>
                     </Row>
-                    <Table size="small" rowKey="qid" loading={this.state.loading} columns={columns} dataSource={this.state.data} pagination={false} className="result-table" />
+                    <div className="result-table-shell">
+                        {this.state.loadError && !this.state.loading ? (
+                            <div className="result-error-box">
+                                <p>{this.state.loadError}</p>
+                                <Button type="default" onClick={this.loadSummary}>Retry</Button>
+                            </div>
+                        ) : (
+                            <Table
+                                size="small"
+                                rowKey="qid"
+                                loading={this.state.loading}
+                                columns={columns}
+                                dataSource={this.state.data}
+                                pagination={false}
+                                className="result-table"
+                                locale={{
+                                    emptyText: this.state.loading ? 'Loading result...' : <Empty description="No result rows found." />
+                                }}
+                            />
+                        )}
+                    </div>
                     {this.props.trainee.hasGivenFeedBack ? null : <Feedback />}
-                    <Modal destroyOnClose={true} width="70%" style={{ top: '30px' }} title="Question details" open={this.state.Mvisible} onOk={this.handleCancel} onCancel={this.handleCancel} footer={null}>
+                    <Modal
+                        destroyOnClose={true}
+                        width={900}
+                        style={{ top: '30px' }}
+                        title="Question Details"
+                        open={this.state.Mvisible}
+                        onOk={this.handleCancel}
+                        onCancel={this.handleCancel}
+                        footer={null}
+                        className="result-question-modal"
+                    >
                         <SingleQuestionDetails qid={this.state.ActiveQuestionId} />
                     </Modal>
                 </div>
@@ -208,13 +293,25 @@ class SingleQuestionDetails extends React.Component {
     }
 
     componentDidMount() {
+        this.fetchDetails(this.props.qid);
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.qid !== this.props.qid && this.props.qid) {
+            this.fetchDetails(this.props.qid);
+        }
+    }
+
+    fetchDetails = (qid) => {
+        if (!qid) return;
         this.setState({
             fetching: true,
+            qdetails: null,
         });
         Post({
             url: apis.FETCH_SINGLE_QUESTION_BY_TRAINEE,
             data: {
-                qid: this.props.qid,
+                qid: qid,
             },
         })
             .then((response) => {
@@ -237,14 +334,14 @@ class SingleQuestionDetails extends React.Component {
                 console.log(error);
                 Alert('error', 'Error !', 'Server Error');
             });
-    }
+    };
 
     render() {
         const optn = ['A', 'B', 'C', 'D', 'E'];
         let Optiondata = this.state.qdetails;
         if (Optiondata !== null) {
             return (
-                <div>
+                <div className="result-question-details">
                     <div className="mainQuestionDetailsContaine">
                         <div className="questionDetailsBody">{Optiondata.body}</div>
                         {Optiondata.quesimg ? (
@@ -253,19 +350,19 @@ class SingleQuestionDetails extends React.Component {
                             </div>
                         ) : null}
                         <div>
-                            {Optiondata.options.map((d, i) => {
+                            {(Optiondata.options || []).map((d, i) => {
                                 return (
                                     <div key={i}>
                                         <Row type="flex" justify="center" className="QuestionDetailsOptions">
-                                            <Col span={2}>
-                                                {d.isAnswer ? <Button className="green" shape="circle">{optn[i]}</Button> : <Button type="primary" shape="circle">{optn[i]}</Button>}
+                                            <Col span={3}>
+                                                {d.isAnswer ? <Button className="green" shape="circle">{optn[i]}</Button> : <Button className="result-option-index" shape="circle">{optn[i]}</Button>}
                                             </Col>
                                             {d.optimg ? (
                                                 <Col span={6} style={{ padding: '5px' }}>
                                                     <img alt="Unable to load" className="questionDetailsImage" src={d.optimg} />
                                                 </Col>
                                             ) : null}
-                                            {d.optimg ? <Col span={14}>{d.optbody}</Col> : <Col span={20}>{d.optbody}</Col>}
+                                            {d.optimg ? <Col span={15}>{d.optbody}</Col> : <Col span={21}>{d.optbody}</Col>}
                                         </Row>
                                     </div>
                                 );
@@ -276,7 +373,7 @@ class SingleQuestionDetails extends React.Component {
             );
         } else {
             return (
-                <div className="skeletor-wrapper">
+                <div className="result-question-skeleton">
                     <Skeleton active />
                     <Skeleton active />
                 </div>

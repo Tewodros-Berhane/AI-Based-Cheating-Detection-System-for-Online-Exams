@@ -70,23 +70,33 @@ class Feedback extends Component {
     render() {
         const desc = ['terrible', 'bad', 'normal', 'good', 'wonderful'];
         return (
-            <div className="feedbackFormHolder">
-                <div><p>Rate you exam experience (optional)</p></div>
-                <div className="pp">
-                    <span>
-                        <Rate tooltips={desc} onChange={this.handleStarChange} value={this.state.star} />
-                        {this.state.star ? <span className="ant-rate-text">{desc[this.state.star - 1]}</span> : ''}
-                    </span>
-                </div>
-
-                {}
-                {this.state.error && <div className="error-message" style={{ color: 'red' }}>{this.state.error}</div>}
-
-                <div className="pp">
-                    <TextArea rows={4} onChange={this.onCommentChange} value={this.state.comment} />
+            <div className="feedbackFormHolder result-feedback-card">
+                <div className="result-feedback-header">
+                    <h3>Share Your Exam Feedback</h3>
+                    <p>Your feedback helps improve future assessments.</p>
                 </div>
                 <div className="pp">
-                    <Button type="primary" onClick={this.submitFeedback} loading={this.state.loading}>
+                    <Rate tooltips={desc} onChange={this.handleStarChange} value={this.state.star} />
+                    {this.state.star ? <span className="ant-rate-text result-rate-text">{desc[this.state.star - 1]}</span> : ''}
+                </div>
+
+                {this.state.error && <div className="result-feedback-error">{this.state.error}</div>}
+
+                <div className="pp">
+                    <TextArea
+                        rows={4}
+                        onChange={this.onCommentChange}
+                        value={this.state.comment}
+                        placeholder="Tell us what went well and what can be improved."
+                    />
+                </div>
+                <div className="pp">
+                    <Button
+                        type="primary"
+                        onClick={this.submitFeedback}
+                        loading={this.state.loading}
+                        className="result-feedback-submit"
+                    >
                         Submit
                     </Button>
                 </div>

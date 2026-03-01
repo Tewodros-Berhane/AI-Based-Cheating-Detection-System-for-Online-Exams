@@ -21,10 +21,46 @@ class TraineeRegisterForm extends Component {
         };
     }
 
+    getPersistKey = (testid) => `trainee_registration_state:${testid || 'default'}`;
+
+    persistSentState = (testid, user) => {
+        if (!testid || !user) return;
+        try {
+            const payload = {
+                inform: false,
+                user: {
+                    _id: user._id,
+                    emailid: user.emailid,
+                    name: user.name,
+                },
+                savedAt: Date.now(),
+            };
+            window.sessionStorage.setItem(this.getPersistKey(testid), JSON.stringify(payload));
+        } catch (error) {
+            console.log('Unable to persist trainee registration state', error);
+        }
+    };
+
     componentDidMount() {
         const params = new URLSearchParams(this.props.location.search);
+        const testid = params.get('testid');
+        let persistedState = null;
+        try {
+            const cached = window.sessionStorage.getItem(this.getPersistKey(testid));
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed && parsed.inform === false && parsed.user && parsed.user.emailid) {
+                    persistedState = parsed;
+                }
+            }
+        } catch (error) {
+            console.log('Unable to read trainee registration state', error);
+        }
+
         this.setState({
-            testid: params.get('testid')
+            testid,
+            inform: persistedState ? false : true,
+            user: persistedState ? persistedState.user : null,
         });
     }
 
@@ -57,6 +93,7 @@ class TraineeRegisterForm extends Component {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 }).then((data) => {
                     if (data.data.success) {
+                        this.persistSentState(this.state.testid, data.data.user);
                         this.setState({
                             inform: false,
                             user: data.data.user
@@ -95,126 +132,154 @@ class TraineeRegisterForm extends Component {
 
     render() {
         const { getFieldDecorator } = this.props.form;
+        const examRef = this.state.testid ? this.state.testid.slice(-8).toUpperCase() : 'EMAIL LINKED';
         
 
         return (
             <div className="trainee-registration-form-wrapper">
-                {this.state.inform ?
-                    <div className="trainee-registration-form-inner">
-                        <Form onSubmit={this.handleSubmit} className="login-form">
-                            <Row>
-                                <Col span={12} style={{ padding: '5px' }}>
-                                    <Form.Item label="Name">
-                                        {getFieldDecorator('name', {
-                                            rules: [{ required: true, message: 'Please input your name' },
-                                                   ],
-                                        })(
-                                            <Input
-                                                prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)' }} />}
-                                                placeholder="Name"
-                                            />,
-                                        )}
-                                    </Form.Item>
-                                </Col>
-                                <Col span={12} style={{ padding: '5px' }}>
-                                    <Form.Item label="Email Id">
-                                        {getFieldDecorator('email', {
-                                            rules: [
-                                                {
-                                                    type: 'email',
-                                                    message: 'The input is not valid E-mail!',
-                                                },
-                                                {
+                {this.state.inform ? (
+                    <div className="trainee-registration-shell app-glass-card">
+                    <div className="trainee-registration-layout">
+                        <aside className="trainee-registration-side">
+                            <div className="trainee-registration-side-badge">Exam Shield</div>
+                            <h3>Candidate Onboarding</h3>
+                            <p>Complete the registration form once. Your secure exam link will be delivered by email.</p>
+                            <div className="trainee-registration-side-chip">Exam Ref: {examRef}</div>
+                            <ul className="trainee-registration-checklist">
+                                <li>Use your legal full name and active email.</li>
+                                <li>Upload a recent face image for identity checks.</li>
+                                <li>Use the email link to enter your exam workspace.</li>
+                            </ul>
+                        </aside>
+                        <section className="trainee-registration-content">
+                            <div className="trainee-registration-header">
+                                <Title level={3}>Exam Candidate Registration</Title>
+                                <p>Provide your details exactly as they appear in your identity document.</p>
+                            </div>
+                            <Form onSubmit={this.handleSubmit} hideRequiredMark className="admin-form-shell trainee-register-form-shell">
+                                <Row gutter={[12, 0]}>
+                                    <Col xs={24} md={12}>
+                                        <label className="trainee-field-label" htmlFor="trainee-name">Name</label>
+                                        <Form.Item>
+                                            {getFieldDecorator('name', {
+                                                rules: [{ required: true, message: 'Please input your name' },
+                                                       ],
+                                            })(
+                                                <Input
+                                                    id="trainee-name"
+                                                    placeholder="Name"
+                                                />,
+                                            )}
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12}>
+                                        <label className="trainee-field-label" htmlFor="trainee-email">Email Id</label>
+                                        <Form.Item>
+                                            {getFieldDecorator('email', {
+                                                rules: [
+                                                    {
+                                                        type: 'email',
+                                                        message: 'The input is not valid E-mail!',
+                                                    },
+                                                    {
+                                                        required: true,
+                                                        message: 'Please input your E-mail!',
+                                                    }
+                                                ],
+                                            })(
+                                                <Input
+                                                    id="trainee-email"
+                                                    placeholder="Email Id"
+                                                />,
+                                            )}
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12}>
+                                        <label className="trainee-field-label" htmlFor="trainee-contact">Phone Number</label>
+                                        <Form.Item>
+                                            {getFieldDecorator('contact', {
+                                                rules: [{ required: true, message: 'Please input your phone number!' }],
+                                                getValueFromEvent: (value) => value,
+                                            })(
+                                                <PhoneInput
+                                                    inputProps={{ id: 'trainee-contact' }}
+                                                    country={'et'}
+                                                    enableSearch
+                                                    inputStyle={{ width: '100%' }}
+                                                />
+                                            )}
+                                        </Form.Item>
+
+                                        <label className="trainee-field-label" htmlFor="trainee-organisation">Organisation</label>
+                                        <Form.Item>
+                                            {getFieldDecorator('organisation', {
+                                                rules: [{
                                                     required: true,
-                                                    message: 'Please input your E-mail!',
-                                                }
-                                            ],
-                                        })(
-                                            <Input
-                                                prefix={<Icon type="mail" style={{ color: 'rgba(0,0,0,.25)' }} />}
-                                                placeholder="Email Id"
-                                            />,
-                                        )}
-                                    </Form.Item>
-                                </Col>
-                                <Col span={12} style={{ padding: '5px' }}>
-                                    <Form.Item label="Phone Number">
-                                        {getFieldDecorator('contact', {
-                                            rules: [{ required: true, message: 'Please input your phone number!' }],
-                                            getValueFromEvent: (value) => value,
-                                        })(
-                                            <PhoneInput
-                                                country={'et'}
-                                                enableSearch
-                                                inputStyle={{ width: '100%' }}
-                                            />
-                                        )}
-                                    </Form.Item>
+                                                    message: 'Please input your organization',
+                                                }],
+                                            })(
+                                                <Input
+                                                    id="trainee-organisation"
+                                                    placeholder="Organisation"
+                                                />,
+                                            )}
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12}>
+                                        <label className="trainee-field-label" htmlFor="trainee-location">Location</label>
+                                        <Form.Item>
+                                            {getFieldDecorator('location', {
+                                                rules: [{ required: true, message: 'Please input your location' }],
+                                            })(
+                                                <Input
+                                                    id="trainee-location"
+                                                    placeholder="Location"
+                                                />,
+                                            )}
+                                        </Form.Item>
 
-                                    <Form.Item label="Organisation">
-                                        {getFieldDecorator('organisation', {
-                                            rules: [{
-                                                required: true,
-                                                message: 'Please input your name',
-                                            }],
-                                        })(
-                                            <Input
-                                                prefix={<Icon type="idcard" style={{ color: 'rgba(0,0,0,.25)' }} />}
-                                                placeholder="Organisation"
-                                            />,
-                                        )}
-                                    </Form.Item>
-                                </Col>
-                                <Col span={12} style={{ padding: '5px' }}>
-                                    <Form.Item label="Location">
-                                        {getFieldDecorator('location', {
-                                            rules: [{ required: true, message: 'Please input your location' }],
-                                        })(
-                                            <Input
-                                                prefix={<Icon type="home" style={{ color: 'rgba(0,0,0,.25)' }} />}
-                                                placeholder="Location"
-                                            />,
-                                        )}
-                                    </Form.Item>
+                                        <label className="trainee-field-label" htmlFor="trainee-face-upload">Upload Face Image</label>
+                                        <Form.Item>
+                                            <Upload
+                                                beforeUpload={(file) => {
+                                                    this.setState({ faceImage: file });
+                                                    return false;
+                                                }}
+                                                fileList={this.state.faceImage ? [this.state.faceImage] : []}
+                                                onRemove={() => this.setState({ faceImage: null })}
+                                            >
+                                                <Button className="trainee-upload-btn">
+                                                    <Icon type="upload" /> Click to Upload
+                                                </Button>
+                                            </Upload>
+                                            <input id="trainee-face-upload" type="hidden" value={this.state.faceImage ? 'selected' : ''} readOnly />
+                                            {!this.state.faceImage && (
+                                                <div className="trainee-inline-error">Please upload a face image.</div>
+                                            )}
+                                        </Form.Item>
 
-                                    <Form.Item label="Upload Face Image" required>
-                                        <Upload
-                                            beforeUpload={(file) => {
-                                                this.setState({ faceImage: file });
-                                                return false;
-                                            }}
-                                            fileList={this.state.faceImage ? [this.state.faceImage] : []}
-                                            onRemove={() => this.setState({ faceImage: null })}
-                                        >
-                                            <Button>
-                                                <Icon type="upload" /> Click to Upload
+                                    </Col>
+                                    <Col xs={24} md={12}>
+                                        <Form.Item>
+                                            <Button type="primary" htmlType="submit" className="login-form-button trainee-register-submit">
+                                                Register
                                             </Button>
-                                        </Upload>
-                                        {!this.state.faceImage && (
-                                            <div style={{ color: 'red' }}>Please upload a face image.</div>
-                                        )}
-                                    </Form.Item>
-
-                                </Col>
-                                <Col span={12} style={{ paddingTop: '0px' }}>
-                                    <Form.Item>
-                                        <Button style={{ width: '100%' }} type="primary" htmlType="submit" className="login-form-button">
-                                            Register
-                                        </Button>
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </Form>
-                        <hr></hr>
-                        <p> <span style={{ color: 'red' }}  >NB:</span> The image you upload should be as latest as possible. Older images may not be recognized as you.</p>
-                        <p>Use the exam link sent to your email to start your test session.</p>
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                            </Form>
+                        </section>
                     </div>
-                    
-                    :
-                    <div className="reasendmail-container-register">
-                        <Title style={{ color: '#24292f' }} level={4}>An email containing your test link has been sent to {this.state.user.emailid}</Title>
-                        <Button type="primary" onClick={this.resendMail}>Resend Mail</Button>
-                    </div>}
+                    </div>
+                ) : (
+                    <div className="reasendmail-container-register trainee-registration-success">
+                        <div className="trainee-registration-side-badge">Email Sent</div>
+                        <Title level={4}>Your exam access email has been sent.</Title>
+                        <p>We sent the exam link to <strong>{this.state.user.emailid}</strong>.</p>
+                        <p>If you did not receive it, use the resend action below.</p>
+                        <Button type="primary" onClick={this.resendMail}>Resend Email</Button>
+                    </div>
+                )}
             </div>
         )
     }
@@ -222,4 +287,3 @@ class TraineeRegisterForm extends Component {
 
 const TraineeRegister = Form.create({ name: 'Trainee Registration' })(TraineeRegisterForm);
 export default withRouter(TraineeRegister);
-

@@ -122,10 +122,14 @@ const TraineeStreamSender = ({ traineeId, testId }) => {
   }, [traineeId, testId, setMediaStream]);
 
   return (
-    <div>
-      <h3>Your Live Stream (Trainee)</h3>
-      <video ref={localVideoRef} autoPlay playsInline muted style={{ width: '300px' }} />
-    </div>
+    <video
+      ref={localVideoRef}
+      autoPlay
+      playsInline
+      muted
+      style={{ display: 'none' }}
+      aria-hidden="true"
+    />
   );
 };
 
