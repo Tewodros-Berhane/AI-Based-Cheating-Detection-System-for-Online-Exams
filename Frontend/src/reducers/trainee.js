@@ -11,6 +11,7 @@ const initialState = {
     LocaltestDone:true,
     m_left:0,
     s_left:0,
+    faceRecognitionEnabled:false,
     examMeta:{
         title:'',
         organisation:'',
@@ -51,7 +52,8 @@ const traineeReducer = (state = initialState, action )=>{
                     duration:0,
                     totalQuestions:0,
                     examID:''
-                }
+                },
+                faceRecognitionEnabled:false
             }
         case 'FETCH_TEST_FLAG':
             return{
@@ -62,6 +64,7 @@ const traineeReducer = (state = initialState, action )=>{
                 LocaltestDone:action.payload4,
                 m_left:action.payload5,
                 s_left:action.payload6,
+                faceRecognitionEnabled: typeof action.payload8 === 'boolean' ? action.payload8 : state.faceRecognitionEnabled,
                 examMeta:action.payload7 || state.examMeta,
                 invalidUrl:false,
                 initialloading1:false

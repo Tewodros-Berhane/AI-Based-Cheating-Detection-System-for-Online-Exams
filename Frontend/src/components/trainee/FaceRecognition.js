@@ -10,14 +10,20 @@ import { MediaStreamContext } from '../../contexts/MediaStreamContext';
 const MODEL_URI = '/models';
 const CHECK_INTERVAL_MS = 2000;
 const NO_FACE_TIMEOUT_SECONDS = 30;
+const NO_FACE_MISS_STREAK_LIMIT = 3;
 const FACE_MISMATCH_THRESHOLD = 0.5;
 const MAX_MISMATCH_STRIKES = 3;
 const MAX_MULTI_FACE_STRIKES = 2;
 const VIDEO_READY_TIMEOUT_MS = 8000;
 
-const DETECTOR_OPTIONS = new faceapi.TinyFaceDetectorOptions({
+const LIVE_DETECTOR_OPTIONS = new faceapi.TinyFaceDetectorOptions({
   inputSize: 320,
-  scoreThreshold: 0.5
+  scoreThreshold: 0.4
+});
+
+const REFERENCE_DETECTOR_OPTIONS = new faceapi.TinyFaceDetectorOptions({
+  inputSize: 320,
+  scoreThreshold: 0.55
 });
 
 let modelLoadPromise = null;
@@ -85,6 +91,8 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
   const examEndedRef = useRef(false);
   const noFaceCountdownActiveRef = useRef(false);
   const noFaceRemainingRef = useRef(NO_FACE_TIMEOUT_SECONDS);
+  const noFaceMissStreakRef = useRef(0);
+  const initErrorShownRef = useRef(false);
   const mismatchStrikeRef = useRef(0);
   const multiFaceStrikeRef = useRef(0);
   const traineeIdRef = useRef(initialTraineeId);
@@ -128,6 +136,7 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
       intervalRef.current = null;
     }
     clearNoFaceCountdown();
+    noFaceMissStreakRef.current = 0;
     checkInProgressRef.current = false;
   }, [clearNoFaceCountdown]);
 
@@ -202,17 +211,21 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
     checkInProgressRef.current = true;
     try {
       const faces = await faceapi
-        .detectAllFaces(videoEl, DETECTOR_OPTIONS)
+        .detectAllFaces(videoEl, LIVE_DETECTOR_OPTIONS)
         .withFaceLandmarks()
         .withFaceDescriptors();
 
       if (faces.length === 0) {
         mismatchStrikeRef.current = 0;
         multiFaceStrikeRef.current = 0;
-        startNoFaceCountdown();
+        noFaceMissStreakRef.current += 1;
+        if (noFaceMissStreakRef.current >= NO_FACE_MISS_STREAK_LIMIT) {
+          startNoFaceCountdown();
+        }
         return;
       }
 
+      noFaceMissStreakRef.current = 0;
       clearNoFaceCountdown();
 
       if (faces.length > 1) {
@@ -274,7 +287,12 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
 
     async function initialize() {
       try {
-        const videoOnlyStream = new MediaStream(mediaStream.getVideoTracks());
+        const videoTracks = mediaStream.getVideoTracks();
+        if (!videoTracks || videoTracks.length === 0) {
+          throw new Error('No camera video track available');
+        }
+
+        const videoOnlyStream = new MediaStream(videoTracks);
         videoEl.srcObject = videoOnlyStream;
         await videoEl.play().catch(() => null);
         await waitForVideoReady(videoEl);
@@ -297,7 +315,7 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
 
         const image = await faceapi.fetchImage(details.faceImageUrl);
         const detection = await faceapi
-          .detectSingleFace(image, DETECTOR_OPTIONS)
+          .detectSingleFace(image, REFERENCE_DETECTOR_OPTIONS)
           .withFaceLandmarks()
           .withFaceDescriptor();
 
@@ -313,8 +331,32 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
         }
       } catch (error) {
         console.error('Face recognition initialization failed:', error);
-        if (!cancelled && mountedRef.current) {
-          message.warning('Face verification failed to initialize. Please refresh and retry.');
+        if (!cancelled && mountedRef.current && !initErrorShownRef.current) {
+          initErrorShownRef.current = true;
+          const reason = (error && error.message) || '';
+
+          if (reason.includes('No face detected in the registered face image')) {
+            message.error(
+              'Registered face image is invalid. Please contact your examiner and re-register with a clear face photo.',
+              10
+            );
+            return;
+          }
+
+          if (reason.includes('No registered face image found')) {
+            message.error(
+              'No registered face image was found for this account. Please contact your examiner.',
+              10
+            );
+            return;
+          }
+
+          if (reason.includes('No camera video track available')) {
+            message.warning('Camera video stream is unavailable. Please allow camera access and retry.', 10);
+            return;
+          }
+
+          message.warning('Face verification could not initialize for this session.', 10);
         }
       }
     }
@@ -345,9 +387,30 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
         style={{ position: 'fixed', bottom: 10, right: 10, border: '2px solid transparent' }}
       />
 
-      <Modal visible={showNoFaceModal} title="No Face Detected" closable={false} footer={null}>
-        <p>Please look at the camera.</p>
-        <p>Test will end in {noFaceTimer} seconds if no face is detected.</p>
+      <Modal
+        visible={showNoFaceModal}
+        title={null}
+        closable={false}
+        footer={null}
+        centered
+        width={560}
+        maskClosable={false}
+        keyboard={false}
+        className="face-missing-modal"
+        wrapClassName="face-missing-modal-wrap"
+        maskStyle={{
+          backgroundColor: 'rgba(2, 6, 23, 0.62)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)'
+        }}
+      >
+        <div className="face-missing-modal-content">
+          <div className="face-missing-modal-status">No Face Detected</div>
+          <p>Please look directly at the camera.</p>
+          <div className="face-missing-modal-countdown">
+            Test will end in <strong>{noFaceTimer}s</strong> if no face is detected.
+          </div>
+        </div>
       </Modal>
     </>
   );

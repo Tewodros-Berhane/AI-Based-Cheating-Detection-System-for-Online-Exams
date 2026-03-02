@@ -10,6 +10,7 @@ import { MediaStreamContext } from '../../../contexts/MediaStreamContext';
 import TraineeStreamSender from '../TraineeStreamSender';
 import WebRTCServer from '../WebRTCServer';
 import TraineeSessionManager from '../TraineeSessionManager';
+import FaceRecognition from '../FaceRecognition';
 import withRouter from '../../../utils/withRouter';
 
 const { Title } = Typography;
@@ -232,7 +233,18 @@ handleIdSubmit = async (e) => {
         const { trainee } = this.props;
         
         // Destructure relevant props from trainee AFTER it's defined
-        const { initialloading1, initialloading2, invalidUrl, LocaltestDone, testconducted, testbegins, startedWriting, traineeid, testid } = trainee;
+        const {
+            initialloading1,
+            initialloading2,
+            invalidUrl,
+            LocaltestDone,
+            testconducted,
+            testbegins,
+            startedWriting,
+            traineeid,
+            testid,
+            faceRecognitionEnabled
+        } = trainee;
 
 
         if (showIdForm) {
@@ -333,9 +345,9 @@ handleIdSubmit = async (e) => {
                         <WebRTCServer traineeId={traineeid} testId={testid}/>
                     }
 
-                    {/* {traineeid && testid &&
+                    {traineeid && testid && faceRecognitionEnabled &&
                         <FaceRecognition traineeId={traineeid} testId={testid} />
-                    } */}
+                    }
                 </div>
             );
         }

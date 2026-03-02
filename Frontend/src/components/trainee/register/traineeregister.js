@@ -17,8 +17,11 @@ class TraineeRegisterForm extends Component {
             inform: true,
             testid: null,
             user: null,
-            faceImage: null, 
+            faceImage: null,
+            faceImageValidationError: '',
+            validatingFaceImage: false
         };
+        this.faceModelPromise = null;
     }
 
     getPersistKey = (testid) => `trainee_registration_state:${testid || 'default'}`;
@@ -64,17 +67,116 @@ class TraineeRegisterForm extends Component {
         });
     }
 
-    handleFaceUpload = (e) => {
-        const file = e.target.files[0];
-        this.setState({ faceImage: file });
+    ensureFaceModelLoaded = async (faceapi) => {
+        if (!this.faceModelPromise) {
+            this.faceModelPromise = Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+                faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+            ]);
+        }
+        await this.faceModelPromise;
+    };
+
+    validateFaceImage = async (file) => {
+        if (!file) return false;
+
+        if (!file.type || !file.type.startsWith('image/')) {
+            this.setState({
+                faceImage: null,
+                faceImageValidationError: 'Please upload an image file.',
+                validatingFaceImage: false
+            });
+            return false;
+        }
+
+        this.setState({
+            validatingFaceImage: true,
+            faceImageValidationError: ''
+        });
+
+        let objectUrl = null;
+        try {
+            const faceapi = await import('face-api.js');
+            await this.ensureFaceModelLoaded(faceapi);
+
+            objectUrl = URL.createObjectURL(file);
+            const image = await faceapi.fetchImage(objectUrl);
+            const detectorOptions = new faceapi.TinyFaceDetectorOptions({
+                inputSize: 416,
+                scoreThreshold: 0.55
+            });
+
+            const detections = await faceapi
+                .detectAllFaces(image, detectorOptions)
+                .withFaceLandmarks()
+                .withFaceDescriptors();
+
+            const imageWidth = image.naturalWidth || image.width || 0;
+            const imageHeight = image.naturalHeight || image.height || 0;
+            const imageArea = imageWidth * imageHeight;
+
+            const usableDetections = detections.filter((det) => {
+                const score = det.detection && typeof det.detection.score === 'number' ? det.detection.score : 0;
+                const box = det.detection && det.detection.box ? det.detection.box : { width: 0, height: 0 };
+                const faceArea = Math.max(0, box.width) * Math.max(0, box.height);
+                const areaRatio = imageArea > 0 ? faceArea / imageArea : 0;
+                const minSide = Math.min(Math.max(0, box.width), Math.max(0, box.height));
+
+                return score >= 0.6 && areaRatio >= 0.015 && minSide >= 72;
+            });
+
+            if (usableDetections.length !== 1) {
+                this.setState({
+                    faceImage: null,
+                    faceImageValidationError: 'No clear face detected. Upload a front-facing photo with one visible face.',
+                    validatingFaceImage: false
+                });
+                return false;
+            }
+
+            this.setState({
+                faceImage: file,
+                faceImageValidationError: '',
+                validatingFaceImage: false
+            });
+            return true;
+        } catch (error) {
+            console.log('Face validation failed', error);
+            this.setState({
+                faceImage: null,
+                faceImageValidationError: 'Unable to validate face image. Please try a different photo.',
+                validatingFaceImage: false
+            });
+            return false;
+        } finally {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+        }
+    };
+
+    onBeforeUploadFace = async (file) => {
+        await this.validateFaceImage(file);
+        return false;
     };
 
     handleSubmit = e => {
         e.preventDefault();
         this.props.form.validateFields((err, values) => {
             if (!err) {
+                if (this.state.validatingFaceImage) {
+                    Alert('warning', 'Validation in progress', 'Please wait for face image validation to finish.');
+                    return;
+                }
+
                 if (!this.state.faceImage) {
                     Alert('error', 'Missing File', 'Please upload a face image.');
+                    return;
+                }
+
+                if (this.state.faceImageValidationError) {
+                    Alert('error', 'Invalid Face Image', this.state.faceImageValidationError);
                     return;
                 }
 
@@ -241,27 +343,32 @@ class TraineeRegisterForm extends Component {
                                         <label className="trainee-field-label" htmlFor="trainee-face-upload">Upload Face Image</label>
                                         <Form.Item>
                                             <Upload
-                                                beforeUpload={(file) => {
-                                                    this.setState({ faceImage: file });
-                                                    return false;
-                                                }}
+                                                beforeUpload={this.onBeforeUploadFace}
                                                 fileList={this.state.faceImage ? [this.state.faceImage] : []}
-                                                onRemove={() => this.setState({ faceImage: null })}
+                                                onRemove={() => this.setState({ faceImage: null, faceImageValidationError: '' })}
                                             >
-                                                <Button className="trainee-upload-btn">
+                                                <Button className="trainee-upload-btn" loading={this.state.validatingFaceImage}>
                                                     <Icon type="upload" /> Click to Upload
                                                 </Button>
                                             </Upload>
                                             <input id="trainee-face-upload" type="hidden" value={this.state.faceImage ? 'selected' : ''} readOnly />
-                                            {!this.state.faceImage && (
+                                            {!this.state.faceImage && !this.state.faceImageValidationError && (
                                                 <div className="trainee-inline-error">Please upload a face image.</div>
                                             )}
+                                            {this.state.faceImageValidationError ? (
+                                                <div className="trainee-inline-error">{this.state.faceImageValidationError}</div>
+                                            ) : null}
                                         </Form.Item>
 
                                     </Col>
                                     <Col xs={24} md={12}>
                                         <Form.Item>
-                                            <Button type="primary" htmlType="submit" className="login-form-button trainee-register-submit">
+                                            <Button
+                                                type="primary"
+                                                htmlType="submit"
+                                                className="login-form-button trainee-register-submit"
+                                                disabled={this.state.validatingFaceImage}
+                                            >
                                                 Register
                                             </Button>
                                         </Form.Item>
