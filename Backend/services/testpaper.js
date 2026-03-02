@@ -502,7 +502,7 @@ let basicTestdetails = (req,res,next)=>{
     }
  }
 
- let beginTest = async (req,res,next)=>{
+let beginTest = async (req,res,next)=>{
     if(req.user.type!=="TRAINER"){
         return res.status(401).json({
             success : false,
@@ -512,7 +512,7 @@ let basicTestdetails = (req,res,next)=>{
 
     var id = req.body.id;
     try{
-        const test = await TestPaperModel.findOne({_id:id,createdBy:req.user._id},{testbegins:1,testconducted:1,isResultgenerated:1,isRegistrationavailable:1});
+        const test = await TestPaperModel.findOne({_id:id,createdBy:req.user._id},{testbegins:1,testconducted:1,isResultgenerated:1,isRegistrationavailable:1,faceRecognitionEnabled:1});
         if(!test){
             return res.json({
                 success : false,
@@ -543,6 +543,7 @@ let basicTestdetails = (req,res,next)=>{
                 testbegins : data.testbegins,
                 testconducted : data.testconducted,
                 isResultgenerated : data.isResultgenerated,
+                faceRecognitionEnabled: Boolean(data.faceRecognitionEnabled),
                 examState: deriveExamState(data)
             }
         });
@@ -555,7 +556,7 @@ let basicTestdetails = (req,res,next)=>{
     }
  }
 
- let endTest = async (req,res,next)=>{
+let endTest = async (req,res,next)=>{
     if(req.user.type!=="TRAINER"){
         return res.status(401).json({
             success : false,
@@ -565,7 +566,7 @@ let basicTestdetails = (req,res,next)=>{
 
     var id = req.body.id;
     try{
-        const test = await TestPaperModel.findOne({_id:id,createdBy:req.user._id},{testbegins:1,testconducted:1,isResultgenerated:1,isRegistrationavailable:1});
+        const test = await TestPaperModel.findOne({_id:id,createdBy:req.user._id},{testbegins:1,testconducted:1,isResultgenerated:1,isRegistrationavailable:1,faceRecognitionEnabled:1});
         if(!test){
             return res.json({
                 success : false,
@@ -598,6 +599,7 @@ let basicTestdetails = (req,res,next)=>{
                 testbegins : info.testbegins,
                 testconducted : info.testconducted,
                 isResultgenerated : info.isResultgenerated,
+                faceRecognitionEnabled: Boolean(info.faceRecognitionEnabled),
                 examState: deriveExamState(info)
             }
         });
@@ -637,6 +639,77 @@ let basicTestdetails = (req,res,next)=>{
         })
 
     })
+}
+
+let updateFaceRecognitionSetting = async (req,res,next)=>{
+    if(req.user.type!=="TRAINER"){
+        return res.status(401).json({
+            success : false,
+            message : "Permissions not granted!"
+        });
+    }
+
+    var id = req.body.id;
+    var enabled = req.body.enabled;
+    if (typeof enabled !== 'boolean') {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid payload for face recognition toggle."
+        });
+    }
+
+    try{
+        const test = await TestPaperModel.findOne(
+            {_id:id,createdBy:req.user._id},
+            {testbegins:1,testconducted:1,isResultgenerated:1,isRegistrationavailable:1,faceRecognitionEnabled:1}
+        );
+
+        if(!test){
+            return res.json({
+                success : false,
+                message : "Invalid test id."
+            });
+        }
+
+        const gate = canApplyAction(test, ExamActions.CONFIG_FACE_RECOGNITION);
+        if(!gate.ok){
+            return res.json({
+                success : false,
+                message : gate.reason,
+                state : gate.state
+            });
+        }
+
+        const updated = await TestPaperModel.findOneAndUpdate(
+            {_id:id,createdBy:req.user._id},
+            {faceRecognitionEnabled: enabled},
+            {new: true}
+        );
+
+        return res.json({
+            success: true,
+            message: `Face recognition ${enabled ? 'enabled' : 'disabled'} for this exam.`,
+            data: {
+                faceRecognitionEnabled: Boolean(updated.faceRecognitionEnabled),
+                testbegins: Boolean(updated.testbegins),
+                testconducted: Boolean(updated.testconducted),
+                isRegistrationavailable: Boolean(updated.isRegistrationavailable),
+                isResultgenerated: Boolean(updated.isResultgenerated),
+                examState: deriveExamState(updated)
+            }
+        });
+    }catch(err){
+        logger.error('toggle_face_recognition_failed', {
+            testId: id,
+            trainerId: req.user && req.user._id,
+            enabled,
+            error: logger.normalizeError(err)
+        });
+        return res.status(500).json({
+            success : false,
+            message : "Server Error"
+        });
+    }
 }
 
 let MM = (req,res,next)=>{
@@ -698,4 +771,4 @@ let checkTestName =(req,res,next)=>{
  
  
 
-module.exports = {checkTestName,createEditTest,getSingletest,getAlltests,deleteTest,MaxMarks,MM,getCandidateDetails,basicTestdetails,TestDetails,getTestquestions,getCandidates,beginTest,endTest}
+module.exports = {checkTestName,createEditTest,getSingletest,getAlltests,deleteTest,MaxMarks,MM,getCandidateDetails,basicTestdetails,TestDetails,getTestquestions,getCandidates,beginTest,endTest,updateFaceRecognitionSetting}

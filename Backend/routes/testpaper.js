@@ -13,6 +13,7 @@ router.post('/questions',testpaper.getTestquestions);
 router.post('/candidates',testpaper.getCandidates);
 router.post('/begin',testpaper.beginTest);
 router.post('/end',testpaper.endTest);
+router.post('/face-recognition', testpaper.updateFaceRecognitionSetting);
 router.post('/trainer/details',testpaper.TestDetails);
 router.post('/candidates/details',testpaper.getCandidateDetails);
 router.post('/max/marks',testpaper.MM);

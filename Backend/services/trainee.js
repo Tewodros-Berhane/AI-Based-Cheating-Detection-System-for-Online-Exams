@@ -503,6 +503,7 @@ let flags = (req,res,next)=>{
     const p3 = TestPaperModel.findById(testid,{
         testbegins : 1,
         testconducted : 1,
+        faceRecognitionEnabled: 1,
         duration : 1,
         title : 1,
         organisation : 1,
@@ -523,7 +524,8 @@ let flags = (req,res,next)=>{
                 organisation : info[2].organisation || '',
                 duration : info[2].duration || 0,
                 totalQuestions : Array.isArray(info[2].questions) ? info[2].questions.length : 0,
-                examID : info[2].examID || ''
+                examID : info[2].examID || '',
+                faceRecognitionEnabled: Boolean(info[2].faceRecognitionEnabled)
             };
             var startedWriting = false;
             var pending=null;
@@ -541,6 +543,7 @@ let flags = (req,res,next)=>{
                                 startedWriting:startedWriting,
                                 pending : pending,
                                 completed : true,
+                                faceRecognitionEnabled: Boolean(info[2].faceRecognitionEnabled),
                                 examMeta : examMeta,
                                 examState: deriveExamState(info[2])
                             }
@@ -561,6 +564,7 @@ let flags = (req,res,next)=>{
                             startedWriting:startedWriting,
                             pending : pending,
                             completed : info[0].completed,
+                            faceRecognitionEnabled: Boolean(info[2].faceRecognitionEnabled),
                             examMeta : examMeta,
                             examState: deriveExamState(info[2])
                         }
@@ -577,6 +581,7 @@ let flags = (req,res,next)=>{
                         startedWriting:startedWriting,
                         pending : pending,
                         completed : false,
+                        faceRecognitionEnabled: Boolean(info[2].faceRecognitionEnabled),
                         examMeta : examMeta,
                         examState: deriveExamState(info[2])
                     }

@@ -10,6 +10,7 @@ const ExamActions = {
   CLOSE_REGISTRATION: 'CLOSE_REGISTRATION',
   START_EXAM: 'START_EXAM',
   END_EXAM: 'END_EXAM',
+  CONFIG_FACE_RECOGNITION: 'CONFIG_FACE_RECOGNITION',
   TRAINEE_START: 'TRAINEE_START',
   TRAINEE_UPDATE_ANSWER: 'TRAINEE_UPDATE_ANSWER',
   TRAINEE_SUBMIT: 'TRAINEE_SUBMIT'
@@ -31,6 +32,9 @@ const deriveExamState = (test) => {
 const isRegistrationAction = (action) =>
   action === ExamActions.OPEN_REGISTRATION || action === ExamActions.CLOSE_REGISTRATION;
 
+const isPreExamConfigAction = (action) =>
+  action === ExamActions.CONFIG_FACE_RECOGNITION;
+
 const canApplyAction = (test, action) => {
   const state = deriveExamState(test);
   if (state === ExamStates.INVALID) {
@@ -47,6 +51,17 @@ const canApplyAction = (test, action) => {
         ok: false,
         state,
         reason: 'Registration can only be changed before the exam starts.'
+      };
+    }
+    return { ok: true, state };
+  }
+
+  if (isPreExamConfigAction(action)) {
+    if (state !== ExamStates.SCHEDULED) {
+      return {
+        ok: false,
+        state,
+        reason: 'Face recognition can only be configured before the exam starts.'
       };
     }
     return { ok: true, state };
@@ -98,4 +113,3 @@ module.exports = {
   deriveExamState,
   canApplyAction
 };
-

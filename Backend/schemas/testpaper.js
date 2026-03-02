@@ -74,6 +74,11 @@ var testschema = new mongoose.Schema({
         type : Boolean,
         default : false,
         required : true
+    },
+    faceRecognitionEnabled: {
+        type: Boolean,
+        default: false,
+        required: true
     }
 
 
