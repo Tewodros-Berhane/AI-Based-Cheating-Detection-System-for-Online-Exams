@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, message } from 'antd-compat';
+import { Button, Switch, message } from 'antd-compat';
 import {
   changeTestRegisterLink,
   updateCurrentTestBasicDetails,
@@ -17,7 +17,8 @@ class TestDetails extends React.Component {
     super(props);
     this.state = {
       testMetaLoading: false,
-      testMeta: null
+      testMeta: null,
+      faceRecognitionSaving: false
     };
   }
 
@@ -127,6 +128,50 @@ class TestDetails extends React.Component {
       });
   };
 
+  toggleFaceRecognition = (enabled) => {
+    const examLive = Boolean(this.props.conduct.basictestdetails && this.props.conduct.basictestdetails.testbegins);
+    if (examLive) {
+      return;
+    }
+
+    this.setState({ faceRecognitionSaving: true });
+    SecurePost({
+      url: apis.TOGGLE_FACE_RECOGNITION,
+      data: {
+        id: this.props.conduct.id,
+        enabled: Boolean(enabled)
+      }
+    })
+      .then((response) => {
+        if (response.data.success) {
+          const nextDetails = {
+            ...(this.props.conduct.basictestdetails || {}),
+            ...(response.data.data || {}),
+            faceRecognitionEnabled: Boolean(enabled)
+          };
+          this.props.changeTestStatus(nextDetails);
+          this.setState((prev) => ({
+            testMeta: prev.testMeta
+              ? { ...prev.testMeta, faceRecognitionEnabled: Boolean(enabled) }
+              : prev.testMeta
+          }));
+          Alert(
+            'success',
+            'Success!',
+            `Face recognition ${enabled ? 'enabled' : 'disabled'} for this exam.`
+          );
+        } else {
+          Alert('error', 'Error!', response.data.message);
+        }
+      })
+      .catch(() => {
+        Alert('error', 'Error!', 'Server Error');
+      })
+      .finally(() => {
+        this.setState({ faceRecognitionSaving: false });
+      });
+  };
+
   render() {
     const basic = this.props.conduct.basictestdetails || {};
     const registrationOpen = Boolean(basic.isRegistrationavailable);
@@ -140,6 +185,10 @@ class TestDetails extends React.Component {
     const examTitle = testMeta.title || '-';
     const examDuration = testMeta.duration ? `${testMeta.duration} min` : '-';
     const organization = testMeta.organisation || '-';
+    const faceRecognitionEnabled =
+      typeof basic.faceRecognitionEnabled === 'boolean'
+        ? basic.faceRecognitionEnabled
+        : Boolean(testMeta.faceRecognitionEnabled);
 
     return (
       <section className="conduct-details-wrap">
@@ -200,6 +249,26 @@ class TestDetails extends React.Component {
             <span className="conduct-details-label">Session</span>
             <span className={`conduct-status-badge ${examLive ? 'live' : 'idle'}`}>
               {examLive ? 'In Progress' : 'Not Started'}
+            </span>
+          </article>
+
+          <article className="conduct-details-card">
+            <span className="conduct-details-label">Face Detection</span>
+            <div className="conduct-face-toggle-row">
+              <span className={`conduct-status-badge ${faceRecognitionEnabled ? 'open' : 'idle'}`}>
+                {faceRecognitionEnabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <Switch
+                checked={faceRecognitionEnabled}
+                checkedChildren="On"
+                unCheckedChildren="Off"
+                disabled={examLive || this.state.faceRecognitionSaving}
+                loading={this.state.faceRecognitionSaving}
+                onChange={this.toggleFaceRecognition}
+              />
+            </div>
+            <span className="conduct-details-hint">
+              Enable face recognition detection before exam start. This setting locks once the session starts.
             </span>
           </article>
 

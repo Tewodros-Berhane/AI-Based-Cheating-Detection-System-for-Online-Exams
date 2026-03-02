@@ -5,7 +5,8 @@ const initialState = {
         isRegistrationavailable:false,
         testbegins:false,
         testconducted:false,
-        isResultgenerated:false
+        isResultgenerated:false,
+        faceRecognitionEnabled:false
     },
     registeredCandidates:[],
     questionsOfTest:[]

@@ -69,6 +69,7 @@ const apis = {
     FETCH_OWN_RESULT:'/api/v1/final/results',
     FETCH_SINGLE_QUESTION_BY_TRAINEE:'/api/v1/trainee/get/question',
     END_TEST_BY_TRAINER:'/api/v1/test/end',
+    TOGGLE_FACE_RECOGNITION:'/api/v1/test/face-recognition',
     FEEDBACK_STATUS_CHECK:'/api/v1/trainee/feedback/status',
     GIVE_FEEDBACK:'/api/v1/trainee/feedback',
     GET_STATS:'/api/v1/test/candidates/details',

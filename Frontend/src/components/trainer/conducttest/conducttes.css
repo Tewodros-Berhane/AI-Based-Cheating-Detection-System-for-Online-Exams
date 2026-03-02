@@ -203,6 +203,27 @@
   word-break: break-all;
 }
 
+.conduct-details-hint {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.conduct-face-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.conduct-face-toggle-row .ant-switch {
+  background: rgba(71, 85, 105, 0.48) !important;
+}
+
+.conduct-face-toggle-row .ant-switch-checked {
+  background: linear-gradient(120deg, #22c55e, #16a34a) !important;
+}
+
 .conduct-link-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
