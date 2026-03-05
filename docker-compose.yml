@@ -83,8 +83,6 @@ services:
     depends_on:
       backend:
         condition: service_started
-      ai-server:
-        condition: service_started
     ports:
       - "${FRONTEND_PORT:-3000}:80"
 
