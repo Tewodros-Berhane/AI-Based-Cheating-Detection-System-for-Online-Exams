@@ -17,7 +17,18 @@ const initialState = {
         organisation:'',
         duration:0,
         totalQuestions:0,
-        examID:''
+        examID:'',
+        integrityMode:'STANDARD',
+        integrityPolicy:{
+            requireCamera:true,
+            requireMicrophone:true,
+            requireFullscreen:false,
+            requireScreenShare:false,
+            requireFaceVerification:true,
+            allowTabSwitchTolerance:1,
+            preflightMaxFailures:1
+        },
+        preflightEnabled:false
     },
     traineeDetails:{
         name:"",
@@ -51,7 +62,18 @@ const traineeReducer = (state = initialState, action )=>{
                     organisation:'',
                     duration:0,
                     totalQuestions:0,
-                    examID:''
+                    examID:'',
+                    integrityMode:'STANDARD',
+                    integrityPolicy:{
+                        requireCamera:true,
+                        requireMicrophone:true,
+                        requireFullscreen:false,
+                        requireScreenShare:false,
+                        requireFaceVerification:true,
+                        allowTabSwitchTolerance:1,
+                        preflightMaxFailures:1
+                    },
+                    preflightEnabled:false
                 },
                 faceRecognitionEnabled:false
             }

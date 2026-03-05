@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Switch, message } from 'antd-compat';
+import { Button, Select, Switch, message } from 'antd-compat';
 import {
   changeTestRegisterLink,
   updateCurrentTestBasicDetails,
@@ -18,7 +18,10 @@ class TestDetails extends React.Component {
     this.state = {
       testMetaLoading: false,
       testMeta: null,
-      faceRecognitionSaving: false
+      faceRecognitionSaving: false,
+      integritySaving: false,
+      integrityModeDraft: 'STANDARD',
+      preflightEnabledDraft: true
     };
   }
 
@@ -29,6 +32,16 @@ class TestDetails extends React.Component {
   componentDidUpdate(prevProps) {
     if (prevProps.conduct.id !== this.props.conduct.id) {
       this.refreshBaseDetails();
+    }
+
+    if (prevProps.conduct.basictestdetails !== this.props.conduct.basictestdetails) {
+      const basic = this.props.conduct.basictestdetails || {};
+      this.setState({
+        integrityModeDraft: basic.integrityMode || 'STANDARD',
+        preflightEnabledDraft: typeof basic.preflightEnabled === 'boolean'
+          ? basic.preflightEnabled
+          : true
+      });
     }
   }
 
@@ -172,6 +185,52 @@ class TestDetails extends React.Component {
       });
   };
 
+  changeIntegrityModeDraft = (value) => {
+    this.setState({
+      integrityModeDraft: value || 'STANDARD'
+    });
+  };
+
+  changePreflightDraft = (checked) => {
+    this.setState({
+      preflightEnabledDraft: Boolean(checked)
+    });
+  };
+
+  saveIntegrityConfig = () => {
+    const examLive = Boolean(this.props.conduct.basictestdetails && this.props.conduct.basictestdetails.testbegins);
+    if (examLive) {
+      return;
+    }
+
+    this.setState({ integritySaving: true });
+    SecurePost({
+      url: apis.SET_TEST_INTEGRITY_CONFIG,
+      data: {
+        id: this.props.conduct.id,
+        integrityMode: this.state.integrityModeDraft,
+        preflightEnabled: Boolean(this.state.preflightEnabledDraft)
+      }
+    }).then((response) => {
+      if (response.data.success) {
+        const nextDetails = {
+          ...(this.props.conduct.basictestdetails || {}),
+          ...(response.data.data || {}),
+          integrityMode: this.state.integrityModeDraft,
+          preflightEnabled: Boolean(this.state.preflightEnabledDraft)
+        };
+        this.props.changeTestStatus(nextDetails);
+        Alert('success', 'Success!', 'Exam entry settings saved.');
+      } else {
+        Alert('error', 'Error!', response.data.message);
+      }
+    }).catch(() => {
+      Alert('error', 'Error!', 'Server Error');
+    }).finally(() => {
+      this.setState({ integritySaving: false });
+    });
+  };
+
   render() {
     const basic = this.props.conduct.basictestdetails || {};
     const registrationOpen = Boolean(basic.isRegistrationavailable);
@@ -189,6 +248,10 @@ class TestDetails extends React.Component {
       typeof basic.faceRecognitionEnabled === 'boolean'
         ? basic.faceRecognitionEnabled
         : Boolean(testMeta.faceRecognitionEnabled);
+    const integrityMode = this.state.integrityModeDraft || basic.integrityMode || 'STANDARD';
+    const preflightEnabled = typeof this.state.preflightEnabledDraft === 'boolean'
+      ? this.state.preflightEnabledDraft
+      : (typeof basic.preflightEnabled === 'boolean' ? basic.preflightEnabled : true);
 
     return (
       <section className="conduct-details-wrap">
@@ -269,6 +332,46 @@ class TestDetails extends React.Component {
             </div>
             <span className="conduct-details-hint">
               Enable face recognition detection before exam start. This setting locks once the session starts.
+            </span>
+          </article>
+
+          <article className="conduct-details-card conduct-integrity-card">
+            <span className="conduct-details-label">Exam Entry Settings</span>
+            <div className="conduct-integrity-config">
+              <div className="conduct-integrity-field">
+                <span className="conduct-integrity-field-label">Security Level</span>
+                <Select
+                  value={integrityMode}
+                  onChange={this.changeIntegrityModeDraft}
+                  disabled={examLive || this.state.integritySaving}
+                  className="conduct-integrity-select"
+                >
+                  <Select.Option value="LIGHT">Basic</Select.Option>
+                  <Select.Option value="STANDARD">Balanced</Select.Option>
+                  <Select.Option value="STRICT">High Security</Select.Option>
+                </Select>
+              </div>
+              <div className="conduct-integrity-field">
+                <span className="conduct-integrity-field-label">Entry Check</span>
+                <Switch
+                  checked={preflightEnabled}
+                  checkedChildren="Required"
+                  unCheckedChildren="Optional"
+                  disabled={examLive || this.state.integritySaving}
+                  onChange={this.changePreflightDraft}
+                />
+              </div>
+            </div>
+            <Button
+              className="conduct-action-btn conduct-save-integrity-btn"
+              onClick={this.saveIntegrityConfig}
+              disabled={examLive}
+              loading={this.state.integritySaving}
+            >
+              Save Entry Settings
+            </Button>
+            <span className="conduct-details-hint">
+              Set candidate entry rules before the exam starts.
             </span>
           </article>
 

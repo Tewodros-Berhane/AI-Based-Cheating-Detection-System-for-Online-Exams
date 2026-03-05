@@ -24,7 +24,9 @@ class FinalQuestionView extends React.Component {
                 questions: this.props.test.newtestFormData.testQuestions,
                 duration: this.props.test.newtestFormData.testDuration,
                 subjects: this.props.test.newtestFormData.testSubject,
-                organisation: this.props.test.newtestFormData.OrganisationName
+                organisation: this.props.test.newtestFormData.OrganisationName,
+                integrityMode: this.props.test.newtestFormData.integrityMode,
+                preflightEnabled: Boolean(this.props.test.newtestFormData.preflightEnabled)
             }
         }).then((response)=>{
             if(response.data.success){

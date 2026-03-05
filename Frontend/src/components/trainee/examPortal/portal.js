@@ -243,7 +243,8 @@ handleIdSubmit = async (e) => {
             startedWriting,
             traineeid,
             testid,
-            faceRecognitionEnabled
+            faceRecognitionEnabled,
+            examMeta
         } = trainee;
 
 
@@ -339,7 +340,11 @@ handleIdSubmit = async (e) => {
                     {traineeid && <TraineeSessionManager traineeId={traineeid} testId={testid} />}
                     <TestBoard />
                     {traineeid && testid &&
-                        <TraineeStreamSender traineeId={traineeid} testId={testid} />
+                        <TraineeStreamSender
+                            traineeId={traineeid}
+                            testId={testid}
+                            requireScreenShare={Boolean(examMeta && examMeta.integrityPolicy && examMeta.integrityPolicy.requireScreenShare)}
+                        />
                     }
                     {traineeid && testid &&
                         <WebRTCServer traineeId={traineeid} testId={testid}/>

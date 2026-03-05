@@ -279,6 +279,13 @@
   margin-top: 6px;
 }
 
+.newtest-inline-hint {
+  margin-top: 7px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .newtest-primary-btn {
   display: inline-flex !important;
   align-items: center;

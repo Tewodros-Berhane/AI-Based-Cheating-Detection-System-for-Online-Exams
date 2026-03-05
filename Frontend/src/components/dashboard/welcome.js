@@ -1,21 +1,93 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { connect } from 'react-redux';
 import './welcome.css';
-import { Card, Statistic, Row, Col, Spin, Alert, Tag } from 'antd-compat';
-import { loadDashboard } from '../../services/dashboard'; 
+import { Alert, Card, Col, Empty, Row, Spin, Statistic, Tag } from 'antd-compat';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Tooltip
+} from 'chart.js';
+import { loadDashboard } from '../../services/dashboard';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Tooltip, Legend);
+
+const chartTextColor = '#9fb0d0';
+const chartGridColor = 'rgba(148, 163, 184, 0.2)';
+
+const trendOptions = {
+  maintainAspectRatio: false,
+  responsive: true,
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: {
+        color: chartTextColor,
+        boxWidth: 10,
+        usePointStyle: true,
+        pointStyle: 'circle'
+      }
+    }
+  },
+  scales: {
+    x: {
+      ticks: { color: chartTextColor },
+      grid: { color: chartGridColor }
+    },
+    y: {
+      ticks: { color: chartTextColor, precision: 0 },
+      grid: { color: chartGridColor },
+      beginAtZero: true
+    }
+  }
+};
+
+const doughnutOptions = {
+  maintainAspectRatio: false,
+  cutout: '62%',
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: {
+        color: chartTextColor,
+        boxWidth: 10
+      }
+    }
+  }
+};
+
+const topExamsOptions = {
+  maintainAspectRatio: false,
+  indexAxis: 'y',
+  plugins: {
+    legend: { display: false }
+  },
+  scales: {
+    x: {
+      beginAtZero: true,
+      ticks: { color: chartTextColor, precision: 0 },
+      grid: { color: chartGridColor }
+    },
+    y: {
+      ticks: { color: chartTextColor },
+      grid: { display: false }
+    }
+  }
+};
 
 function Welcome({ user }) {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  
-  let userType = 'User';
-  if (user && user.userDetails && user.userDetails.type) {
-    userType = user.userDetails.type;
-  }
+  const userType = user?.userDetails?.type || 'USER';
 
-  
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -24,7 +96,6 @@ function Welcome({ user }) {
         const data = await loadDashboard();
         setDashboard(data);
       } catch (err) {
-        console.error(err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -33,61 +104,125 @@ function Welcome({ user }) {
     fetchData();
   }, []);
 
-  if (loading) {
-    return <Spin tip="Loading dashboard..." style={{ margin: '100px auto', display: 'block' }} />;
-  }
+  const adminStats = useMemo(
+    () => [
+      { title: 'Active Exams', value: dashboard?.stats?.totalExams || 0, suffix: 'live' },
+      { title: 'Question Bank', value: dashboard?.stats?.totalQuestions || 0, suffix: 'items' },
+      { title: 'Examiners', value: dashboard?.stats?.totalTrainers || 0, suffix: 'members' },
+      { title: 'Courses', value: dashboard?.stats?.totalCourses || 0, suffix: 'tracks' }
+    ],
+    [dashboard]
+  );
 
-  if (error) {
-    return <Alert type="error" message={error} style={{ margin: '20px' }} />;
-  }
+  const trainerStats = useMemo(() => {
+    const stats = dashboard?.stats || {};
+    const ratingSuffix = `${stats.feedbackCount || 0} ratings`;
+    return [
+      { title: 'Total Exams', value: stats.myExamCount || 0, suffix: 'managed', kind: 'primary' },
+      { title: 'Live Sessions', value: stats.examsLive || 0, suffix: 'active now', kind: 'warning' },
+      { title: 'Candidates', value: stats.myTraineesCount || 0, suffix: 'registered', kind: 'success' },
+      { title: 'Average Rating', value: stats.averageRating || 0, suffix: ratingSuffix, precision: 2, kind: 'neutral' }
+    ];
+  }, [dashboard]);
 
-  if (!dashboard) {
-    return null;
-  }
-
-  
-  const stats = userType === 'ADMIN'
-    ? [
-        { title: 'Active Exams', value: dashboard.stats.totalExams, suffix: 'live' },
-        { title: 'Question Bank', value: dashboard.stats.totalQuestions, suffix: 'items' },
-        { title: 'Examiners', value: dashboard.stats.totalTrainers, suffix: 'members' },
-        { title: 'Courses', value: dashboard.stats.totalCourses, suffix: 'tracks' },
-      ]
-    : userType === 'TRAINER'
-      ? [
-          { title: 'My Exams', value: dashboard.stats.myExamCount, suffix: 'active' },
-          { title: 'Questions Added', value: dashboard.stats.questionsAdded, suffix: 'total' },
-          { title: 'Candidates', value: dashboard.stats.myTraineesCount, suffix: 'registered' },
-        ]
-      : [];
-
-  
-  const recentTrainers = (dashboard.recentTrainers || []).map(t => ({
-    key: t._id,
-    name: t.name,
+  const recentTrainers = (dashboard?.recentTrainers || []).map((trainer) => ({
+    key: trainer._id,
+    name: trainer.name
   }));
 
-  const recentCourses = (dashboard.recentCourses || []).map(c => ({
-    key: c._id,
-    name: c.topic,
+  const recentCourses = (dashboard?.recentCourses || []).map((course) => ({
+    key: course._id,
+    name: course.topic
   }));
 
-  const recentExams = (dashboard.recentExams || []).map(e => ({
-    key: e._id,
-    name: e.title,
+  const recentExams = (dashboard?.recentExams || []).map((exam) => ({
+    key: exam._id,
+    name: exam.title
   }));
 
-  const myTrainees = (dashboard.myTrainees || []).map(tr => ({
-    key: tr._id,
-    name: tr.name,
-    email: tr.emailid
+  const trainerTrainees = (dashboard?.myTrainees || []).map((trainee) => ({
+    key: trainee._id,
+    name: trainee.name,
+    email: trainee.emailid
   }));
 
-  const feedbacks = (dashboard.feedbacks || []).map(fb => ({
-    id: fb._id,
-    author: fb.trainee.name,
-    text: fb.feedback
+  const feedbacks = (dashboard?.feedbacks || []).map((feedback) => ({
+    key: feedback._id,
+    author: feedback?.trainee?.name || 'Anonymous',
+    email: feedback?.trainee?.emailid || '-',
+    rating: feedback?.rating || 0,
+    text: feedback.feedback || ''
   }));
+
+  const analytics = dashboard?.analytics || {};
+  const monthlyLabels = analytics?.monthly?.labels || [];
+  const monthlyRegistrations = analytics?.monthly?.registrations || [];
+  const monthlyQuestions = analytics?.monthly?.questions || [];
+  const examStatus = analytics?.examStatus || { scheduled: 0, live: 0, completed: 0 };
+  const pipeline = analytics?.pipeline || { registrationOpen: 0, inProgress: 0, resultPublished: 0 };
+  const ratings = analytics?.ratings || { labels: ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'], distribution: [0, 0, 0, 0, 0], average: 0, total: 0 };
+  const topExamsByRegistrations = analytics?.topExamsByRegistrations || [];
+
+  const trendData = {
+    labels: monthlyLabels,
+    datasets: [
+      {
+        label: 'Registrations',
+        data: monthlyRegistrations,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        tension: 0.34,
+        pointRadius: 3
+      },
+      {
+        label: 'Questions Added',
+        data: monthlyQuestions,
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        tension: 0.34,
+        pointRadius: 3
+      }
+    ]
+  };
+
+  const examLifecycleData = {
+    labels: ['Scheduled', 'Live', 'Completed'],
+    datasets: [
+      {
+        data: [examStatus.scheduled || 0, examStatus.live || 0, examStatus.completed || 0],
+        backgroundColor: ['#60a5fa', '#f59e0b', '#34d399'],
+        borderColor: ['#93c5fd', '#fbbf24', '#6ee7b7'],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  const ratingData = {
+    labels: ratings.labels || ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
+    datasets: [
+      {
+        data: ratings.distribution || [0, 0, 0, 0, 0],
+        backgroundColor: ['#ef4444', '#f97316', '#facc15', '#38bdf8', '#34d399'],
+        borderColor: ['#fca5a5', '#fdba74', '#fde68a', '#bae6fd', '#a7f3d0'],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  const topExamChartData = {
+    labels: topExamsByRegistrations.map((exam) => exam.title),
+    datasets: [
+      {
+        label: 'Registrations',
+        data: topExamsByRegistrations.map((exam) => exam.registrations),
+        backgroundColor: 'rgba(59, 130, 246, 0.45)',
+        borderColor: '#60a5fa',
+        borderWidth: 1,
+        borderRadius: 8,
+        maxBarThickness: 20
+      }
+    ]
+  };
 
   const renderDataGrid = ({ columns, rows, emptyText }) => (
     <div className="dashboard-data-grid-shell">
@@ -106,8 +241,8 @@ function Welcome({ user }) {
                 <td colSpan={columns.length}>{emptyText}</td>
               </tr>
             ) : (
-              rows.map((row, rowIndex) => (
-                <tr className="dashboard-data-row" key={row.key || rowIndex}>
+              rows.map((row, index) => (
+                <tr className="dashboard-data-row" key={row.key || index}>
                   {columns.map((column) => (
                     <td key={column.key}>
                       {column.emphasis ? (
@@ -126,13 +261,17 @@ function Welcome({ user }) {
     </div>
   );
 
-  
-  const renderStats = () => (
+  const renderStats = (stats) => (
     <Row gutter={[16, 16]}>
       {stats.map((stat, idx) => (
-        <Col key={idx} xs={24} sm={12} md={6}>
-          <Card className="welcome-stat-card">
-            <Statistic title={stat.title} value={stat.value} valueStyle={{ color: '#dbeafe' }} />
+        <Col key={idx} xs={24} sm={12} xl={6}>
+          <Card className={`welcome-stat-card welcome-stat-card-${stat.kind || 'primary'}`}>
+            <Statistic
+              title={stat.title}
+              value={stat.value}
+              precision={stat.precision}
+              valueStyle={{ color: '#dbeafe' }}
+            />
             <Tag className="welcome-stat-tag">{stat.suffix}</Tag>
           </Card>
         </Col>
@@ -140,40 +279,17 @@ function Welcome({ user }) {
     </Row>
   );
 
-  
-  const renderExtraSections = () => {
-    if (userType === 'TRAINER') {
-      const traineeColumns = [
-        { title: 'Name', key: 'name', emphasis: true },
-        { title: 'Email', key: 'email' }
-      ];
-      return (
-        <Row className="welcome-sections-row" gutter={[16, 16]}>
-          <Col xs={24} md={12}>
-            <h3 className="section-title">Recent Students</h3>
-            {renderDataGrid({
-              columns: traineeColumns,
-              rows: myTrainees,
-              emptyText: 'No student records available.'
-            })}
-          </Col>
-          <Col xs={24} md={12}>
-            <h3 className="section-title">Recent Feedback</h3>
-            {feedbacks.length === 0 ? (
-              <Card className="comment-card comment-card-empty">No feedback has been submitted yet.</Card>
-            ) : feedbacks.map(c => (
-              <Card key={c.id} className="comment-card" style={{ marginBottom: 8 }}>
-                <p><strong>{c.author}:</strong> {c.text}</p>
-              </Card>
-            ))}
-          </Col>
-        </Row>
-      );
-    }
-
-    if (userType === 'ADMIN') {
-      const simpleNameColumns = [{ title: 'Name', key: 'name', emphasis: true }];
-      return (
+  const renderAdminView = () => {
+    const simpleNameColumns = [{ title: 'Name', key: 'name', emphasis: true }];
+    return (
+      <>
+        <Card className="welcome-hero-card">
+          <h2 className="dashboard-title">Exam Operations Overview</h2>
+          <p className="dashboard-subtitle">
+            Monitor exam volume, candidate activity, and platform updates from one place.
+          </p>
+        </Card>
+        {renderStats(adminStats)}
         <Row className="welcome-sections-row" gutter={[16, 16]}>
           <Col xs={24} md={12} xl={8}>
             <h3 className="section-title">Recent Examiners</h3>
@@ -200,27 +316,160 @@ function Welcome({ user }) {
             })}
           </Col>
         </Row>
-      );
-    }
-
-    return null;
+      </>
+    );
   };
+
+  const renderTrainerView = () => (
+    <>
+      <Card className="welcome-hero-card trainer-hero-card">
+        <div className="trainer-hero-content">
+          <div>
+            <h2 className="dashboard-title">Instructor Analytics Hub</h2>
+            <p className="dashboard-subtitle">
+              Track enrollment flow, session readiness, exam lifecycle, and learner feedback in a single control view.
+            </p>
+          </div>
+          <div className="trainer-hero-chips">
+            <Tag className="welcome-stat-tag">Live sessions: {dashboard?.stats?.examsLive || 0}</Tag>
+            <Tag className="welcome-stat-tag">Open registration: {dashboard?.stats?.registrationsOpen || 0}</Tag>
+            <Tag className="welcome-stat-tag">Results published: {dashboard?.stats?.resultsPublished || 0}</Tag>
+          </div>
+        </div>
+      </Card>
+
+      {renderStats(trainerStats)}
+
+      <Row className="welcome-sections-row trainer-chart-row" gutter={[16, 16]}>
+        <Col xs={24} xl={14}>
+          <Card className="trainer-analytics-card">
+            <div className="trainer-card-header">
+              <h3>Momentum Trend</h3>
+              <p>Registrations and question authoring across the last six months.</p>
+            </div>
+            <div className="trainer-chart-wrap trainer-chart-line">
+              {monthlyLabels.length ? <Line data={trendData} options={trendOptions} /> : <Empty description="No trend data yet" />}
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} md={12} xl={5}>
+          <Card className="trainer-analytics-card">
+            <div className="trainer-card-header">
+              <h3>Exam Lifecycle</h3>
+              <p>Current status distribution of managed exams.</p>
+            </div>
+            <div className="trainer-chart-wrap">
+              <Doughnut data={examLifecycleData} options={doughnutOptions} />
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} md={12} xl={5}>
+          <Card className="trainer-analytics-card">
+            <div className="trainer-card-header">
+              <h3>Feedback Pulse</h3>
+              <p>{ratings.total || 0} total ratings received.</p>
+            </div>
+            <div className="trainer-chart-wrap">
+              <Doughnut data={ratingData} options={doughnutOptions} />
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row className="trainer-bottom-row" gutter={[16, 16]}>
+        <Col xs={24} xl={13}>
+          <Card className="trainer-analytics-card">
+            <div className="trainer-card-header">
+              <h3>Top Exams by Registration</h3>
+              <p>Highest enrollment exams to help prioritize live monitoring.</p>
+            </div>
+            <div className="trainer-chart-wrap trainer-chart-bars">
+              {topExamsByRegistrations.length ? (
+                <Bar data={topExamChartData} options={topExamsOptions} />
+              ) : (
+                <Empty description="No registration data available" />
+              )}
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} xl={11}>
+          <Card className="trainer-analytics-card trainer-pipeline-card">
+            <div className="trainer-card-header">
+              <h3>Execution Snapshot</h3>
+              <p>Operational split across pipeline stages.</p>
+            </div>
+            <div className="trainer-pipeline-list">
+              <div className="trainer-pipeline-item">
+                <span>Registration Open</span>
+                <strong>{pipeline.registrationOpen || 0}</strong>
+              </div>
+              <div className="trainer-pipeline-item">
+                <span>In Progress</span>
+                <strong>{pipeline.inProgress || 0}</strong>
+              </div>
+              <div className="trainer-pipeline-item">
+                <span>Result Published</span>
+                <strong>{pipeline.resultPublished || 0}</strong>
+              </div>
+            </div>
+            <div className="trainer-insight-note">
+              Focus next: {pipeline.inProgress > 0 ? 'Monitor active sessions and candidate alerts.' : 'Publish results and open the next exam window.'}
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row className="trainer-bottom-row" gutter={[16, 16]}>
+        <Col xs={24} xl={14}>
+          <h3 className="section-title">Recent Students</h3>
+          {renderDataGrid({
+            columns: [
+              { title: 'Name', key: 'name', emphasis: true },
+              { title: 'Email', key: 'email' }
+            ],
+            rows: trainerTrainees,
+            emptyText: 'No student records available.'
+          })}
+        </Col>
+        <Col xs={24} xl={10}>
+          <h3 className="section-title">Latest Feedback</h3>
+          {feedbacks.length === 0 ? (
+            <Card className="comment-card comment-card-empty">No feedback has been submitted yet.</Card>
+          ) : feedbacks.map((item) => (
+            <Card key={item.key} className="comment-card feedback-card">
+              <div className="feedback-card-head">
+                <strong>{item.author}</strong>
+                <span>{item.rating ? `${item.rating}/5` : 'No rating'}</span>
+              </div>
+              <p>{item.text || 'No feedback text provided.'}</p>
+              <small>{item.email}</small>
+            </Card>
+          ))}
+        </Col>
+      </Row>
+    </>
+  );
+
+  if (loading) {
+    return <Spin tip="Loading dashboard..." style={{ margin: '100px auto', display: 'block' }} />;
+  }
+
+  if (error) {
+    return <Alert type="error" message={error} style={{ margin: '20px' }} />;
+  }
+
+  if (!dashboard) {
+    return null;
+  }
 
   return (
     <div className="welcome-container welcome-dashboard">
-      <Card className="welcome-hero-card">
-        <h2 className="dashboard-title">Exam Operations Overview</h2>
-        <p className="dashboard-subtitle">
-          Monitor exam volume, candidate activity, and recent platform updates from a single command view.
-        </p>
-      </Card>
-      {renderStats()}
-      {renderExtraSections()}
+      {userType === 'TRAINER' ? renderTrainerView() : renderAdminView()}
     </div>
   );
 }
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
   user: state.user
 });
 

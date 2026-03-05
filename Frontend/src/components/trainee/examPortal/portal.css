@@ -705,6 +705,144 @@
   letter-spacing: 0.02em;
 }
 
+.trainee-preflight-modal .ant-modal-content {
+  border-radius: 16px !important;
+  border: 1px solid var(--border-soft) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.18), transparent 45%),
+    rgba(16, 26, 46, 0.95) !important;
+}
+
+.trainee-preflight-modal .ant-modal-header {
+  border-bottom: 1px solid var(--border-soft) !important;
+  background: transparent !important;
+}
+
+.trainee-preflight-modal .ant-modal-title {
+  color: var(--text-primary) !important;
+}
+
+.trainee-preflight-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trainee-preflight-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.trainee-preflight-title-wrap h4 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.trainee-preflight-title-wrap p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+}
+
+.trainee-preflight-status.ant-tag {
+  margin: 0 !important;
+  border-radius: 999px !important;
+  font-weight: 800 !important;
+}
+
+.trainee-preflight-status.pending {
+  border-color: rgba(59, 130, 246, 0.46) !important;
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #bfdbfe !important;
+}
+
+.trainee-preflight-status.passed {
+  border-color: rgba(22, 163, 74, 0.46) !important;
+  background: rgba(22, 163, 74, 0.2) !important;
+  color: #86efac !important;
+}
+
+.trainee-preflight-status.failed {
+  border-color: rgba(220, 38, 38, 0.45) !important;
+  background: rgba(220, 38, 38, 0.16) !important;
+  color: #fecaca !important;
+}
+
+.trainee-preflight-required {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trainee-preflight-required-tag.ant-tag {
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(59, 130, 246, 0.44) !important;
+  background: rgba(59, 130, 246, 0.16) !important;
+  color: #bfdbfe !important;
+}
+
+.trainee-preflight-check-list {
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: rgba(7, 13, 25, 0.72);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.trainee-preflight-empty {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.trainee-preflight-check-item {
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  padding: 8px 10px;
+  background: rgba(16, 26, 46, 0.72);
+}
+
+.trainee-preflight-check-item.passed {
+  border-color: rgba(22, 163, 74, 0.4);
+}
+
+.trainee-preflight-check-item.failed {
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.trainee-preflight-check-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-primary);
+  font-size: 0.86rem;
+}
+
+.trainee-preflight-check-item p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.trainee-preflight-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.trainee-preflight-actions .ant-btn {
+  min-height: 36px;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+}
+
+.trainee-preflight-runid {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
 .exam-mobile-drawer .ant-drawer-content,
 .exam-mobile-drawer .ant-drawer-body,
 .exam-mobile-drawer .ant-drawer-header {

@@ -19,7 +19,9 @@ class TraineeRegisterForm extends Component {
             user: null,
             faceImage: null,
             faceImageValidationError: '',
-            validatingFaceImage: false
+            validatingFaceImage: false,
+            faceRecognitionEnabled: true,
+            registrationConfigLoading: true
         };
         this.faceModelPromise = null;
     }
@@ -64,8 +66,40 @@ class TraineeRegisterForm extends Component {
             testid,
             inform: persistedState ? false : true,
             user: persistedState ? persistedState.user : null,
+        }, () => {
+            this.fetchRegistrationConfig(testid);
         });
     }
+
+    fetchRegistrationConfig = (testid) => {
+        if (!testid) {
+            this.setState({ registrationConfigLoading: false, faceRecognitionEnabled: true });
+            return;
+        }
+
+        this.setState({ registrationConfigLoading: true });
+        Post({
+            url: apis.FETCH_TRAINEE_REGISTRATION_CONFIG,
+            data: { testid }
+        }).then((response) => {
+            if (response.data && response.data.success) {
+                const faceRecognitionEnabled = Boolean(
+                    response.data.data && response.data.data.faceRecognitionEnabled
+                );
+                this.setState((prevState) => ({
+                    faceRecognitionEnabled,
+                    registrationConfigLoading: false,
+                    faceImage: faceRecognitionEnabled ? prevState.faceImage : null,
+                    faceImageValidationError: faceRecognitionEnabled ? prevState.faceImageValidationError : '',
+                    validatingFaceImage: false
+                }));
+            } else {
+                this.setState({ registrationConfigLoading: false, faceRecognitionEnabled: true });
+            }
+        }).catch(() => {
+            this.setState({ registrationConfigLoading: false, faceRecognitionEnabled: true });
+        });
+    };
 
     ensureFaceModelLoaded = async (faceapi) => {
         if (!this.faceModelPromise) {
@@ -165,17 +199,22 @@ class TraineeRegisterForm extends Component {
         e.preventDefault();
         this.props.form.validateFields((err, values) => {
             if (!err) {
-                if (this.state.validatingFaceImage) {
+                if (this.state.registrationConfigLoading) {
+                    Alert('warning', 'Please wait', 'Exam settings are still loading.');
+                    return;
+                }
+
+                if (this.state.faceRecognitionEnabled && this.state.validatingFaceImage) {
                     Alert('warning', 'Validation in progress', 'Please wait for face image validation to finish.');
                     return;
                 }
 
-                if (!this.state.faceImage) {
+                if (this.state.faceRecognitionEnabled && !this.state.faceImage) {
                     Alert('error', 'Missing File', 'Please upload a face image.');
                     return;
                 }
 
-                if (this.state.faceImageValidationError) {
+                if (this.state.faceRecognitionEnabled && this.state.faceImageValidationError) {
                     Alert('error', 'Invalid Face Image', this.state.faceImageValidationError);
                     return;
                 }
@@ -187,7 +226,9 @@ class TraineeRegisterForm extends Component {
                 formData.append('organisation', values.organisation);
                 formData.append('testid', this.state.testid);
                 formData.append('location', values.location);
-                formData.append('faceImageUrl', this.state.faceImage); 
+                if (this.state.faceRecognitionEnabled && this.state.faceImage) {
+                    formData.append('faceImageUrl', this.state.faceImage);
+                }
 
                 Post({
                     url: apis.REGISTER_TRAINEE_FOR_TEST,
@@ -235,6 +276,7 @@ class TraineeRegisterForm extends Component {
     render() {
         const { getFieldDecorator } = this.props.form;
         const examRef = this.state.testid ? this.state.testid.slice(-8).toUpperCase() : 'EMAIL LINKED';
+        const showFaceUpload = this.state.faceRecognitionEnabled;
         
 
         return (
@@ -249,7 +291,7 @@ class TraineeRegisterForm extends Component {
                             <div className="trainee-registration-side-chip">Exam Ref: {examRef}</div>
                             <ul className="trainee-registration-checklist">
                                 <li>Use your legal full name and active email.</li>
-                                <li>Upload a recent face image for identity checks.</li>
+                                {showFaceUpload ? <li>Upload a recent face image for identity checks.</li> : null}
                                 <li>Use the email link to enter your exam workspace.</li>
                             </ul>
                         </aside>
@@ -340,25 +382,29 @@ class TraineeRegisterForm extends Component {
                                             )}
                                         </Form.Item>
 
-                                        <label className="trainee-field-label" htmlFor="trainee-face-upload">Upload Face Image</label>
-                                        <Form.Item>
-                                            <Upload
-                                                beforeUpload={this.onBeforeUploadFace}
-                                                fileList={this.state.faceImage ? [this.state.faceImage] : []}
-                                                onRemove={() => this.setState({ faceImage: null, faceImageValidationError: '' })}
-                                            >
-                                                <Button className="trainee-upload-btn" loading={this.state.validatingFaceImage}>
-                                                    <Icon type="upload" /> Click to Upload
-                                                </Button>
-                                            </Upload>
-                                            <input id="trainee-face-upload" type="hidden" value={this.state.faceImage ? 'selected' : ''} readOnly />
-                                            {!this.state.faceImage && !this.state.faceImageValidationError && (
-                                                <div className="trainee-inline-error">Please upload a face image.</div>
-                                            )}
-                                            {this.state.faceImageValidationError ? (
-                                                <div className="trainee-inline-error">{this.state.faceImageValidationError}</div>
-                                            ) : null}
-                                        </Form.Item>
+                                        {showFaceUpload ? (
+                                            <>
+                                                <label className="trainee-field-label" htmlFor="trainee-face-upload">Upload Face Image</label>
+                                                <Form.Item>
+                                                    <Upload
+                                                        beforeUpload={this.onBeforeUploadFace}
+                                                        fileList={this.state.faceImage ? [this.state.faceImage] : []}
+                                                        onRemove={() => this.setState({ faceImage: null, faceImageValidationError: '' })}
+                                                    >
+                                                        <Button className="trainee-upload-btn" loading={this.state.validatingFaceImage}>
+                                                            <Icon type="upload" /> Click to Upload
+                                                        </Button>
+                                                    </Upload>
+                                                    <input id="trainee-face-upload" type="hidden" value={this.state.faceImage ? 'selected' : ''} readOnly />
+                                                    {!this.state.faceImage && !this.state.faceImageValidationError && (
+                                                        <div className="trainee-inline-error">Please upload a face image.</div>
+                                                    )}
+                                                    {this.state.faceImageValidationError ? (
+                                                        <div className="trainee-inline-error">{this.state.faceImageValidationError}</div>
+                                                    ) : null}
+                                                </Form.Item>
+                                            </>
+                                        ) : null}
 
                                     </Col>
                                     <Col xs={24} md={12}>
@@ -367,7 +413,8 @@ class TraineeRegisterForm extends Component {
                                                 type="primary"
                                                 htmlType="submit"
                                                 className="login-form-button trainee-register-submit"
-                                                disabled={this.state.validatingFaceImage}
+                                                disabled={this.state.registrationConfigLoading || (showFaceUpload && this.state.validatingFaceImage)}
+                                                loading={this.state.registrationConfigLoading}
                                             >
                                                 Register
                                             </Button>

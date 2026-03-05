@@ -8,7 +8,9 @@ const initialState = {
         testDuration : 60,
         OrganisationName:null,
         testSubject:[],
-        testQuestions:[]
+        testQuestions:[],
+        integrityMode:'STANDARD',
+        preflightEnabled:true
     },
     questionsAvailablebasedonSubject:[]
 

@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux';
-import { Form, InputNumber , Input, Button,Select  } from 'antd-compat';
+import { Form, InputNumber , Input, Button,Select, Switch } from 'antd-compat';
 import { changeStep,changeBasicNewTestDetails } from '../../../actions/testAction';
 import { SecurePost } from '../../../services/axiosCall';
 import './newtest.css';
@@ -24,7 +24,9 @@ class BasicTestFormO extends Component {
                     testTitle: values.title,
                     testDuration : values.duration,
                     OrganisationName:values.organisation,
-                    testSubject:values.subjects
+                    testSubject:values.subjects,
+                    integrityMode: values.integrityMode,
+                    preflightEnabled: Boolean(values.preflightEnabled)
                 })
                 this.props.changeStep(1);
             }
@@ -138,6 +140,33 @@ class BasicTestFormO extends Component {
                             })(
                                 <Input placeholder="Organisation Name" />
                             )}
+                        </Form.Item>
+                        <Form.Item>
+                            <div className="admin-field-label">Security Level</div>
+                            {getFieldDecorator('integrityMode', {
+                                initialValue : this.props.test.newtestFormData.integrityMode || 'STANDARD',
+                                rules: [{ required: true, message: 'Please choose a security level' }],
+                            })(
+                                    <Select placeholder="Select security level">
+                                    <Select.Option value="LIGHT">Basic - minimal checks</Select.Option>
+                                    <Select.Option value="STANDARD">Balanced - camera and microphone checks</Select.Option>
+                                    <Select.Option value="STRICT">High Security - fullscreen and screen sharing required</Select.Option>
+                                </Select>
+                            )}
+                        </Form.Item>
+                        <Form.Item>
+                            <div className="admin-field-label">Entry Check</div>
+                            {getFieldDecorator('preflightEnabled', {
+                                valuePropName: 'checked',
+                                initialValue: typeof this.props.test.newtestFormData.preflightEnabled === 'boolean'
+                                    ? this.props.test.newtestFormData.preflightEnabled
+                                    : true
+                            })(
+                                <Switch checkedChildren="Required" unCheckedChildren="Optional" />
+                            )}
+                            <div className="newtest-inline-hint">
+                                When enabled, candidates must complete a quick device check before entering the exam.
+                            </div>
                         </Form.Item>
                         <Form.Item className="newtest-form-actions">
                             <Button type="primary" htmlType="submit" className="admin-submit-btn newtest-primary-btn">

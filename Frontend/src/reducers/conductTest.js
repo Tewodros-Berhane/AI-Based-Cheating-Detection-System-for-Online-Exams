@@ -6,7 +6,18 @@ const initialState = {
         testbegins:false,
         testconducted:false,
         isResultgenerated:false,
-        faceRecognitionEnabled:false
+        faceRecognitionEnabled:false,
+        integrityMode:'STANDARD',
+        integrityPolicy:{
+            requireCamera:true,
+            requireMicrophone:true,
+            requireFullscreen:false,
+            requireScreenShare:false,
+            requireFaceVerification:true,
+            allowTabSwitchTolerance:1,
+            preflightMaxFailures:1
+        },
+        preflightEnabled:true
     },
     registeredCandidates:[],
     questionsOfTest:[]

@@ -1,57 +1,110 @@
-// src/components/TraineeStreamSender.jsx
-import React, { useEffect, useRef, useContext } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
+import { message } from 'antd-compat';
 import { MediaStreamContext } from '../../contexts/MediaStreamContext';
 import apis from '../../services/Apis';
 
-const TraineeStreamSender = ({ traineeId, testId }) => {
+const hasLiveVideoTrack = (stream) =>
+  Boolean(
+    stream &&
+      typeof stream.getVideoTracks === 'function' &&
+      stream.getVideoTracks().some((track) => track.readyState === 'live')
+  );
+
+const buildIceServers = () => {
+  const iceServers = [];
+  if (apis.RTC_STUN_URLS.length > 0) {
+    iceServers.push({ urls: apis.RTC_STUN_URLS });
+  }
+  if (
+    apis.RTC_TURN_URLS.length > 0 &&
+    apis.RTC_TURN_USERNAME &&
+    apis.RTC_TURN_CREDENTIAL
+  ) {
+    iceServers.push({
+      urls: apis.RTC_TURN_URLS,
+      username: apis.RTC_TURN_USERNAME,
+      credential: apis.RTC_TURN_CREDENTIAL
+    });
+  }
+  return iceServers;
+};
+
+const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) => {
   const localVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const socketRef = useRef(null);
-  const { setMediaStream } = useContext(MediaStreamContext);
+  const mountedRef = useRef(true);
+  const mediaStreamRef = useRef(null);
+  const screenStreamRef = useRef(null);
+
+  const { mediaStream, setMediaStream, screenStream, setScreenStream } = useContext(MediaStreamContext);
 
   useEffect(() => {
-    
+    mediaStreamRef.current = mediaStream;
+  }, [mediaStream]);
+
+  useEffect(() => {
+    screenStreamRef.current = screenStream;
+  }, [screenStream]);
+
+  useEffect(() => {
+    mountedRef.current = true;
 
     const connectWebSocketAndStream = async () => {
       try {
-        // 1. Get local media stream and save it to context
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        let cameraStream = mediaStreamRef.current;
+        if (!hasLiveVideoTrack(cameraStream)) {
+          cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          if (mountedRef.current) {
+            setMediaStream(cameraStream);
+          }
+        }
+
         if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.srcObject = cameraStream;
         }
-        setMediaStream(stream);
 
+        let activeScreenStream = null;
+        if (requireScreenShare) {
+          activeScreenStream = screenStreamRef.current;
+          if (!hasLiveVideoTrack(activeScreenStream)) {
+            if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
+              throw new Error('Screen sharing is not supported in this browser.');
+            }
+            activeScreenStream = await navigator.mediaDevices.getDisplayMedia({
+              video: true,
+              audio: false
+            });
+            if (mountedRef.current) {
+              setScreenStream(activeScreenStream);
+            }
+          }
+        }
 
-        // 2. Create RTCPeerConnection and add local tracks
-        const iceServers = [];
-        if (apis.RTC_STUN_URLS.length > 0) {
-          iceServers.push({ urls: apis.RTC_STUN_URLS });
-        }
-        if (
-          apis.RTC_TURN_URLS.length > 0 &&
-          apis.RTC_TURN_USERNAME &&
-          apis.RTC_TURN_CREDENTIAL
-        ) {
-          iceServers.push({
-            urls: apis.RTC_TURN_URLS,
-            username: apis.RTC_TURN_USERNAME,
-            credential: apis.RTC_TURN_CREDENTIAL
-          });
-        }
-        const pc = new RTCPeerConnection({ iceServers });
+        const pc = new RTCPeerConnection({ iceServers: buildIceServers() });
         peerConnectionRef.current = pc;
-        stream.getTracks().forEach((track) => {
-          pc.addTrack(track, stream);
+
+        cameraStream.getTracks().forEach((track) => {
+          pc.addTrack(track, cameraStream);
         });
 
-        // 3. Handle ICE candidates
+        if (requireScreenShare && activeScreenStream) {
+          activeScreenStream.getVideoTracks().forEach((track) => {
+            track.contentHint = 'detail';
+            track.onended = () => {
+              if (!mountedRef.current) return;
+              message.warning('Screen sharing was stopped. This exam requires active screen sharing.');
+            };
+            pc.addTrack(track, activeScreenStream);
+          });
+        }
+
         pc.onicecandidate = (event) => {
-          if (event.candidate && socketRef.current.readyState === WebSocket.OPEN) {
+          if (event.candidate && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
             socketRef.current.send(JSON.stringify({ type: 'ice-candidate', candidate: event.candidate }));
           }
         };
 
-        // 4. Connect to signaling server as trainee (using local WebSocket)
         const params = new URLSearchParams({
           role: 'trainee',
           traineeid: traineeId
@@ -63,8 +116,6 @@ const TraineeStreamSender = ({ traineeId, testId }) => {
 
         socketRef.current = new WebSocket(`${apis.WS_SIGNALING_URL}/?${params.toString()}`);
         socketRef.current.onopen = async () => {
-          console.log("Trainee signaling socket connected");
-          // Create and send initial offer
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           socketRef.current.send(JSON.stringify({ type: 'offer', sdp: offer }));
@@ -78,40 +129,38 @@ const TraineeStreamSender = ({ traineeId, testId }) => {
             data = event.data;
           }
           try {
-            const message = JSON.parse(data);
-            if (message.type === 'request-offer') {
-              console.log("Received offer request from trainer, sending new offer");
+            const signal = JSON.parse(data);
+            if (signal.type === 'request-offer') {
               const offer = await pc.createOffer();
               await pc.setLocalDescription(offer);
               socketRef.current.send(JSON.stringify({ type: 'offer', sdp: offer }));
-            } else if (message.type === 'answer') {
-              await pc.setRemoteDescription(new RTCSessionDescription(message.sdp));
-            } else if (message.type === 'ice-candidate') {
-              pc.addIceCandidate(new RTCIceCandidate(message.candidate))
-                .catch(e => console.error("Error adding ICE candidate:", e));
+            } else if (signal.type === 'answer') {
+              await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+            } else if (signal.type === 'ice-candidate') {
+              pc.addIceCandidate(new RTCIceCandidate(signal.candidate)).catch((error) => {
+                console.error('Error adding ICE candidate:', error);
+              });
             }
-          } catch (err) {
-            console.error("Error parsing WebSocket message:", err);
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
           }
         };
 
-        socketRef.current.onerror = (err) => {
-          console.error("Trainee socket error:", err);
+        socketRef.current.onerror = (error) => {
+          console.error('Trainee socket error:', error);
         };
-
-        socketRef.current.onclose = () => {
-          console.log("Trainee socket closed.");
-        };
-
       } catch (error) {
-        console.error("Error setting up local stream and peer connection:", error);
+        console.error('Error setting up local stream and peer connection:', error);
+        if (mountedRef.current) {
+          message.error(error && error.message ? error.message : 'Unable to start live streaming for this exam.');
+        }
       }
     };
 
     connectWebSocketAndStream();
 
     return () => {
-      // Cleanup on component unmount
+      mountedRef.current = false;
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
       }
@@ -119,7 +168,7 @@ const TraineeStreamSender = ({ traineeId, testId }) => {
         socketRef.current.close();
       }
     };
-  }, [traineeId, testId, setMediaStream]);
+  }, [traineeId, testId, requireScreenShare, setMediaStream, setScreenStream]);
 
   return (
     <video
