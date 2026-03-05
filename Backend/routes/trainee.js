@@ -1,6 +1,7 @@
 var express = require("express");
 var router = express.Router();
 var trainee = require("../services/trainee");
+var preflight = require("../services/preflight");
 var TraineeEnterModel = require("../models/trainee");
 let TestPaperModel = require("../models/testpaper");
 const { upload } = require("./fileUpload");
@@ -10,6 +11,11 @@ router.post('/enter',
   upload.single('faceImageUrl'),
   trainee.traineeenter
 );
+router.post('/register/config', trainee.getRegistrationConfig);
+router.post('/preflight/start', preflight.startPreflight);
+router.post('/preflight/check', preflight.updatePreflightCheck);
+router.post('/preflight/complete', preflight.completePreflight);
+router.post('/preflight/latest', preflight.getLatestPreflight);
 router.post('/feedback',trainee.feedback);
 router.post('/resend/testlink',trainee.resendmail);
 router.post('/correct/answers',trainee.correctAnswers);

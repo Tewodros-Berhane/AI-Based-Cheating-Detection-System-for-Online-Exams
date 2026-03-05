@@ -9,6 +9,7 @@ let ResultModel = require("../models/results");
 let AnswersheetModel = require("../models/answersheet");
 let logger = require("./logger");
 const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMachine");
+const integrityPolicy = require("./integrityPolicy");
 
 
 let createEditTest = (req,res,next)=>{
@@ -29,13 +30,28 @@ let createEditTest = (req,res,next)=>{
         var title =  req.body.title;
         var questions = req.body.questions;
         if(_id!=null){
+            var updatePayload = {
+                title : title,
+                questions : questions
+            };
+
+            if (req.body.integrityMode !== undefined) {
+                const nextMode = integrityPolicy.normalizeIntegrityMode(req.body.integrityMode);
+                updatePayload.integrityMode = nextMode;
+                updatePayload.integrityPolicy = integrityPolicy.resolveIntegrityPolicy(
+                    nextMode,
+                    req.body.integrityPolicy || {}
+                );
+            }
+
+            if (typeof req.body.preflightEnabled === 'boolean') {
+                updatePayload.preflightEnabled = req.body.preflightEnabled;
+            }
+
             TestPaperModel.findOneAndUpdate({
                 _id : _id,
             },
-            {
-                title : title,
-                questions : questions
-            }).then(()=>{
+            updatePayload).then(()=>{
                 res.json({
                     success: true,
                     message :  "Testpaper has been updated!"
@@ -54,6 +70,14 @@ let createEditTest = (req,res,next)=>{
         var organisation = req.body.organisation;
         var duration = req.body.duration;
         var subjects = req.body.subjects;
+        var integrityMode = integrityPolicy.normalizeIntegrityMode(req.body.integrityMode);
+        var integrityPolicySnapshot = integrityPolicy.resolveIntegrityPolicy(
+            integrityMode,
+            req.body.integrityPolicy || {}
+        );
+        var preflightEnabled = typeof req.body.preflightEnabled === 'boolean'
+            ? req.body.preflightEnabled
+            : true;
         async function generateUniqueExamID() {
             let examID;
             let exists = true;
@@ -78,6 +102,9 @@ let createEditTest = (req,res,next)=>{
                         createdBy : req.user._id,
                         subjects : subjects,
                         examID : examID,
+                        integrityMode : integrityMode,
+                        integrityPolicy : integrityPolicySnapshot,
+                        preflightEnabled : preflightEnabled,
                     
                     })
                     tempdata.save().then((d)=>{
@@ -544,6 +571,12 @@ let beginTest = async (req,res,next)=>{
                 testconducted : data.testconducted,
                 isResultgenerated : data.isResultgenerated,
                 faceRecognitionEnabled: Boolean(data.faceRecognitionEnabled),
+                integrityMode: integrityPolicy.normalizeIntegrityMode(data.integrityMode),
+                integrityPolicy: integrityPolicy.resolveIntegrityPolicy(
+                    data.integrityMode,
+                    data.integrityPolicy || {}
+                ),
+                preflightEnabled: Boolean(data.preflightEnabled),
                 examState: deriveExamState(data)
             }
         });
@@ -600,6 +633,12 @@ let endTest = async (req,res,next)=>{
                 testconducted : info.testconducted,
                 isResultgenerated : info.isResultgenerated,
                 faceRecognitionEnabled: Boolean(info.faceRecognitionEnabled),
+                integrityMode: integrityPolicy.normalizeIntegrityMode(info.integrityMode),
+                integrityPolicy: integrityPolicy.resolveIntegrityPolicy(
+                    info.integrityMode,
+                    info.integrityPolicy || {}
+                ),
+                preflightEnabled: Boolean(info.preflightEnabled),
                 examState: deriveExamState(info)
             }
         });
@@ -712,6 +751,143 @@ let updateFaceRecognitionSetting = async (req,res,next)=>{
     }
 }
 
+let updateIntegrityConfig = async (req,res,next)=>{
+    if(req.user.type!=="TRAINER"){
+        return res.status(401).json({
+            success : false,
+            message : "Permissions not granted!"
+        });
+    }
+
+    var id = req.body.id;
+    if(!id){
+        return res.status(400).json({
+            success: false,
+            message: "Invalid test id."
+        });
+    }
+
+    try{
+        const test = await TestPaperModel.findOne(
+            {_id:id,createdBy:req.user._id},
+            {testbegins:1,testconducted:1,isResultgenerated:1,integrityMode:1,integrityPolicy:1,preflightEnabled:1}
+        );
+
+        if(!test){
+            return res.json({
+                success : false,
+                message : "Invalid test id."
+            });
+        }
+
+        const gate = canApplyAction(test, ExamActions.CONFIG_INTEGRITY_POLICY);
+        if(!gate.ok){
+            return res.json({
+                success : false,
+                message : gate.reason,
+                state : gate.state
+            });
+        }
+
+        const nextMode = integrityPolicy.normalizeIntegrityMode(
+            req.body.integrityMode !== undefined ? req.body.integrityMode : test.integrityMode
+        );
+        const nextPolicy = integrityPolicy.resolveIntegrityPolicy(
+            nextMode,
+            req.body.integrityPolicy !== undefined ? req.body.integrityPolicy : (test.integrityPolicy || {})
+        );
+        const nextPreflightEnabled = typeof req.body.preflightEnabled === "boolean"
+            ? req.body.preflightEnabled
+            : Boolean(test.preflightEnabled);
+
+        const updated = await TestPaperModel.findOneAndUpdate(
+            {_id:id,createdBy:req.user._id},
+            {
+                integrityMode: nextMode,
+                integrityPolicy: nextPolicy,
+                preflightEnabled: nextPreflightEnabled
+            },
+            {new: true}
+        );
+
+        return res.json({
+            success: true,
+            message: "Integrity configuration updated.",
+            data: {
+                integrityMode: updated.integrityMode,
+                integrityPolicy: updated.integrityPolicy,
+                preflightEnabled: Boolean(updated.preflightEnabled),
+                examState: deriveExamState(updated)
+            }
+        });
+    }catch(err){
+        logger.error('update_integrity_config_failed', {
+            testId: id,
+            trainerId: req.user && req.user._id,
+            error: logger.normalizeError(err)
+        });
+        return res.status(500).json({
+            success: false,
+            message: "Server Error"
+        });
+    }
+}
+
+let getIntegrityConfig = async (req,res,next)=>{
+    if(req.user.type!=="TRAINER"){
+        return res.status(401).json({
+            success : false,
+            message : "Permissions not granted!"
+        });
+    }
+
+    var id = req.body.id;
+    if(!id){
+        return res.status(400).json({
+            success: false,
+            message: "Invalid test id."
+        });
+    }
+
+    try{
+        const test = await TestPaperModel.findOne(
+            {_id:id,createdBy:req.user._id},
+            {integrityMode:1,integrityPolicy:1,preflightEnabled:1,testbegins:1,testconducted:1,isResultgenerated:1}
+        );
+
+        if(!test){
+            return res.json({
+                success: false,
+                message: "Invalid test id."
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: "Integrity configuration fetched.",
+            data: {
+                integrityMode: integrityPolicy.normalizeIntegrityMode(test.integrityMode),
+                integrityPolicy: integrityPolicy.resolveIntegrityPolicy(
+                    test.integrityMode,
+                    test.integrityPolicy || {}
+                ),
+                preflightEnabled: Boolean(test.preflightEnabled),
+                examState: deriveExamState(test)
+            }
+        });
+    }catch(err){
+        logger.error('get_integrity_config_failed', {
+            testId: id,
+            trainerId: req.user && req.user._id,
+            error: logger.normalizeError(err)
+        });
+        return res.status(500).json({
+            success: false,
+            message: "Server Error"
+        });
+    }
+}
+
 let MM = (req,res,next)=>{
     var testid = req.body.testid;
     if(req.user.type === 'TRAINER'){
@@ -771,4 +947,22 @@ let checkTestName =(req,res,next)=>{
  
  
 
-module.exports = {checkTestName,createEditTest,getSingletest,getAlltests,deleteTest,MaxMarks,MM,getCandidateDetails,basicTestdetails,TestDetails,getTestquestions,getCandidates,beginTest,endTest,updateFaceRecognitionSetting}
+module.exports = {
+    checkTestName,
+    createEditTest,
+    getSingletest,
+    getAlltests,
+    deleteTest,
+    MaxMarks,
+    MM,
+    getCandidateDetails,
+    basicTestdetails,
+    TestDetails,
+    getTestquestions,
+    getCandidates,
+    beginTest,
+    endTest,
+    updateFaceRecognitionSetting,
+    updateIntegrityConfig,
+    getIntegrityConfig
+}

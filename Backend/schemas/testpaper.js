@@ -1,4 +1,5 @@
 var mongoose = require("mongoose");
+var integrityPolicy = require("../services/integrityPolicy");
 var testschema = new mongoose.Schema({
 
     examID : {
@@ -78,6 +79,47 @@ var testschema = new mongoose.Schema({
     faceRecognitionEnabled: {
         type: Boolean,
         default: false,
+        required: true
+    },
+    integrityMode: {
+        type: String,
+        enum: ['LIGHT', 'STANDARD', 'STRICT'],
+        default: integrityPolicy.DEFAULT_INTEGRITY_MODE,
+        required: true
+    },
+    integrityPolicy: {
+        requireCamera: {
+            type: Boolean,
+            default: true
+        },
+        requireMicrophone: {
+            type: Boolean,
+            default: true
+        },
+        requireFullscreen: {
+            type: Boolean,
+            default: false
+        },
+        requireScreenShare: {
+            type: Boolean,
+            default: false
+        },
+        requireFaceVerification: {
+            type: Boolean,
+            default: true
+        },
+        allowTabSwitchTolerance: {
+            type: Number,
+            default: 1
+        },
+        preflightMaxFailures: {
+            type: Number,
+            default: 1
+        }
+    },
+    preflightEnabled: {
+        type: Boolean,
+        default: true,
         required: true
     }
 

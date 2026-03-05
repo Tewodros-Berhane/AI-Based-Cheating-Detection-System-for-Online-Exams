@@ -33,7 +33,8 @@ var traineeschema = new mongoose.Schema({
     },
     faceImageUrl : {
         type : String,
-        required : true
+        required : false,
+        default : null
     }
 },
 { timestamps: {}}

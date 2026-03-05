@@ -8,8 +8,10 @@ var QuestionModel = require("../models/questions");
 var options = require("../models/option");
 var AnswersheetModel = require("../models/answersheet");
 var AnswersModel = require("../models/answers");
+var PreflightRunModel = require("../models/preflightRun");
 var logger = require("./logger");
 const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMachine");
+const integrityPolicy = require("./integrityPolicy");
 
 let getFrontendBaseUrl = (req) => {
     if (config.has('services.frontendBaseUrl')) {
@@ -25,95 +27,100 @@ let buildTestLink = (req, testid, traineeid) => {
     return `${getFrontendBaseUrl(req)}/trainee/taketest?testid=${testid}&traineeid=${traineeid}`;
 };
 
-let traineeenter = (req, res, next) => {
-  // ── Validate incoming fields ──────────────────────────────────────────────
+let resolveTestIntegrity = (test) => {
+    const mode = integrityPolicy.normalizeIntegrityMode(test && test.integrityMode);
+    const policy = integrityPolicy.resolveIntegrityPolicy(mode, test && test.integrityPolicy ? test.integrityPolicy : {});
+    if (!Boolean(test && test.faceRecognitionEnabled)) {
+        policy.requireFaceVerification = false;
+    }
+    return {
+        mode,
+        policy,
+        preflightEnabled: typeof (test && test.preflightEnabled) === "boolean"
+            ? Boolean(test.preflightEnabled)
+            : false
+    };
+};
+
+let traineeenter = async (req, res, next) => {
   req.check('emailid', `Invalid email address.`).isEmail().notEmpty();
   req.check('name', 'This field is required.').notEmpty();
-  req.check('contact', 'Invalid contact.')
-     .isNumeric({ no_symbols: false });
+  req.check('contact', 'Invalid contact.').isNumeric({ no_symbols: false });
 
   const errors = req.validationErrors();
   if (errors) {
     return res.json({ success: false, message: 'Invalid inputs', errors });
   }
 
-  // ── Destructure form fields ────────────────────────────────────────────────
   const { name, emailid, contact, organisation, testid, location } = req.body;
-
-  // ── Build faceImageUrl if a file was uploaded ────────────────────────────
   let faceImageUrl = null;
   if (req.file) {
-    // strip off the `public/` so the URL matches your static mount
     faceImageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
   }
 
   async function generateUniqueTraineeID() {
-            let traineeID;
-            let exists = true;
+    let traineeID;
+    let exists = true;
+    while (exists) {
+      traineeID = Math.floor(100000 + Math.random() * 900000).toString();
+      exists = await TraineeEnterModel.exists({ traineeID });
+    }
+    return traineeID;
+  }
 
-            while (exists) {
-                traineeID = Math.floor(100000 + Math.random() * 900000).toString();
-                exists = await TraineeEnterModel.exists({ traineeID: traineeID });
-            }
+  try {
+    const test = await TestPaperModel.findOne(
+      { _id: testid, isRegistrationavailable: true },
+      { title: 1, duration: 1, organisation: 1, examID: 1, faceRecognitionEnabled: 1 }
+    );
 
-            return traineeID;
-        }
-
-
-  // ── Check test registration availability ──────────────────────────────────
-  TestPaperModel
-    .findOne({ _id: testid, isRegistrationavailable: true })
-    .then(info => {
-      if (!info) {
-        return res.json({ success: false, message: 'Registration for this test has been closed!' });
-      }
-      // ── Prevent double‐registration ────────────────────────────────────────
-      return TraineeEnterModel.findOne({
-        $or: [
-          { emailid: emailid, testid: testid },
-          { contact: contact, testid: testid }
-        ]
+    if (!test) {
+      return res.json({
+        success: false,
+        message: 'Registration for this test has been closed!'
       });
-    })
-    .then(existing => {
-      if (existing) {
-        return res.json({ success: false, message: 'This id has already been registered for this test!' });
-      }
-      return generateUniqueTraineeID();
-    })
-    .then((traineeID) => {
+    }
 
-      const tempdata = new TraineeEnterModel({
-        name,
-        emailid,
-        contact,
-        organisation,
-        testid,
-        location,
-        faceImageUrl,
-        traineeID
+    const faceRecognitionEnabled = Boolean(test.faceRecognitionEnabled);
+    if (faceRecognitionEnabled && !faceImageUrl) {
+      return res.json({
+        success: false,
+        message: 'Face image is required for this exam.'
       });
-      return tempdata.save();
-      })
+    }
 
-    .then(u => {
-      // ── Send confirmation email ────────────────────────────────────────────
-      if (u) {
-        TestPaperModel.findById(testid).then(test => {
-        if (!test) {
-            console.error('Test data not found.');
-            return;
-        }
+    const existing = await TraineeEnterModel.findOne({
+      $or: [
+        { emailid: emailid, testid: testid },
+        { contact: contact, testid: testid }
+      ]
+    });
 
-        const testLink = buildTestLink(req, testid, u._id);
-        // const logoUrl = `${req.protocol}://${req.get('host')}/logo.jpg`;
-        const examID = test.examID;
-        const traineeID = u.traineeID;
-        console.log(examID);
-        console.log(traineeID);
-        
+    if (existing) {
+      return res.json({
+        success: false,
+        message: 'This id has already been registered for this test!'
+      });
+    }
 
-        const htmlContent = `
+    const traineeID = await generateUniqueTraineeID();
+    const tempdata = new TraineeEnterModel({
+      name,
+      emailid,
+      contact,
+      organisation,
+      testid,
+      location,
+      faceImageUrl: faceRecognitionEnabled ? faceImageUrl : null,
+      traineeID
+    });
+    const u = await tempdata.save();
+
+    const testLink = buildTestLink(req, testid, u._id);
+    const examID = test.examID;
+    const generatedTraineeID = u.traineeID;
+
+    const htmlContent = `
             <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; padding: 30px; border: 1px solid #30363d; border-radius: 10px; max-width: 600px; margin: auto;">
                 <div style="text-align: center; margin-bottom: 20px;">
                 <img src="cid:examshieldlogo" alt="Exam Shield Logo" style="width: 100px;" />
@@ -131,7 +138,7 @@ let traineeenter = (req, res, next) => {
                 </ul>
 
                 <div style="margin: 25px 0; text-align: center; border: 1px solid #30363d; padding: 10px; color: #c9d1d9;">
-                <p> This is your id: <strong> ${traineeID} </strong> </p>
+                <p> This is your id: <strong> ${generatedTraineeID} </strong> </p>
                 <p> This is the exam id: <strong> ${examID} </strong> </p>
                 </div>
 
@@ -154,34 +161,85 @@ let traineeenter = (req, res, next) => {
             </div>
             `;
 
+    sendmail(
+      emailid,
+      'Registered Successfully - Exam Shield',
+      'You\'ve been registered-please view this email in HTML format.',
+      htmlContent,
+      [
+        {
+          filename: 'logo.jpg',
+          path: path.join(__dirname, '../public/logo.jpg'),
+          cid: 'examshieldlogo'
+        }
+      ]
+    ).catch(console.log);
 
-        sendmail(
-            emailid,
-            'Registered Successfully - Exam Shield',
-            'You’ve been registered—please view this email in HTML format.',
-            htmlContent,
-            [
-                {
-                    filename: 'logo.jpg',
-                    path: path.join(__dirname, '../public/logo.jpg'),
-                    cid: 'examshieldlogo' 
-                }
-            ]
-        ).catch(console.log);
-        });
-
-
-        return res.json({
-          success: true,
-          message: 'Trainee registered successfully!',
-          user: u
-        });
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      res.status(500).json({ success: false, message: 'Server error!' });
+    return res.json({
+      success: true,
+      message: 'Trainee registered successfully!',
+      user: u
     });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Server error!' });
+  }
+};
+
+let getRegistrationConfig = async (req, res, next) => {
+  const testid = req.body.testid;
+  if (!testid) {
+    return res.status(400).json({
+      success: false,
+      message: 'Test id is required.'
+    });
+  }
+
+  try {
+    const test = await TestPaperModel.findById(testid, {
+      _id: 1,
+      isRegistrationavailable: 1,
+      faceRecognitionEnabled: 1,
+      integrityMode: 1,
+      integrityPolicy: 1,
+      preflightEnabled: 1,
+      title: 1,
+      organisation: 1
+    });
+
+    if (!test) {
+      return res.json({
+        success: false,
+        message: 'Invalid test id.'
+      });
+    }
+
+    const integrity = resolveTestIntegrity(test);
+
+    return res.json({
+      success: true,
+      message: 'Registration config fetched.',
+      data: {
+        testid: String(test._id),
+        isRegistrationavailable: Boolean(test.isRegistrationavailable),
+        faceRecognitionEnabled: Boolean(test.faceRecognitionEnabled),
+        integrityMode: integrity.mode,
+        integrityPolicy: integrity.policy,
+        preflightEnabled: integrity.preflightEnabled,
+        title: test.title || '',
+        organisation: test.organisation || ''
+      }
+    });
+  } catch (error) {
+    logger.error('fetch_registration_config_failed', {
+      testId: testid,
+      error: logger.normalizeError(error)
+    });
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to fetch registration config.'
+    });
+  }
 };
 
 let correctAnswers = (req,res,next)=>{
@@ -432,7 +490,15 @@ let Answersheet = async (req,res,next)=>{
     try{
         const [trainee, test] = await Promise.all([
             TraineeEnterModel.findOne({_id:userid,testid:testid},{_id:1}),
-            TestPaperModel.findById(testid,{questions:1,testbegins:1,testconducted:1,isResultgenerated:1})
+            TestPaperModel.findById(testid,{
+                questions:1,
+                testbegins:1,
+                testconducted:1,
+                isResultgenerated:1,
+                integrityMode:1,
+                integrityPolicy:1,
+                preflightEnabled:1
+            })
         ]);
 
         if(!trainee || !test){
@@ -449,6 +515,23 @@ let Answersheet = async (req,res,next)=>{
                 message : gate.reason,
                 state : gate.state
             });
+        }
+
+        const integrity = resolveTestIntegrity(test);
+        if (integrity.preflightEnabled) {
+            const latestPassedRun = await PreflightRunModel.findOne({
+                testid: testid,
+                traineeid: userid,
+                status: "PASSED"
+            }).sort({ completedAt: -1, createdAt: -1 });
+
+            if (!latestPassedRun) {
+                return res.json({
+                    success: false,
+                    message: 'Preflight checks are required before entering the exam.',
+                    preflightRequired: true
+                });
+            }
         }
 
         const existing = await AnswersheetModel.find({userid:userid,testid:testid});
@@ -504,6 +587,9 @@ let flags = (req,res,next)=>{
         testbegins : 1,
         testconducted : 1,
         faceRecognitionEnabled: 1,
+        integrityMode: 1,
+        integrityPolicy: 1,
+        preflightEnabled: 1,
         duration : 1,
         title : 1,
         organisation : 1,
@@ -519,13 +605,17 @@ let flags = (req,res,next)=>{
                 message : 'Invalid URL!'
             })
         }else{
+            const integrity = resolveTestIntegrity(info[2]);
             const examMeta = {
                 title : info[2].title || '',
                 organisation : info[2].organisation || '',
                 duration : info[2].duration || 0,
                 totalQuestions : Array.isArray(info[2].questions) ? info[2].questions.length : 0,
                 examID : info[2].examID || '',
-                faceRecognitionEnabled: Boolean(info[2].faceRecognitionEnabled)
+                faceRecognitionEnabled: Boolean(info[2].faceRecognitionEnabled),
+                integrityMode: integrity.mode,
+                integrityPolicy: integrity.policy,
+                preflightEnabled: integrity.preflightEnabled
             };
             var startedWriting = false;
             var pending=null;
@@ -544,6 +634,8 @@ let flags = (req,res,next)=>{
                                 pending : pending,
                                 completed : true,
                                 faceRecognitionEnabled: Boolean(info[2].faceRecognitionEnabled),
+                                preflightEnabled: integrity.preflightEnabled,
+                                integrityMode: integrity.mode,
                                 examMeta : examMeta,
                                 examState: deriveExamState(info[2])
                             }
@@ -565,6 +657,8 @@ let flags = (req,res,next)=>{
                             pending : pending,
                             completed : info[0].completed,
                             faceRecognitionEnabled: Boolean(info[2].faceRecognitionEnabled),
+                            preflightEnabled: integrity.preflightEnabled,
+                            integrityMode: integrity.mode,
                             examMeta : examMeta,
                             examState: deriveExamState(info[2])
                         }
@@ -582,6 +676,8 @@ let flags = (req,res,next)=>{
                         pending : pending,
                         completed : false,
                         faceRecognitionEnabled: Boolean(info[2].faceRecognitionEnabled),
+                        preflightEnabled: integrity.preflightEnabled,
+                        integrityMode: integrity.mode,
                         examMeta : examMeta,
                         examState: deriveExamState(info[2])
                     }
@@ -806,4 +902,5 @@ let getQuestion = (req,res,next)=>{
     }
 
 
-module.exports = {traineeenter,feedback,checkFeedback,resendmail,correctAnswers,Answersheet,flags,chosenOptions,TraineeDetails,Testquestions,UpdateAnswers,EndTest,getQuestion}
+module.exports = {traineeenter,getRegistrationConfig,feedback,checkFeedback,resendmail,correctAnswers,Answersheet,flags,chosenOptions,TraineeDetails,Testquestions,UpdateAnswers,EndTest,getQuestion}
+

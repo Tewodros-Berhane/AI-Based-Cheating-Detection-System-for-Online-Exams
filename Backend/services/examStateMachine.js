@@ -11,6 +11,7 @@ const ExamActions = {
   START_EXAM: 'START_EXAM',
   END_EXAM: 'END_EXAM',
   CONFIG_FACE_RECOGNITION: 'CONFIG_FACE_RECOGNITION',
+  CONFIG_INTEGRITY_POLICY: 'CONFIG_INTEGRITY_POLICY',
   TRAINEE_START: 'TRAINEE_START',
   TRAINEE_UPDATE_ANSWER: 'TRAINEE_UPDATE_ANSWER',
   TRAINEE_SUBMIT: 'TRAINEE_SUBMIT'
@@ -33,7 +34,8 @@ const isRegistrationAction = (action) =>
   action === ExamActions.OPEN_REGISTRATION || action === ExamActions.CLOSE_REGISTRATION;
 
 const isPreExamConfigAction = (action) =>
-  action === ExamActions.CONFIG_FACE_RECOGNITION;
+  action === ExamActions.CONFIG_FACE_RECOGNITION ||
+  action === ExamActions.CONFIG_INTEGRITY_POLICY;
 
 const canApplyAction = (test, action) => {
   const state = deriveExamState(test);
