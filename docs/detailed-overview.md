@@ -1505,3 +1505,402 @@ E2E smoke tests:
 - Trainer UI clearly indicates monitoring source and severity.
 - VPN/proxy risk is evaluated in all modes and enforced per mode policy.
 - Automated tests and Docker smoke runs pass.
+
+---
+
+## 14. Execution Plan: Event Timeline + Severity Scoring in Live Exam Operations
+
+### Why this is needed
+
+Current live monitoring is mostly real-time and moment-based. Once a signal passes, it is hard for trainers to audit what happened, when it happened, and how serious it was.
+
+This implementation gives:
+
+- persistent evidence per candidate session
+- consistent severity scoring instead of subjective interpretation
+- clear incident timeline for post-exam review
+- better operational trust when disputes happen
+
+### 14.1 Target product behavior
+
+For each candidate in a running exam:
+
+- Trainer sees a live severity badge (`Normal`, `Suspicious`, `High Risk`, `Cheating`, `Finished`).
+- Trainer can open a timeline panel and view every event in chronological order.
+- Each event shows:
+  - time
+  - source (AI / face / system / trainer action)
+  - human-readable message
+  - severity score
+  - confidence
+- Timeline supports filters:
+  - severity level
+  - event type
+  - last 5m / 15m / 30m / full session
+- Trainer can acknowledge/escalate events.
+- Exam completion is always recorded as a timeline event (manual submit, trainer end, timeout end).
+
+Candidate-facing behavior:
+
+- no raw technical identifiers shown to trainees
+- no exposure of internal scoring formulas
+
+### 14.2 Architecture and event flow
+
+```mermaid
+flowchart LR
+  A[AI Server signals] --> D[Backend Event Normalizer]
+  B[Face recognition runtime] --> D
+  C[System events\nstart/end/reconnect/tab] --> D
+  E[Trainer actions\nack/escalate] --> D
+
+  D --> F[Severity Engine]
+  F --> G[(proctor_events)]
+  F --> H[(proctor_risk_snapshots)]
+  H --> I[Trainer Candidate Table]
+  G --> J[Timeline Drawer / Modal]
+  F --> K[Metrics + Alerts]
+```
+
+### 14.3 Domain model and severity framework
+
+#### Event taxonomy (first production set)
+
+- Identity/face:
+  - `NO_FACE`
+  - `MULTI_FACE`
+  - `FACE_MISMATCH`
+- Behavior:
+  - `LOOKING_AWAY`
+  - `TAB_SWITCH`
+  - `FULLSCREEN_EXIT`
+- Audio:
+  - `AUDIO_SUSPICIOUS`
+  - `AUDIO_MULTIPLE_VOICES`
+- Session/system:
+  - `NETWORK_DROP`
+  - `RECONNECTED`
+  - `EXAM_STARTED`
+  - `EXAM_FINISHED`
+- Trainer actions:
+  - `TRAINER_ACK`
+  - `TRAINER_ESCALATE`
+
+#### Severity score model (v1)
+
+Per event:
+
+`eventScore = clamp(baseScore * sourceWeight * confidenceWeight * repeatMultiplier, 0, 100)`
+
+Rolling risk score per candidate:
+
+`rollingRisk = max(latestCritical, weightedWindowAverage(last N minutes) - decayFactor)`
+
+Severity bands:
+
+- `0-24`: `NORMAL`
+- `25-49`: `SUSPICIOUS`
+- `50-74`: `HIGH_RISK`
+- `75-100`: `CHEATING`
+- exam ended flag sets display state to `FINISHED` regardless of risk band
+
+Starter base scores:
+
+- `NO_FACE`: 35
+- `MULTI_FACE`: 70
+- `FACE_MISMATCH`: 75
+- `LOOKING_AWAY`: 25
+- `TAB_SWITCH`: 45
+- `FULLSCREEN_EXIT`: 60
+- `AUDIO_SUSPICIOUS`: 40
+- `AUDIO_MULTIPLE_VOICES`: 65
+- `NETWORK_DROP`: 20
+- `RECONNECTED`: 10
+- `EXAM_STARTED`: 5
+- `EXAM_FINISHED`: 5
+
+Escalation rules:
+
+- 3x `TAB_SWITCH` in 2 minutes: force minimum `HIGH_RISK`
+- 2x `MULTI_FACE` in 3 minutes: force `CHEATING`
+- `FACE_MISMATCH` + `AUDIO_MULTIPLE_VOICES` inside 60s: force `CHEATING`
+- decay: lower rolling score gradually if no suspicious events in last 5 minutes
+
+### 14.4 Database and schema implementation
+
+#### A) `proctor_events` (append-only)
+
+Files to add:
+
+- `Backend/schemas/proctorEvent.js`
+- `Backend/models/proctorEvent.js`
+
+Schema fields:
+
+- `testid` (ObjectId, required, indexed)
+- `traineeid` (ObjectId, required, indexed)
+- `sessionId` (String, required, indexed)
+- `eventId` (String UUID, unique)
+- `eventType` (String enum)
+- `source` (String enum: `AI`, `FACE`, `SYSTEM`, `TRAINER`)
+- `severityScore` (Number 0-100)
+- `severityLevel` (String enum)
+- `confidence` (Number 0-1)
+- `message` (String, human-readable)
+- `payload` (Mixed, model metadata, no sensitive media blobs)
+- `createdAt` (Date, indexed)
+- `dedupeKey` (String, indexed, optional)
+- `acked` (Boolean, default false)
+- `ackedBy` (ObjectId nullable)
+- `ackedAt` (Date nullable)
+
+Indexes:
+
+- `{ testid: 1, traineeid: 1, createdAt: -1 }`
+- `{ sessionId: 1, createdAt: -1 }`
+- `{ severityLevel: 1, createdAt: -1 }`
+- `{ dedupeKey: 1, createdAt: -1 }`
+
+Retention:
+
+- optional TTL strategy for old events (for example 90 days) after organizational approval
+
+#### B) `proctor_risk_snapshots` (fast read model)
+
+Files to add:
+
+- `Backend/schemas/proctorRiskSnapshot.js`
+- `Backend/models/proctorRiskSnapshot.js`
+
+Schema fields:
+
+- `testid`
+- `traineeid`
+- `sessionId`
+- `rollingRiskScore`
+- `severityLevel`
+- `lastEventType`
+- `lastEventAt`
+- `suspiciousCount`
+- `highRiskCount`
+- `criticalCount`
+- `isFinished`
+- `updatedAt`
+
+Purpose:
+
+- candidate list should query this snapshot collection, not scan entire event history
+
+#### C) Optional audit table for trainer actions
+
+If strict audit is required, add:
+
+- `Backend/schemas/proctorEventAction.js`
+- `Backend/models/proctorEventAction.js`
+
+to store acknowledge/escalate notes separately.
+
+### 14.5 Backend service and route changes
+
+#### New backend services
+
+- `Backend/services/proctorEventNormalizer.js`
+  - converts mixed inbound payloads into canonical event shape
+- `Backend/services/proctorSeverityEngine.js`
+  - computes eventScore and rollingRisk
+  - applies escalation and decay windows
+- `Backend/services/proctorTimeline.js`
+  - persistence and query orchestration
+- `Backend/services/proctorRiskSnapshot.js`
+  - upsert/update snapshot read model
+
+#### Existing backend files to update
+
+- `Backend/services/relay/createRelayServer.js`
+  - intercept result messages and call timeline ingest service
+- `Backend/services/relay/relayRouter.js`
+  - ensure route path labels and metadata are forwarded
+- `Backend/services/trainee.js`
+  - emit finish events from all end paths
+- `Backend/services/testpaper.js`
+  - emit finish/system events on trainer-driven ends
+- `Backend/services/examStateMachine.js`
+  - emit transition events where needed (`STARTED`, `ENDED`, `TIMEOUT`)
+- `Backend/services/logger.js`
+  - structured logging fields: `sessionId`, `eventType`, `severityLevel`
+- `Backend/services/metrics.js`
+  - counters/gauges for event throughput and severity distribution
+- `Backend/services/alerts.js`
+  - optional alert fanout on critical clusters
+
+#### Routes and endpoints
+
+Update/add in:
+
+- `Backend/routes/testpaper.js`
+
+Endpoints:
+
+- `POST /api/v1/test/proctor/events`
+  - filters: `testid`, `traineeid`, `from`, `to`, `severity`, `eventType`, `page`, `limit`
+- `POST /api/v1/test/proctor/summary`
+  - returns snapshot list for candidate table
+- `POST /api/v1/test/proctor/event/ack`
+  - acknowledge event with optional note
+- `POST /api/v1/test/proctor/event/escalate`
+  - manual severity override with audit note
+
+Response contract requirements:
+
+- return user-friendly `message` strings
+- never return internal error identifiers directly to UI
+
+### 14.6 AI server contract alignment
+
+Files likely touched:
+
+- `AI/server.py`
+- any websocket emit helper used by AI inference loop
+
+Payload contract from AI to backend relay must include:
+
+- `testid`
+- `traineeid`
+- `sessionId`
+- `timestamp`
+- `signalType` (`vision` | `audio`)
+- `eventType`
+- `confidence`
+- `rawScore` (optional)
+- `meta` (model version, frame/audio window info)
+
+Normalization rule:
+
+- backend remains source of truth for final severity score
+- AI sends signal confidence and classification only
+
+### 14.7 Frontend (trainer) implementation plan
+
+Primary files:
+
+- `Frontend/src/components/trainer/conducttest/candidates.js`
+- `Frontend/src/components/trainer/TrainerResultPreview.js`
+- `Frontend/src/components/trainer/conducttest/conducttes.css`
+- `Frontend/src/services/Apis.js`
+- `Frontend/src/services/axiosCall.js`
+
+New files:
+
+- `Frontend/src/components/trainer/conducttest/ProctorTimelineDrawer.js`
+- `Frontend/src/components/trainer/conducttest/SeverityBadge.js`
+- `Frontend/src/components/trainer/conducttest/TimelineFilters.js`
+
+UI behavior:
+
+- candidate table shows:
+  - status badge color by severity
+  - numeric rolling score
+  - time since last event
+  - quick action to open timeline
+- timeline panel:
+  - grouped by timestamp
+  - clear icon + label per event type
+  - severity chip on each row
+  - acknowledge button per event
+- avoid technical wording:
+  - use "Network reconnected" instead of internal tags
+  - use "Face not visible" instead of `NO_FACE`
+
+Color standard:
+
+- `NORMAL`: green
+- `SUSPICIOUS`: amber
+- `HIGH_RISK`: orange/red
+- `CHEATING`: red
+- `FINISHED`: slate/neutral
+
+### 14.8 Live exam operation behavior requirements
+
+1. Timeline must continue if trainer refreshes page.
+2. Candidate row status must update within polling interval (or socket push).
+3. Acknowledged events stay acknowledged after reload.
+4. Ended-by-timeout exams must emit `EXAM_FINISHED`.
+5. If AI signal stream pauses, show stale indicator instead of false normal.
+
+### 14.9 Sequence for implementation (safe order)
+
+```mermaid
+sequenceDiagram
+  participant AI as AI Server
+  participant Relay as Backend Relay
+  participant Score as Severity Engine
+  participant DB as Mongo
+  participant UI as Trainer UI
+
+  AI->>Relay: Proctor signal payload
+  Relay->>Score: normalize + score request
+  Score->>DB: insert proctor_event
+  Score->>DB: upsert risk_snapshot
+  UI->>DB: fetch summary/events via API
+  DB-->>UI: timeline + current severity
+  UI->>Relay: acknowledge/escalate action
+  Relay->>DB: persist action + snapshot refresh
+```
+
+Execution phases:
+
+1. Add schemas + models + indexes.
+2. Build normalizer + severity engine with unit tests.
+3. Integrate ingestion into relay/result pipeline.
+4. Emit guaranteed finish/system events from all end paths.
+5. Add summary/events/ack APIs.
+6. Build trainer timeline UI + severity badges.
+7. Wire metrics and critical alerting.
+8. Full regression and cross-role validation.
+
+### 14.10 Validation and test matrix
+
+Unit tests:
+
+- score mapping and escalation windows
+- dedupe behavior
+- decay behavior
+- snapshot update idempotency
+
+Integration tests:
+
+- AI payload ingestion persists event + updates snapshot
+- manual ack updates event state
+- trainer end + timeout end emit `EXAM_FINISHED`
+- summary endpoint matches timeline latest status
+
+E2E tests:
+
+1. Start exam -> generate normal events -> verify green status.
+2. Trigger repeated suspicious behavior -> status moves to amber/red.
+3. Open timeline -> verify ordered events and readable messages.
+4. Acknowledge an event -> verify persisted ack state.
+5. Let timer auto-end -> verify finished event appears.
+
+### 14.11 Docker compose rule during implementation
+
+For this section, after any code change in each service:
+
+- backend-only changes:
+  - `docker compose --env-file .env.docker up -d --build backend`
+- frontend + backend changes:
+  - `docker compose --env-file .env.docker up -d --build frontend backend`
+- ai + backend (ingestion contract) changes:
+  - `docker compose --env-file .env.docker up -d --build ai-server backend`
+- all three changed:
+  - `docker compose --env-file .env.docker up -d --build frontend backend ai-server`
+
+### 14.12 Definition of done for this section
+
+- Event timeline exists and is queryable for every candidate session.
+- Severity score is deterministic from documented rules.
+- Trainer can audit, acknowledge, and escalate with persistence.
+- Candidate list reflects current severity accurately and quickly.
+- Timeout/manual/submit end paths all produce final timeline event.
+- Non-technical UX wording is used across trainer and trainee views.
+- Metrics and alerts are available for ingestion/processing failures.
