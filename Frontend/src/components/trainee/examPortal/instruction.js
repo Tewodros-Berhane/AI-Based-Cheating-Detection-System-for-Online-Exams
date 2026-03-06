@@ -7,10 +7,11 @@ import PreflightWizard from './preflightWizard';
 import './portal.css';
 
 function Instruction(props) {
-  const { mediaStream, setMediaStream } = useContext(MediaStreamContext);
+  const { mediaStream, setMediaStream, screenStream, setScreenStream } = useContext(MediaStreamContext);
   const [permissions, setPermissions] = useState({
     cameraGranted: false,
-    microphoneGranted: false
+    microphoneGranted: false,
+    screenShareGranted: false
   });
   const [preflightVisible, setPreflightVisible] = useState(false);
 
@@ -24,21 +25,24 @@ function Instruction(props) {
   }, [props.trainee.examMeta]);
 
   useEffect(() => {
-    if (!mediaStream) {
-      setPermissions({
-        cameraGranted: false,
-        microphoneGranted: false
-      });
-      return;
-    }
-
-    const hasVideoTrack = mediaStream.getVideoTracks().length > 0;
-    const hasAudioTrack = mediaStream.getAudioTracks().length > 0;
+    const hasVideoTrack =
+      Boolean(mediaStream) &&
+      typeof mediaStream.getVideoTracks === 'function' &&
+      mediaStream.getVideoTracks().length > 0;
+    const hasAudioTrack =
+      Boolean(mediaStream) &&
+      typeof mediaStream.getAudioTracks === 'function' &&
+      mediaStream.getAudioTracks().length > 0;
+    const hasScreenTrack =
+      Boolean(screenStream) &&
+      typeof screenStream.getVideoTracks === 'function' &&
+      screenStream.getVideoTracks().some((track) => track.readyState === 'live');
     setPermissions({
       cameraGranted: hasVideoTrack || !safePolicy.requireCamera,
-      microphoneGranted: hasAudioTrack || !safePolicy.requireMicrophone
+      microphoneGranted: hasAudioTrack || !safePolicy.requireMicrophone,
+      screenShareGranted: hasScreenTrack || !safePolicy.requireScreenShare
     });
-  }, [mediaStream, safePolicy.requireCamera, safePolicy.requireMicrophone]);
+  }, [mediaStream, safePolicy.requireCamera, safePolicy.requireMicrophone, safePolicy.requireScreenShare, screenStream]);
 
   const stopStream = (stream) => {
     if (!stream) return;
@@ -69,6 +73,47 @@ function Instruction(props) {
     }
   };
 
+  const verifyScreenShareAccess = async () => {
+    if (!safePolicy.requireScreenShare) {
+      return { granted: true, stream: screenStream || null };
+    }
+
+    const existingTrack =
+      screenStream &&
+      typeof screenStream.getVideoTracks === 'function' &&
+      screenStream.getVideoTracks().find((track) => track.readyState === 'live');
+
+    if (existingTrack) {
+      return { granted: true, stream: screenStream };
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const granted = stream.getVideoTracks().some((track) => track.readyState === 'live');
+      return { granted, stream: granted ? stream : null };
+    } catch (error) {
+      return { granted: false, stream: null };
+    }
+  };
+
+  const formatRequiredChecks = () => {
+    const labels = [];
+    if (safePolicy.requireCamera) labels.push('camera');
+    if (safePolicy.requireMicrophone) labels.push('microphone');
+    if (safePolicy.requireScreenShare) labels.push('screen sharing');
+
+    if (labels.length === 0) {
+      return 'device';
+    }
+    if (labels.length === 1) {
+      return labels[0];
+    }
+    if (labels.length === 2) {
+      return `${labels[0]} and ${labels[1]}`;
+    }
+    return `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`;
+  };
+
   const handleGivePermission = async () => {
     if (
       navigator.mediaDevices &&
@@ -76,6 +121,7 @@ function Instruction(props) {
     ) {
       const cameraResult = await verifyCameraAccess();
       const microphoneResult = await verifyMicrophoneAccess();
+      const screenShareResult = await verifyScreenShareAccess();
 
       const tracks = [];
       if (cameraResult.stream) {
@@ -90,27 +136,37 @@ function Instruction(props) {
         setMediaStream(new MediaStream(tracks));
       }
 
+      if (screenShareResult.stream && screenShareResult.stream !== screenStream) {
+        if (screenStream && typeof screenStream.getTracks === 'function') {
+          screenStream.getTracks().forEach((track) => track.stop());
+        }
+        screenShareResult.stream.getVideoTracks().forEach((track) => {
+          track.onended = () => {
+            setPermissions((prev) => ({
+              ...prev,
+              screenShareGranted: false
+            }));
+            setScreenStream(null);
+          };
+        });
+        setScreenStream(screenShareResult.stream);
+      }
+
       setPermissions({
         cameraGranted: cameraResult.granted,
-        microphoneGranted: microphoneResult.granted
+        microphoneGranted: microphoneResult.granted,
+        screenShareGranted: screenShareResult.granted
       });
 
       const checksPassed =
         (!safePolicy.requireCamera || cameraResult.granted) &&
-        (!safePolicy.requireMicrophone || microphoneResult.granted);
+        (!safePolicy.requireMicrophone || microphoneResult.granted) &&
+        (!safePolicy.requireScreenShare || screenShareResult.granted);
 
       if (checksPassed) {
-        message.success(
-          safePolicy.requireMicrophone
-            ? 'Required camera and microphone checks passed.'
-            : 'Required camera check passed.'
-        );
+        message.success(`Required ${formatRequiredChecks()} checks passed.`);
       } else {
-        message.error(
-          safePolicy.requireMicrophone
-            ? 'Required checks failed. Please allow camera and microphone access.'
-            : 'Required camera check failed. Please allow camera access.'
-        );
+        message.error(`Required ${formatRequiredChecks()} checks failed. Please allow access and try again.`);
       }
 
       if (cameraResult.stream && !cameraResult.granted) {
@@ -119,10 +175,14 @@ function Instruction(props) {
       if (microphoneResult.stream && !microphoneResult.granted) {
         stopStream(microphoneResult.stream);
       }
+      if (screenShareResult.stream && !screenShareResult.granted) {
+        stopStream(screenShareResult.stream);
+      }
     } else {
       setPermissions({
         cameraGranted: false,
-        microphoneGranted: false
+        microphoneGranted: false,
+        screenShareGranted: false
       });
       message.error('This browser does not support camera/microphone access.');
     }
@@ -130,15 +190,12 @@ function Instruction(props) {
 
   const requiredPermissionsSatisfied =
     (!safePolicy.requireCamera || permissions.cameraGranted) &&
-    (!safePolicy.requireMicrophone || permissions.microphoneGranted);
+    (!safePolicy.requireMicrophone || permissions.microphoneGranted) &&
+    (!safePolicy.requireScreenShare || permissions.screenShareGranted);
 
   const handleProceed = async () => {
     if (!requiredPermissionsSatisfied) {
-      message.error(
-        safePolicy.requireMicrophone
-          ? 'Verify required camera and microphone checks before entering the exam.'
-          : 'Verify required camera check before entering the exam.'
-      );
+      message.error(`Verify required ${formatRequiredChecks()} checks before entering the exam.`);
       return;
     }
     setPreflightVisible(true);
@@ -204,7 +261,7 @@ function Instruction(props) {
             {`Microphone: ${permissions.microphoneGranted ? 'Ready' : (safePolicy.requireMicrophone ? 'Required' : 'Optional')}`}
           </Tag>
           <Tag className="instruction-meta-chip">
-            {`Screen Sharing: ${safePolicy.requireScreenShare ? 'Required before start' : 'Optional'}`}
+            {`Screen Sharing: ${permissions.screenShareGranted ? 'Ready' : (safePolicy.requireScreenShare ? 'Required' : 'Optional')}`}
           </Tag>
         </div>
 
@@ -234,6 +291,7 @@ function Instruction(props) {
         traineeId={props.trainee.traineeid}
         cameraGranted={permissions.cameraGranted}
         microphoneGranted={permissions.microphoneGranted}
+        screenShareGranted={permissions.screenShareGranted}
         integrityPolicy={props.trainee.examMeta.integrityPolicy}
         faceRecognitionEnabled={props.trainee.faceRecognitionEnabled}
         traineeFaceImageUrl={props.trainee.traineeDetails.faceImageUrl}

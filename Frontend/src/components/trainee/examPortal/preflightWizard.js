@@ -34,13 +34,14 @@ function PreflightWizard({
   traineeId,
   cameraGranted,
   microphoneGranted,
+  screenShareGranted,
   integrityPolicy,
   faceRecognitionEnabled,
   traineeFaceImageUrl,
   onClose,
   onPassed
 }) {
-  const { screenStream, setScreenStream } = useContext(MediaStreamContext);
+  const { screenStream } = useContext(MediaStreamContext);
   const [running, setRunning] = useState(false);
   const [runStatus, setRunStatus] = useState(null);
   const [checks, setChecks] = useState([]);
@@ -75,7 +76,6 @@ function PreflightWizard({
     if (safePolicy.requireCamera) required.push('camera');
     if (safePolicy.requireMicrophone) required.push('microphone');
     if (safePolicy.requireFullscreen) required.push('fullscreen');
-    if (safePolicy.requireScreenShare) required.push('screen_share');
     if (safePolicy.requireFaceVerification && faceRecognitionEnabled) required.push('face_reference');
     return required;
   }, [safePolicy, faceRecognitionEnabled]);
@@ -125,43 +125,22 @@ function PreflightWizard({
     }
   };
 
-  const ensureScreenShareIfRequired = async () => {
+  const verifyScreenShareStatus = async () => {
     if (!safePolicy.requireScreenShare) {
       return toCheck('screen_share', true, 'Screen sharing is optional for this exam.');
     }
 
-    try {
-      const existingTrack = screenStream && typeof screenStream.getVideoTracks === 'function'
-        ? screenStream.getVideoTracks().find((track) => track.readyState === 'live')
-        : null;
+    const hasLiveScreenTrack = screenStream && typeof screenStream.getVideoTracks === 'function'
+      ? screenStream.getVideoTracks().some((track) => track.readyState === 'live')
+      : false;
 
-      if (existingTrack) {
-        return toCheck('screen_share', true, 'Screen sharing is already active.');
-      }
-
-      if (screenStream && typeof screenStream.getTracks === 'function') {
-        screenStream.getTracks().forEach((track) => track.stop());
-      }
-
-      if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
-        return toCheck('screen_share', false, 'Screen sharing is not supported in this browser.');
-      }
-
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: false
-      });
-      const hasVideoTrack = displayStream.getVideoTracks().some((track) => track.readyState === 'live');
-      if (!hasVideoTrack) {
-        displayStream.getTracks().forEach((track) => track.stop());
-        return toCheck('screen_share', false, 'No screen was selected.');
-      }
-
-      setScreenStream(displayStream);
-      return toCheck('screen_share', true, 'Screen sharing is active.');
-    } catch (error) {
-      return toCheck('screen_share', false, 'Screen sharing was not allowed.');
-    }
+    return toCheck(
+      'screen_share',
+      Boolean(screenShareGranted && hasLiveScreenTrack),
+      screenShareGranted && hasLiveScreenTrack
+        ? 'Screen sharing is active.'
+        : 'Screen sharing must be verified in the device check step.'
+    );
   };
 
   const runPreflight = async () => {
@@ -239,11 +218,8 @@ function PreflightWizard({
         await postCheck(nextRunId, fullscreenCheck);
       }
 
-      if (safePolicy.requireScreenShare) {
-        const screenShareCheck = await ensureScreenShareIfRequired();
-        localChecks.push(screenShareCheck);
-        await postCheck(nextRunId, screenShareCheck);
-      }
+      const screenShareCheck = await verifyScreenShareStatus();
+      await postCheck(nextRunId, screenShareCheck);
 
       const faceRequired = safePolicy.requireFaceVerification && faceRecognitionEnabled;
       if (faceRequired) {
