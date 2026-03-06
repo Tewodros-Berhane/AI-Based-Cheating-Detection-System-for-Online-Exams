@@ -131,6 +131,7 @@ class TestDetails extends React.Component {
       .then((response) => {
         if (response.data.success) {
           this.props.changeTestStatus(response.data.data);
+          this.notifyExamEndedCandidates();
           Alert('success', 'Success!', 'Exam has ended');
         } else {
           Alert('error', 'Error!', response.data.message);
@@ -139,6 +140,94 @@ class TestDetails extends React.Component {
       .catch(() => {
         Alert('error', 'Error!', 'Server Error');
       });
+  };
+
+  getCandidateListForNotification = async () => {
+    const existingCandidates = this.props.conduct.registeredCandidates || [];
+    if (existingCandidates.length > 0) {
+      return existingCandidates;
+    }
+
+    const response = await SecurePost({
+      url: apis.GET_TEST_CANDIDATES,
+      data: { id: this.props.conduct.id }
+    });
+
+    if (!response.data || !response.data.success) {
+      return [];
+    }
+
+    return response.data.data || [];
+  };
+
+  notifySingleCandidateExamEnded = (traineeId) =>
+    new Promise((resolve) => {
+      if (!traineeId || !this.props.conduct.id) {
+        resolve();
+        return;
+      }
+
+      const params = new URLSearchParams({
+        role: 'trainer',
+        traineeid: traineeId,
+        testid: this.props.conduct.id,
+        sessionid: `${this.props.conduct.id}:${traineeId}`
+      });
+      const ws = new WebSocket(`${apis.WS_RESULT_URL}/?${params.toString()}`);
+
+      let settled = false;
+      const finalize = () => {
+        if (settled) return;
+        settled = true;
+        try {
+          ws.close();
+        } catch (error) {
+          // Ignore relay close failures on best-effort notifications.
+        }
+        resolve();
+      };
+
+      const timeoutId = window.setTimeout(finalize, 1500);
+
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            type: 'exam-ended',
+            reason: 'trainer_ended',
+            testId: this.props.conduct.id
+          })
+        );
+        window.clearTimeout(timeoutId);
+        window.setTimeout(finalize, 120);
+      };
+
+      ws.onerror = () => {
+        window.clearTimeout(timeoutId);
+        finalize();
+      };
+
+      ws.onclose = () => {
+        window.clearTimeout(timeoutId);
+        finalize();
+      };
+    });
+
+  notifyExamEndedCandidates = async () => {
+    try {
+      const candidates = await this.getCandidateListForNotification();
+      if (!candidates.length) {
+        return;
+      }
+
+      await Promise.all(
+        candidates
+          .map((candidate) => candidate && candidate._id)
+          .filter(Boolean)
+          .map((traineeId) => this.notifySingleCandidateExamEnded(traineeId))
+      );
+    } catch (error) {
+      console.warn('Unable to notify candidates about exam end:', error);
+    }
   };
 
   toggleFaceRecognition = (enabled) => {

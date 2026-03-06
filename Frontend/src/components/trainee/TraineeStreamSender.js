@@ -29,6 +29,16 @@ const buildIceServers = () => {
   return iceServers;
 };
 
+const buildOfferPayload = (offer, cameraStream, screenStream, requireScreenShare) => ({
+  type: 'offer',
+  sdp: offer,
+  mediaMeta: {
+    cameraStreamId: cameraStream && cameraStream.id ? cameraStream.id : null,
+    screenStreamId: screenStream && screenStream.id ? screenStream.id : null,
+    requireScreenShare: Boolean(requireScreenShare)
+  }
+});
+
 const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) => {
   const localVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
@@ -93,6 +103,9 @@ const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) 
             track.contentHint = 'detail';
             track.onended = () => {
               if (!mountedRef.current) return;
+              if (mountedRef.current) {
+                setScreenStream(null);
+              }
               message.warning('Screen sharing was stopped. This exam requires active screen sharing.');
             };
             pc.addTrack(track, activeScreenStream);
@@ -118,7 +131,9 @@ const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) 
         socketRef.current.onopen = async () => {
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-          socketRef.current.send(JSON.stringify({ type: 'offer', sdp: offer }));
+          socketRef.current.send(
+            JSON.stringify(buildOfferPayload(offer, cameraStream, activeScreenStream, requireScreenShare))
+          );
         };
 
         socketRef.current.onmessage = async (event) => {
@@ -133,7 +148,9 @@ const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) 
             if (signal.type === 'request-offer') {
               const offer = await pc.createOffer();
               await pc.setLocalDescription(offer);
-              socketRef.current.send(JSON.stringify({ type: 'offer', sdp: offer }));
+              socketRef.current.send(
+                JSON.stringify(buildOfferPayload(offer, cameraStream, activeScreenStream, requireScreenShare))
+              );
             } else if (signal.type === 'answer') {
               await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
             } else if (signal.type === 'ice-candidate') {

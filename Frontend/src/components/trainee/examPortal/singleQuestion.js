@@ -73,13 +73,23 @@ class SingleQuestion extends React.Component {
   };
 
   endExam = async () => {
-    const { controlChannel, mediaStream, setMediaStream } = this.context || {};
+    const {
+      controlChannel,
+      mediaStream,
+      screenStream,
+      setMediaStream,
+      setScreenStream,
+      clearMediaResources
+    } = this.context || {};
     const response = await endTraineeTest({
       traineeId: this.props.trainee.traineeid,
       testId: this.props.trainee.testid,
       controlChannel,
       mediaStream,
+      screenStream,
       setMediaStream,
+      setScreenStream,
+      clearMediaResources,
       refreshTestState: this.props.fetchTestdata
     });
 

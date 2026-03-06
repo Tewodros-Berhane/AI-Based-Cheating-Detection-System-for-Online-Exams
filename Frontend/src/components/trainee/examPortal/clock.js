@@ -8,7 +8,14 @@ import { endTraineeTest } from '../../../services/traineeSession';
 
 const Clock = ({ trainee, fetchTestdata, variant = 'panel' }) => {
   const [remainingSeconds, setRemainingSeconds] = useState(trainee.m_left * 60 + trainee.s_left);
-  const { controlChannel, mediaStream, setMediaStream } = useContext(MediaStreamContext);
+  const {
+    controlChannel,
+    mediaStream,
+    screenStream,
+    setMediaStream,
+    setScreenStream,
+    clearMediaResources
+  } = useContext(MediaStreamContext);
 
   const endTest = useCallback(async () => {
     const response = await endTraineeTest({
@@ -16,7 +23,10 @@ const Clock = ({ trainee, fetchTestdata, variant = 'panel' }) => {
       testId: trainee.testid,
       controlChannel,
       mediaStream,
+      screenStream,
       setMediaStream,
+      setScreenStream,
+      clearMediaResources,
       refreshTestState: fetchTestdata
     });
 
@@ -28,7 +38,10 @@ const Clock = ({ trainee, fetchTestdata, variant = 'panel' }) => {
     trainee.testid,
     controlChannel,
     mediaStream,
+    screenStream,
     setMediaStream,
+    setScreenStream,
+    clearMediaResources,
     fetchTestdata
   ]);
 

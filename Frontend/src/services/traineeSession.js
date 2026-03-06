@@ -5,8 +5,10 @@ let resultSocket = null;
 let socketSessionKey = null;
 let socketRefCount = 0;
 let endingInProgress = false;
+const monitoringEventCache = new Map();
 
 const RESULT_SOCKET_TIMEOUT_MS = 3000;
+const TRAINEE_SESSION_EVENT = 'exam-shield:trainee-session';
 
 const buildSessionKey = (traineeId, testId) => `${testId || 'default'}:${traineeId}`;
 const buildResultSocketUrl = (traineeId, testId) => {
@@ -21,6 +23,21 @@ const buildResultSocketUrl = (traineeId, testId) => {
   }
 
   return `${apis.WS_RESULT_URL}/?${params.toString()}`;
+};
+
+const emitSessionSignal = (sessionKey, payload) => {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(TRAINEE_SESSION_EVENT, {
+      detail: {
+        sessionKey,
+        payload
+      }
+    })
+  );
 };
 
 const closeResultSocket = () => {
@@ -46,6 +63,14 @@ const ensureResultSocket = (traineeId, testId) => {
   if (!resultSocket || resultSocket.readyState === WebSocket.CLOSED) {
     resultSocket = new WebSocket(buildResultSocketUrl(traineeId, testId));
     socketSessionKey = nextSessionKey;
+    resultSocket.onmessage = async (event) => {
+      const raw = event.data instanceof Blob ? await event.data.text() : event.data;
+      try {
+        emitSessionSignal(socketSessionKey, JSON.parse(raw));
+      } catch (error) {
+        // Ignore non-JSON relay payloads on the trainee socket.
+      }
+    };
   }
 
   return resultSocket;
@@ -97,7 +122,9 @@ export const releaseResultSocket = () => {
   }
 };
 
-export const sendAiResult = async (traineeId, testId, behaviour) => {
+export const traineeSessionEventName = TRAINEE_SESSION_EVENT;
+
+export const sendAiResult = async (traineeId, testId, behaviour, options = {}) => {
   if (!traineeId || !behaviour) return false;
 
   const socket = ensureResultSocket(traineeId, testId);
@@ -106,7 +133,56 @@ export const sendAiResult = async (traineeId, testId, behaviour) => {
     return false;
   }
 
-  socket.send(JSON.stringify({ type: 'ai-result', traineeId, testId, behaviour }));
+  socket.send(JSON.stringify({
+    type: 'ai-result',
+    traineeId,
+    testId,
+    behaviour,
+    confidence: options.confidence,
+    signalType: options.signalType,
+    message: options.message
+  }));
+  return true;
+};
+
+export const sendMonitoringEvent = async ({
+  traineeId,
+  testId,
+  eventType,
+  source = 'SYSTEM',
+  message,
+  confidence,
+  payload = {},
+  cooldownMs = 5000
+}) => {
+  if (!traineeId || !testId || !eventType) {
+    return false;
+  }
+
+  const cacheKey = `${testId}:${traineeId}:${eventType}`;
+  const now = Date.now();
+  const lastSentAt = monitoringEventCache.get(cacheKey) || 0;
+  if (cooldownMs > 0 && now - lastSentAt < cooldownMs) {
+    return false;
+  }
+
+  const socket = ensureResultSocket(traineeId, testId);
+  const ready = await waitForSocketOpen(socket);
+  if (!ready || !socket || socket.readyState !== WebSocket.OPEN) {
+    return false;
+  }
+
+  monitoringEventCache.set(cacheKey, now);
+  socket.send(JSON.stringify({
+    type: 'proctor-event',
+    traineeId,
+    testId,
+    eventType,
+    source,
+    message,
+    confidence,
+    payload
+  }));
   return true;
 };
 
@@ -115,7 +191,10 @@ export const endTraineeTest = async ({
   testId,
   controlChannel,
   mediaStream,
+  screenStream,
   setMediaStream,
+  setScreenStream,
+  clearMediaResources,
   refreshTestState
 }) => {
   if (!traineeId || !testId) {
@@ -145,9 +224,22 @@ export const endTraineeTest = async ({
 
     await sendAiResult(traineeId, testId, 'finished');
 
-    if (mediaStream) {
-      mediaStream.getTracks().forEach((track) => track.stop());
-      if (setMediaStream) setMediaStream(null);
+    if (typeof clearMediaResources === 'function') {
+      clearMediaResources();
+    } else {
+      if (controlChannel && typeof controlChannel.close === 'function' && controlChannel.readyState !== 'closed') {
+        controlChannel.close();
+      }
+
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+        if (setMediaStream) setMediaStream(null);
+      }
+
+      if (screenStream) {
+        screenStream.getTracks().forEach((track) => track.stop());
+        if (setScreenStream) setScreenStream(null);
+      }
     }
 
     if (typeof refreshTestState === 'function') {
