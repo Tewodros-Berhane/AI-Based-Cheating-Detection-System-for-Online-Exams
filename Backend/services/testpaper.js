@@ -10,6 +10,7 @@ let AnswersheetModel = require("../models/answersheet");
 let logger = require("./logger");
 const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMachine");
 const integrityPolicy = require("./integrityPolicy");
+const proctorTimeline = require("./proctorTimeline");
 
 
 let createEditTest = (req,res,next)=>{
@@ -620,6 +621,29 @@ let endTest = async (req,res,next)=>{
             {_id:id,createdBy:req.user._id},
             {testbegins:false,testconducted:true,isResultgenerated:true,isRegistrationavailable:false},
             {new: true}
+        );
+
+        const candidates = await TraineeEnterModel.find({ testid: id }, { _id: 1 });
+        await Promise.all(
+            candidates.map((candidate) =>
+                proctorTimeline.recordSystemEvent({
+                    testid: id,
+                    traineeid: candidate._id,
+                    sessionId: proctorTimeline.buildSessionId(id, candidate._id),
+                    eventType: 'EXAM_FINISHED',
+                    message: 'Exam was ended by the examiner.',
+                    payload: {
+                        trigger: 'trainer_end'
+                    },
+                    dedupeKey: `session-finish:${id}:${candidate._id}:trainer_end`
+                }).catch((error) => {
+                    logger.warn('trainer_finish_event_failed', {
+                        testId: id,
+                        traineeId: candidate._id,
+                        error: logger.normalizeError(error)
+                    });
+                })
+            )
         );
 
         await result(id,MaxMarks);

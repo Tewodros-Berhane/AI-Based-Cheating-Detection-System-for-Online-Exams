@@ -7,6 +7,7 @@ const metrics = require('../metrics');
 const { sendFailureAlert } = require('../alerts');
 const RelayRouter = require('./relayRouter');
 const RelayBus = require('./relayBus');
+const proctorTimeline = require('../proctorTimeline');
 
 const defaultSessionBuilder = ({ traineeId, examId }) => (examId ? `${examId}:${traineeId}` : traineeId);
 
@@ -139,6 +140,24 @@ const createRelayServer = ({
         // Non-JSON payloads are still relayable.
       }
 
+      if (name === 'result' && parsed) {
+        try {
+          await proctorTimeline.ingestRelayPayload({
+            sessionId,
+            traineeId,
+            testId: examId,
+            payload: parsed
+          });
+        } catch (error) {
+          relayLogger.warn('relay_proctor_ingest_failed', {
+            sessionId,
+            traineeId,
+            eventType: parsed.type || 'unknown',
+            error: logger.normalizeError(error)
+          });
+        }
+      }
+
       const deliveredLocal = router.routePayload({
         sessionId,
         fromRole: role,
@@ -219,4 +238,3 @@ const createRelayServer = ({
 };
 
 module.exports = createRelayServer;
-

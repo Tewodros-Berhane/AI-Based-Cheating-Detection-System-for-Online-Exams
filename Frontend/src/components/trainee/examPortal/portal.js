@@ -11,6 +11,7 @@ import TraineeStreamSender from '../TraineeStreamSender';
 import WebRTCServer from '../WebRTCServer';
 import TraineeSessionManager from '../TraineeSessionManager';
 import FaceRecognition from '../FaceRecognition';
+import { sendMonitoringEvent, traineeSessionEventName } from '../../../services/traineeSession';
 import withRouter from '../../../utils/withRouter';
 
 const { Title } = Typography;
@@ -41,6 +42,10 @@ class MainPortal extends Component {
             // The actual data fetching will be triggered based on Redux state or in componentDidMount.
             this.props.setTestDetsils(testid, traineeid);
         }
+
+        this.wasFullscreen = typeof document !== 'undefined'
+            ? Boolean(document.fullscreenElement)
+            : false;
     }
 
     componentDidMount() {
@@ -59,6 +64,78 @@ class MainPortal extends Component {
             this.props.fetchTestdata(effectiveTestId, effectiveTraineeId);
         }
 
+        this.sessionSignalHandler = (event) => {
+            const detail = event && event.detail ? event.detail : {};
+            const payload = detail.payload || {};
+            const currentSessionKey = `${this.props.trainee.testid || ''}:${this.props.trainee.traineeid || ''}`;
+
+            if (!detail.sessionKey || detail.sessionKey !== currentSessionKey) {
+                return;
+            }
+
+            if (payload.type === 'exam-ended') {
+                this.cleanupExamMedia();
+                if (this.props.trainee.testid && this.props.trainee.traineeid) {
+                    this.props.fetchTestdata(this.props.trainee.testid, this.props.trainee.traineeid);
+                }
+            }
+        };
+        window.addEventListener(traineeSessionEventName, this.sessionSignalHandler);
+        this.visibilityChangeHandler = () => {
+            if (typeof document === 'undefined' || !document.hidden) {
+                return;
+            }
+            this.emitProctorEvent('TAB_SWITCH', {
+                source: 'SYSTEM',
+                message: 'Candidate switched away from the exam view.',
+                confidence: 0.95,
+                payload: {
+                    visibilityState: document.visibilityState || 'hidden'
+                },
+                cooldownMs: 10000
+            });
+        };
+        this.fullscreenChangeHandler = () => {
+            const isFullscreen = typeof document !== 'undefined' && Boolean(document.fullscreenElement);
+            if (this.wasFullscreen && !isFullscreen) {
+                this.emitProctorEvent('FULLSCREEN_EXIT', {
+                    source: 'SYSTEM',
+                    message: 'Candidate exited fullscreen mode.',
+                    confidence: 0.95,
+                    payload: {},
+                    cooldownMs: 10000,
+                    requirePolicyFlag: 'requireFullscreen'
+                });
+            }
+            this.wasFullscreen = isFullscreen;
+        };
+        this.offlineHandler = () => {
+            this.emitProctorEvent('NETWORK_DROP', {
+                source: 'SYSTEM',
+                message: 'Candidate lost network connectivity.',
+                confidence: 0.9,
+                payload: {
+                    online: false
+                },
+                cooldownMs: 10000
+            });
+        };
+        this.onlineHandler = () => {
+            this.emitProctorEvent('RECONNECTED', {
+                source: 'SYSTEM',
+                message: 'Candidate reconnected to the network.',
+                confidence: 0.9,
+                payload: {
+                    online: true
+                },
+                cooldownMs: 10000
+            });
+        };
+        document.addEventListener('visibilitychange', this.visibilityChangeHandler);
+        document.addEventListener('fullscreenchange', this.fullscreenChangeHandler);
+        window.addEventListener('offline', this.offlineHandler);
+        window.addEventListener('online', this.onlineHandler);
+
         // Set up polling for test status updates
         this.pollInterval = setInterval(() => {
             const { traineeid, testid } = this.props.trainee;
@@ -69,13 +146,95 @@ class MainPortal extends Component {
         }, 5000); 
     }
 
+    isExamSessionActive = (traineeState = this.props.trainee) => {
+        return Boolean(
+            traineeState &&
+            traineeState.startedWriting &&
+            !traineeState.testconducted &&
+            !traineeState.LocaltestDone
+        );
+    };
+
+    cleanupExamMedia = () => {
+        const context = this.context || {};
+        if (typeof context.clearMediaResources === 'function') {
+            context.clearMediaResources();
+            return;
+        }
+
+        if (context.mediaStream && typeof context.mediaStream.getTracks === 'function') {
+            context.mediaStream.getTracks().forEach((track) => track.stop());
+        }
+        if (context.screenStream && typeof context.screenStream.getTracks === 'function') {
+            context.screenStream.getTracks().forEach((track) => track.stop());
+        }
+        if (typeof context.setMediaStream === 'function') {
+            context.setMediaStream(null);
+        }
+        if (typeof context.setScreenStream === 'function') {
+            context.setScreenStream(null);
+        }
+        if (context.controlChannel && typeof context.controlChannel.close === 'function' && context.controlChannel.readyState !== 'closed') {
+            context.controlChannel.close();
+        }
+        if (typeof context.setControlChannel === 'function') {
+            context.setControlChannel(null);
+        }
+    };
+
+    emitProctorEvent = (eventType, options = {}) => {
+        const { trainee } = this.props;
+        const { traineeid, testid, examMeta } = trainee || {};
+        if (!this.isExamSessionActive(trainee) || !traineeid || !testid) {
+            return;
+        }
+
+        const integrityPolicy = examMeta && examMeta.integrityPolicy ? examMeta.integrityPolicy : {};
+        if (options.requirePolicyFlag && !integrityPolicy[options.requirePolicyFlag]) {
+            return;
+        }
+
+        sendMonitoringEvent({
+            traineeId: traineeid,
+            testId: testid,
+            eventType,
+            source: options.source || 'SYSTEM',
+            message: options.message,
+            confidence: options.confidence,
+            payload: options.payload || {},
+            cooldownMs: options.cooldownMs
+        }).catch(() => {});
+    };
+
     componentWillUnmount() {
-        clearInterval(this.pollInterval); 
+        clearInterval(this.pollInterval);
+        if (this.sessionSignalHandler) {
+            window.removeEventListener(traineeSessionEventName, this.sessionSignalHandler);
+        }
+        if (this.visibilityChangeHandler) {
+            document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+        }
+        if (this.fullscreenChangeHandler) {
+            document.removeEventListener('fullscreenchange', this.fullscreenChangeHandler);
+        }
+        if (this.offlineHandler) {
+            window.removeEventListener('offline', this.offlineHandler);
+        }
+        if (this.onlineHandler) {
+            window.removeEventListener('online', this.onlineHandler);
+        }
+        this.cleanupExamMedia();
     }
 
     componentDidUpdate(prevProps, prevState) {
         const { trainee } = this.props;
         const { initialloading1, initialloading2, invalidUrl } = trainee;
+        const wasInActiveExam = this.isExamSessionActive(prevProps.trainee);
+        const isInActiveExam = this.isExamSessionActive(trainee);
+
+        if (wasInActiveExam && !isInActiveExam) {
+            this.cleanupExamMedia();
+        }
 
         // If we attempted a fetch with form IDs and it resulted in an invalidUrl error
         if (this.state.attemptedFetchWithFormIds &&

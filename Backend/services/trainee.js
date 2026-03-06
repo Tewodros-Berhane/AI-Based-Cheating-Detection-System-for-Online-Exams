@@ -12,6 +12,7 @@ var PreflightRunModel = require("../models/preflightRun");
 var logger = require("./logger");
 const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMachine");
 const integrityPolicy = require("./integrityPolicy");
+const proctorTimeline = require("./proctorTimeline");
 
 let getFrontendBaseUrl = (req) => {
     if (config.has('services.frontendBaseUrl')) {
@@ -561,6 +562,17 @@ let Answersheet = async (req,res,next)=>{
             userid:userid
         });
         await tempdata.save();
+        await proctorTimeline.recordSystemEvent({
+            testid,
+            traineeid: userid,
+            sessionId: proctorTimeline.buildSessionId(testid, userid),
+            eventType: 'EXAM_STARTED',
+            message: 'Candidate entered the exam workspace.',
+            payload: {
+                trigger: 'candidate_start'
+            },
+            dedupeKey: `session-start:${testid}:${userid}`
+        });
         return res.json({
             success : true,
             message : 'Test has started!'
@@ -624,6 +636,23 @@ let flags = (req,res,next)=>{
                 pending = info[2].duration*60 - ((present - info[0].startTime)/(1000))
                 if(pending<=0){
                     AnswersheetModel.findOneAndUpdate({userid : traineeid,testid : testid},{completed : true}).then((result)=>{
+                        proctorTimeline.recordSystemEvent({
+                            testid,
+                            traineeid,
+                            sessionId: proctorTimeline.buildSessionId(testid, traineeid),
+                            eventType: 'EXAM_FINISHED',
+                            message: 'Exam ended because the session timer reached zero.',
+                            payload: {
+                                trigger: 'timeout'
+                            },
+                            dedupeKey: `session-finish:${testid}:${traineeid}:timeout`
+                        }).catch((error)=>{
+                            logger.warn('timeout_finish_event_failed', {
+                                testId: testid,
+                                traineeId: traineeid,
+                                error: logger.normalizeError(error)
+                            });
+                        });
                         res.json({
                             success : true,
                             message : 'Successfull',
@@ -841,6 +870,17 @@ let EndTest = async (req,res,next)=>{
 
         const info = await AnswersheetModel.findOneAndUpdate({testid:testid,userid:userid},{completed : true});
         if(info){
+            await proctorTimeline.recordSystemEvent({
+                testid,
+                traineeid: userid,
+                sessionId: proctorTimeline.buildSessionId(testid, userid),
+                eventType: 'EXAM_FINISHED',
+                message: 'Candidate submitted the exam.',
+                payload: {
+                    trigger: 'candidate_submit'
+                },
+                dedupeKey: `session-finish:${testid}:${userid}:submit`
+            });
             return res.json({
                 success : true,
                 message : 'Your answers have been submitted'

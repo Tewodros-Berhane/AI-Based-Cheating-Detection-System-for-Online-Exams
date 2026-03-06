@@ -10,6 +10,7 @@ import Alert from '../../common/alert';
 import AppModal from '../../common/AppModal';
 import TrainerLivePreview from '../TrainerLivePreview';
 import TrainerResultPreview from '../TrainerResultPreview';
+import ProctorTimelineModal from './ProctorTimelineModal';
 import './conducttes.css';
 
 class Candidates extends Component {
@@ -20,6 +21,9 @@ class Candidates extends Component {
       searchText: '',
       previewVisible: false,
       previewCandidate: null,
+      timelineVisible: false,
+      timelineCandidate: null,
+      riskByTrainee: {},
       page: 1,
       pageSize: 6
     };
@@ -49,23 +53,43 @@ class Candidates extends Component {
   refreshUserList = () => {
     if (!this.props.conduct.id) {
       this.props.updateCandidatesTest([]);
+      this.setState({ riskByTrainee: {} });
       return;
     }
 
     this.setState({ loading: true });
-    SecurePost({
-      url: apis.GET_TEST_CANDIDATES,
-      data: { id: this.props.conduct.id }
-    })
-      .then((response) => {
-        if (response.data.success) {
-          this.props.updateCandidatesTest(response.data.data || []);
-          return;
-        }
-        Alert('error', 'Error!', response.data.message);
+    Promise.allSettled([
+      SecurePost({
+        url: apis.GET_TEST_CANDIDATES,
+        data: { id: this.props.conduct.id }
+      }),
+      SecurePost({
+        url: apis.GET_PROCTOR_SUMMARY,
+        data: { testid: this.props.conduct.id }
       })
-      .catch(() => {
-        Alert('error', 'Error!', 'Server Error');
+    ])
+      .then(([candidateResult, summaryResult]) => {
+        if (candidateResult.status === 'fulfilled') {
+          const response = candidateResult.value;
+          if (response.data.success) {
+            this.props.updateCandidatesTest(response.data.data || []);
+          } else {
+            Alert('error', 'Error!', response.data.message);
+          }
+        } else {
+          Alert('error', 'Error!', 'Server Error');
+        }
+
+        if (summaryResult.status === 'fulfilled' && summaryResult.value.data && summaryResult.value.data.success) {
+          const summaryItems = Array.isArray(summaryResult.value.data.data) ? summaryResult.value.data.data : [];
+          const riskByTrainee = summaryItems.reduce((accumulator, item) => {
+            accumulator[item.traineeid] = item;
+            return accumulator;
+          }, {});
+          this.setState({ riskByTrainee });
+        } else {
+          this.setState({ riskByTrainee: {} });
+        }
       })
       .finally(() => {
         this.setState({ loading: false });
@@ -94,6 +118,20 @@ class Candidates extends Component {
     this.setState({
       previewVisible: false,
       previewCandidate: null
+    });
+  };
+
+  openTimeline = (candidate) => {
+    this.setState({
+      timelineVisible: true,
+      timelineCandidate: candidate
+    });
+  };
+
+  closeTimeline = () => {
+    this.setState({
+      timelineVisible: false,
+      timelineCandidate: null
     });
   };
 
@@ -143,6 +181,7 @@ class Candidates extends Component {
     const end = start + this.state.pageSize;
     const visibleRows = filteredCandidates.slice(start, end);
     const previewCandidate = this.state.previewCandidate;
+    const timelineCandidate = this.state.timelineCandidate;
 
     return (
       <section className="conduct-candidates-wrap">
@@ -224,9 +263,9 @@ class Candidates extends Component {
                         <td data-label="Alerts">
                           <div className="conduct-alert-cell">
                             <TrainerResultPreview
-                              traineeId={candidate._id}
-                              testId={this.props.conduct.id}
+                              snapshot={this.state.riskByTrainee[candidate._id] || null}
                               statusFallback={candidate?.examProgress?.status}
+                              onOpenTimeline={() => this.openTimeline(candidate)}
                             />
                           </div>
                         </td>
@@ -290,6 +329,14 @@ class Candidates extends Component {
             <div className="conduct-preview-empty">No candidate selected.</div>
           )}
         </AppModal>
+
+        <ProctorTimelineModal
+          open={this.state.timelineVisible}
+          candidate={timelineCandidate}
+          testId={this.props.conduct.id}
+          onClose={this.closeTimeline}
+          onChanged={this.refreshUserList}
+        />
       </section>
     );
   }

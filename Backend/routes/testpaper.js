@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 
 var testpaper = require("../services/testpaper");
+var proctorMonitor = require("../services/proctorMonitor");
 
 router.post('/new/name/check',testpaper.checkTestName)
 router.post('/create',testpaper.createEditTest);
@@ -18,6 +19,10 @@ router.post('/integrity/config', testpaper.updateIntegrityConfig);
 router.post('/integrity/details', testpaper.getIntegrityConfig);
 router.post('/trainer/details',testpaper.TestDetails);
 router.post('/candidates/details',testpaper.getCandidateDetails);
+router.post('/proctor/summary', proctorMonitor.getSummary);
+router.post('/proctor/events', proctorMonitor.getEvents);
+router.post('/proctor/event/ack', proctorMonitor.acknowledgeEvent);
+router.post('/proctor/event/escalate', proctorMonitor.escalateEvent);
 router.post('/max/marks',testpaper.MM);
 
 

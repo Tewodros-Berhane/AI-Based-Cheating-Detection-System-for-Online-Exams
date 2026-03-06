@@ -225,7 +225,26 @@
 }
 
 .testdetails-student-grid {
-  min-width: 860px;
+  min-width: 0;
+}
+
+.testdetails-student-grid th:first-child,
+.testdetails-student-grid td:first-child {
+  min-width: 0;
+}
+
+.testdetails-student-subtext {
+  overflow-wrap: anywhere;
+}
+
+.testdetails-audit-actions {
+  justify-content: center;
+}
+
+.testdetails-student-grid th:last-child,
+.testdetails-student-grid td:last-child {
+  width: 88px;
+  text-align: center;
 }
 
 .testdetails-status-pill {

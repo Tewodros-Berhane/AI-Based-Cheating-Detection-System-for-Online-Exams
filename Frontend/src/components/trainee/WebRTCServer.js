@@ -79,7 +79,11 @@ export default function WebRTC({ traineeId, testId }) {
           try {
             const msg = JSON.parse(e.data);
             if (msg.behaviour) {
-              await sendAiResult(traineeId, testId, msg.behaviour);
+              await sendAiResult(traineeId, testId, msg.behaviour, {
+                confidence: msg.confidence,
+                signalType: msg.signalType,
+                message: msg.message
+              });
             }
           } catch (error) {
             console.warn('Non-JSON message:', e.data, error);

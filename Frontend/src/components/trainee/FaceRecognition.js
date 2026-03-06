@@ -6,6 +6,7 @@ import { Post } from '../../services/axiosCall';
 import apis from '../../services/Apis';
 import { fetchTestdata } from '../../actions/traineeAction';
 import { MediaStreamContext } from '../../contexts/MediaStreamContext';
+import { sendMonitoringEvent } from '../../services/traineeSession';
 
 const MODEL_URI = '/models';
 const CHECK_INTERVAL_MS = 2000;
@@ -77,7 +78,7 @@ function waitForVideoReady(videoEl, timeoutMs = VIDEO_READY_TIMEOUT_MS) {
 export default function FaceRecognition({ traineeId: initialTraineeId, testId: initialTestId }) {
   const dispatch = useDispatch();
   const videoRef = useRef(null);
-  const { mediaStream, setMediaStream } = useContext(MediaStreamContext);
+  const { mediaStream, clearMediaResources } = useContext(MediaStreamContext);
 
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [showNoFaceModal, setShowNoFaceModal] = useState(false);
@@ -146,9 +147,8 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
       examEndedRef.current = true;
       stopMonitoring();
 
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((track) => track.stop());
-        setMediaStream(null);
+      if (typeof clearMediaResources === 'function') {
+        clearMediaResources();
       }
 
       const currentTestId = testIdRef.current;
@@ -179,13 +179,25 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
         10
       );
     },
-    [dispatch, mediaStream, setMediaStream, stopMonitoring]
+    [clearMediaResources, dispatch, stopMonitoring]
   );
 
   const startNoFaceCountdown = useCallback(() => {
     if (examEndedRef.current || noFaceCountdownActiveRef.current) return;
     noFaceCountdownActiveRef.current = true;
     noFaceRemainingRef.current = NO_FACE_TIMEOUT_SECONDS;
+    sendMonitoringEvent({
+      traineeId: traineeIdRef.current,
+      testId: testIdRef.current,
+      eventType: 'NO_FACE',
+      source: 'FACE',
+      message: 'Candidate face was not detected for a sustained period.',
+      confidence: 0.92,
+      payload: {
+        timeoutSeconds: NO_FACE_TIMEOUT_SECONDS
+      },
+      cooldownMs: 15000
+    }).catch(() => {});
     if (mountedRef.current) {
       setNoFaceTimer(NO_FACE_TIMEOUT_SECONDS);
       setShowNoFaceModal(true);
@@ -232,6 +244,18 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
         multiFaceStrikeRef.current += 1;
         mismatchStrikeRef.current = 0;
         if (multiFaceStrikeRef.current >= MAX_MULTI_FACE_STRIKES) {
+          sendMonitoringEvent({
+            traineeId: traineeIdRef.current,
+            testId: testIdRef.current,
+            eventType: 'MULTI_FACE',
+            source: 'FACE',
+            message: 'Multiple faces were detected in the candidate camera feed.',
+            confidence: 0.96,
+            payload: {
+              strikeCount: multiFaceStrikeRef.current
+            },
+            cooldownMs: 15000
+          }).catch(() => {});
           endExam('Multiple faces detected');
         }
         return;
@@ -242,6 +266,20 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
       if (distance > FACE_MISMATCH_THRESHOLD) {
         mismatchStrikeRef.current += 1;
         if (mismatchStrikeRef.current >= MAX_MISMATCH_STRIKES) {
+          sendMonitoringEvent({
+            traineeId: traineeIdRef.current,
+            testId: testIdRef.current,
+            eventType: 'FACE_MISMATCH',
+            source: 'FACE',
+            message: 'Live face did not match the registered face reference.',
+            confidence: 0.97,
+            payload: {
+              distance,
+              threshold: FACE_MISMATCH_THRESHOLD,
+              strikeCount: mismatchStrikeRef.current
+            },
+            cooldownMs: 15000
+          }).catch(() => {});
           endExam('Face did not match');
         }
         return;

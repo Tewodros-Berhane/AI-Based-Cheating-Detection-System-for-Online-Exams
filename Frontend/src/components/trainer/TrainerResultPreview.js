@@ -1,99 +1,63 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import apis from '../../services/Apis';
+import React, { useMemo } from 'react';
+import { Button } from 'antd-compat';
+import { History } from 'lucide-react';
+import SeverityBadge, { normalizeSeverityState } from './conducttest/SeverityBadge';
 
-const ALERT_LOOKUP = {
-  cheating: { label: 'Cheating', tone: 'critical', pulse: true },
-  suspicious: { label: 'Suspicious', tone: 'warning', pulse: true },
-  normal: { label: 'Normal', tone: 'safe', pulse: false },
-  finished: { label: 'Finished', tone: 'finished', pulse: false },
-  monitoring: { label: 'Monitoring', tone: 'monitoring', pulse: true },
-  in_progress: { label: 'In progress', tone: 'monitoring', pulse: false },
-  not_started: { label: 'Not started', tone: 'idle', pulse: false },
-  unknown: { label: 'No signal', tone: 'idle', pulse: false }
+const formatRelativeTime = (value) => {
+  if (!value) return 'No recent events';
+
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return 'No recent events';
+
+  const diffMs = Date.now() - time;
+  if (diffMs < 60 * 1000) return 'Just now';
+
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
 };
 
-const normalizeStatus = (value) => {
-  if (!value) return null;
-  const normalized = String(value).toLowerCase();
-  return ALERT_LOOKUP[normalized] ? normalized : 'unknown';
-};
+export default function TrainerResultPreview({
+  snapshot = null,
+  statusFallback = 'not_started',
+  onOpenTimeline
+}) {
+  const state = useMemo(
+    () => normalizeSeverityState({ snapshot, statusFallback }),
+    [snapshot, statusFallback]
+  );
 
-export default function TrainerResultPreview({ traineeId, testId, statusFallback = 'not_started' }) {
-  const [result, setResult] = useState(null);
-  const [socketOpen, setSocketOpen] = useState(false);
-  const wsRef = useRef(null);
+  const score = snapshot && typeof snapshot.rollingRiskScore === 'number'
+    ? snapshot.rollingRiskScore
+    : null;
 
-  useEffect(() => {
-    if (!traineeId) return undefined;
-
-    const params = new URLSearchParams({
-      role: 'trainer',
-      traineeid: traineeId
-    });
-
-    if (testId) {
-      params.set('testid', testId);
-      params.set('sessionid', `${testId}:${traineeId}`);
-    }
-
-    wsRef.current = new WebSocket(`${apis.WS_RESULT_URL}/?${params.toString()}`);
-
-    wsRef.current.onopen = () => {
-      setSocketOpen(true);
-    };
-
-    wsRef.current.onmessage = async (event) => {
-      const payload = event.data instanceof Blob ? await event.data.text() : event.data;
-      let message;
-      try {
-        message = JSON.parse(payload);
-      } catch (error) {
-        return;
-      }
-
-      if (message.type === 'ai-result' && message.behaviour) {
-        setResult(normalizeStatus(message.behaviour));
-      }
-    };
-
-    wsRef.current.onerror = () => {
-      setSocketOpen(false);
-    };
-
-    wsRef.current.onclose = () => {
-      setSocketOpen(false);
-    };
-
-    return () => {
-      setSocketOpen(false);
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [traineeId, testId]);
-
-  const activeState = useMemo(() => {
-    const liveState = normalizeStatus(result);
-    if (liveState) return liveState;
-
-    const fallback = normalizeStatus(statusFallback) || 'not_started';
-    if (fallback === 'in_progress' && socketOpen) {
-      return 'monitoring';
-    }
-
-    return fallback;
-  }, [result, socketOpen, statusFallback]);
-
-  const view = ALERT_LOOKUP[activeState] || ALERT_LOOKUP.unknown;
+  const secondaryText = snapshot && snapshot.lastEventMessage
+    ? snapshot.lastEventMessage
+    : (state === 'MONITORING' ? 'Live monitoring active.' : 'No proctor events yet.');
 
   return (
-    <span
-      className={`conduct-alert-pill ${view.tone}`}
-      title={view.label}
-      data-alert-state={activeState}
-    >
-      <span className={`conduct-alert-dot ${view.pulse ? 'pulse' : ''}`} />
-      <span className="conduct-alert-text">{view.label}</span>
-    </span>
+    <div className="conduct-alert-summary">
+      <div className="conduct-alert-summary-main">
+        <SeverityBadge state={state} score={score} />
+        <div className="conduct-alert-summary-meta">
+          <div className="conduct-alert-summary-text">{secondaryText}</div>
+          <div className="conduct-alert-summary-time">
+            {formatRelativeTime(snapshot && snapshot.lastEventAt)}
+          </div>
+        </div>
+      </div>
+      <Button
+        className="conduct-alert-timeline-btn"
+        onClick={onOpenTimeline}
+      >
+        <History size={14} strokeWidth={2.2} />
+        Timeline
+      </Button>
+    </div>
   );
 }
