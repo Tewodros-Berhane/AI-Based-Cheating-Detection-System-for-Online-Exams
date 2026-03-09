@@ -3,6 +3,7 @@ var router = express.Router();
 
 var testpaper = require("../services/testpaper");
 var proctorMonitor = require("../services/proctorMonitor");
+var psychometrics = require("../services/psychometrics");
 
 router.post('/new/name/check',testpaper.checkTestName)
 router.post('/create',testpaper.createEditTest);
@@ -23,6 +24,8 @@ router.post('/proctor/summary', proctorMonitor.getSummary);
 router.post('/proctor/events', proctorMonitor.getEvents);
 router.post('/proctor/event/ack', proctorMonitor.acknowledgeEvent);
 router.post('/proctor/event/escalate', proctorMonitor.escalateEvent);
+router.post('/psychometrics/overview', psychometrics.getOverview);
+router.post('/psychometrics/questions', psychometrics.getQuestionMetrics);
 router.post('/max/marks',testpaper.MM);
 
 

@@ -12,6 +12,8 @@ const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMac
 const integrityPolicy = require("./integrityPolicy");
 const proctorTimeline = require("./proctorTimeline");
 const sessionResilience = require("./sessionResilience");
+const generateResults = require("./generateResults");
+const psychometrics = require("./psychometrics");
 
 
 let finalizeCandidateSession = async ({ answerSheet, testid, traineeid, completionReason, trigger, message }) => {
@@ -425,38 +427,30 @@ let basicTestdetails = (req,res,next)=>{
      
  }
 
- let getCandidateDetails = (req,res,next)=>{
-    if(req.user.type==="TRAINER"){
-        var testid = req.body.testid;
-       ResultModel.find({testid : testid},{score : 1, userid : 1})
-       .populate('userid')
-       .exec(function(err,getCandidateDetails){
-        if(err){
-            console.log(err)
-            res.status(500).json({
-                success : false,
-                message : "Unable to fetch details"
-            })
-        }else{
-            if(getCandidateDetails.length==null){
-                res.json({
-                    success : false,
-                    message: 'Invalid testid!'
-                })
-            }else{
-                res.json({
-                    success : true,
-                    message:'Candidate details',
-                    data : getCandidateDetails
-                })
-            }
-          }
-       })
-    }
-    else{
-        res.status(401).json({
+ let getCandidateDetails = async (req,res,next)=>{
+    if(req.user.type!=="TRAINER"){
+        return res.status(401).json({
             success : false,
             message : "Permissions not granted!"
+        })
+    }
+
+    try{
+        var testid = req.body.testid;
+        await generateResults.ensureResultsForTest(testid);
+        const candidateDetails = await ResultModel.find({testid : testid},{score : 1, userid : 1})
+            .populate('userid');
+
+        return res.json({
+            success : true,
+            message:'Candidate details',
+            data : candidateDetails
+        });
+    }catch(err){
+        console.log(err)
+        return res.status(500).json({
+            success : false,
+            message : "Unable to fetch details"
         })
     }
  }
@@ -705,6 +699,13 @@ let endTest = async (req,res,next)=>{
         );
 
         await result(id,MaxMarks);
+        await psychometrics.computeAndPersistSnapshot({ testid: id }).catch((error) => {
+            logger.warn('psychometric_snapshot_after_end_failed', {
+                testId: id,
+                trainerId: req.user && req.user._id,
+                error: logger.normalizeError(error)
+            });
+        });
 
         return res.json({
             success : true,

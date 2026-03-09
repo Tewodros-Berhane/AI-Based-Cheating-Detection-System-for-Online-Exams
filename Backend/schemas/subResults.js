@@ -23,6 +23,19 @@ var subResultsSchema = new mongoose.Schema({
     },
     iscorrect : {
         type : Boolean
+    },
+    selectedOptionIds: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Options',
+        required: false
+    }],
+    isSkipped: {
+        type: Boolean,
+        default: false
+    },
+    timeSpentSeconds: {
+        type: Number,
+        default: null
     }
     
 })
