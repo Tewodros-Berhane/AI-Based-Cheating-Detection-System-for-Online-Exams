@@ -480,3 +480,158 @@
     grid-template-columns: 1fr;
   }
 }
+
+.testdetails-psych-note {
+  margin-bottom: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.24);
+  border-radius: 10px;
+  background: rgba(16, 26, 46, 0.7);
+  color: var(--text-secondary);
+  padding: 10px 12px;
+}
+
+.testdetails-psych-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.testdetails-psych-card {
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: rgba(7, 13, 25, 0.62);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.testdetails-psych-value {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.testdetails-psych-caption {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.testdetails-flagged-list {
+  margin-top: 12px;
+}
+
+.testdetails-flagged-card {
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: rgba(7, 13, 25, 0.62);
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.testdetails-flagged-card + .testdetails-flagged-card {
+  margin-top: 8px;
+}
+
+.testdetails-flagged-card strong {
+  color: var(--text-primary);
+}
+
+.testdetails-flagged-card p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+}
+
+.testdetails-flagged-tags,
+.testdetails-quality-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.testdetails-table-wrap {
+  overflow-x: auto;
+}
+
+.testdetails-psych-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.testdetails-psych-table th,
+.testdetails-psych-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 12px 10px;
+  text-align: left;
+  vertical-align: top;
+  color: var(--text-secondary);
+}
+
+.testdetails-psych-table th {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.testdetails-psych-question {
+  min-width: 280px;
+}
+
+.testdetails-psych-question strong {
+  color: var(--text-primary);
+}
+
+.testdetails-psych-question p {
+  margin: 6px 0;
+  color: var(--text-secondary);
+}
+
+.testdetails-psych-question span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.testdetails-quality-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+}
+
+.testdetails-quality-pill.flagged {
+  border-color: rgba(248, 113, 113, 0.32);
+  background: rgba(127, 29, 29, 0.22);
+  color: #fecaca;
+}
+
+.testdetails-quality-pill.healthy {
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(20, 83, 45, 0.24);
+  color: #bbf7d0;
+}
+
+@media (max-width: 980px) {
+  .testdetails-psych-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .testdetails-flagged-card {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 760px) {
+  .testdetails-psych-grid {
+    grid-template-columns: 1fr;
+  }
+}
