@@ -1,5 +1,6 @@
 var TestPaperModel = require("../models/testpaper");
 var AnswersheetModel = require("../models/answersheet");
+require("../models/answers");
 var QuestionModel = require("../models/questions");
 var options = require("../models/option");
 var SubjectModel = require("../models/subject");
@@ -78,17 +79,25 @@ const buildQuestionMetrics = ({ questions, candidates, sampleSize, maxScore }) =
         const skippedCount = selectedAnswerSets.filter((selected) => !selected.length).length;
         const incorrectCount = Math.max(sampleSize - correctCount - skippedCount, 0);
         const difficultyIndex = sampleSize ? aggregation.roundNumber(correctCount / sampleSize) : null;
-        const discriminationIndex = aggregation.computeDiscriminationIndex(binaryScores, candidates.map((candidate) => candidate.score));
-        const pointBiserial = aggregation.computePointBiserial(
-            binaryScores,
-            candidates.map((candidate) => candidate.score - (candidate.itemScores[questionIndex] ? weightage : 0))
-        );
-        const qualityFlags = aggregation.computeQualityFlags({
-            difficultyIndex,
-            discriminationIndex,
-            pointBiserial,
-            optionSelectionRates
-        });
+        const supportsDifficultyFlags = sampleSize >= 10;
+        const supportsAdvancedMetrics = sampleSize >= 20;
+        const discriminationIndex = supportsAdvancedMetrics
+            ? aggregation.computeDiscriminationIndex(binaryScores, candidates.map((candidate) => candidate.score))
+            : null;
+        const pointBiserial = supportsAdvancedMetrics
+            ? aggregation.computePointBiserial(
+                binaryScores,
+                candidates.map((candidate) => candidate.score - (candidate.itemScores[questionIndex] ? weightage : 0))
+            )
+            : null;
+        const qualityFlags = supportsDifficultyFlags
+            ? aggregation.computeQualityFlags({
+                difficultyIndex,
+                discriminationIndex,
+                pointBiserial,
+                optionSelectionRates
+            })
+            : [];
 
         return {
             questionid: question._id,
@@ -195,10 +204,18 @@ const buildPsychometricSnapshot = async ({ testid }) => {
         maxScore
     });
 
+    const supportsDifficultyFlags = sampleSize >= 10;
+    const supportsAdvancedMetrics = sampleSize >= 20;
     const flaggedQuestionCount = questionMetrics.filter((metric) => metric.flagLowQuality).length;
-    const difficultQuestionCount = questionMetrics.filter((metric) => metric.difficultyIndex !== null && metric.difficultyIndex < 0.2).length;
-    const easyQuestionCount = questionMetrics.filter((metric) => metric.difficultyIndex !== null && metric.difficultyIndex > 0.9).length;
-    const lowDiscriminationCount = questionMetrics.filter((metric) => metric.discriminationIndex !== null && metric.discriminationIndex < 0.15).length;
+    const difficultQuestionCount = supportsDifficultyFlags
+        ? questionMetrics.filter((metric) => metric.difficultyIndex !== null && metric.difficultyIndex < 0.2).length
+        : 0;
+    const easyQuestionCount = supportsDifficultyFlags
+        ? questionMetrics.filter((metric) => metric.difficultyIndex !== null && metric.difficultyIndex > 0.9).length
+        : 0;
+    const lowDiscriminationCount = supportsAdvancedMetrics
+        ? questionMetrics.filter((metric) => metric.discriminationIndex !== null && metric.discriminationIndex < 0.15).length
+        : 0;
 
     const snapshot = {
         testid: test._id,
@@ -214,7 +231,9 @@ const buildPsychometricSnapshot = async ({ testid }) => {
             passRate: sampleSize
                 ? aggregation.roundNumber(candidates.filter((candidate) => candidate.percent >= 50).length / sampleSize, 4)
                 : 0,
-            reliabilityAlpha: aggregation.computeReliabilityAlpha(candidates.map((candidate) => candidate.itemScores)),
+            reliabilityAlpha: sampleSize >= 20
+                ? aggregation.computeReliabilityAlpha(candidates.map((candidate) => candidate.itemScores))
+                : null,
             flaggedQuestionCount,
             difficultQuestionCount,
             easyQuestionCount,
@@ -241,7 +260,7 @@ const computeAndPersistSnapshot = async ({ testid }) => {
     await PsychometricMetricModel.findOneAndUpdate(
         { testid },
         snapshot,
-        { upsert: true, setDefaultsOnInsert: true, new: true }
+        { upsert: true, setDefaultsOnInsert: true, returnDocument: 'after' }
     );
 
     return snapshot;
