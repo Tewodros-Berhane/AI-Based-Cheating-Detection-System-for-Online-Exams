@@ -300,3 +300,36 @@
   }
 }
 
+
+.welcome-stat-card-danger {
+  box-shadow: inset 0 0 0 1px rgba(251, 113, 133, 0.18);
+}
+
+.dashboard-data-grid td {
+  vertical-align: top;
+}
+
+.dashboard-data-grid td:last-child {
+  white-space: normal;
+}
+
+.dashboard-review-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-review-card {
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: rgba(7, 13, 25, 0.62);
+  padding: 10px 12px;
+}
+
+.dashboard-review-card strong {
+  color: var(--text-primary);
+}
+
+.dashboard-review-card p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+}

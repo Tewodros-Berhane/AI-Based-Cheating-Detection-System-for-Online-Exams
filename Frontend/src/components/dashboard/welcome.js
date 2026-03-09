@@ -81,6 +81,13 @@ const topExamsOptions = {
   }
 };
 
+const metricValue = (value, digits = 2, suffix = '') => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return '--';
+  }
+  return `${Number(value).toFixed(digits)}${suffix}`;
+};
+
 function Welcome({ user }) {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -114,14 +121,30 @@ function Welcome({ user }) {
     [dashboard]
   );
 
+  const psychometricAnalytics = dashboard?.analytics?.psychometrics || {
+    examsWithQualityData: 0,
+    examsNeedingReview: 0,
+    flaggedQuestionsTotal: 0,
+    averageReliability: null,
+    weakestExams: [],
+    flaggedSubjects: [],
+    reviewBacklog: [],
+    difficultyTrend: {
+      labels: [],
+      averageScores: [],
+      averageItemCorrectness: []
+    }
+  };
+
   const trainerStats = useMemo(() => {
     const stats = dashboard?.stats || {};
-    const ratingSuffix = `${stats.feedbackCount || 0} ratings`;
     return [
       { title: 'Total Exams', value: stats.myExamCount || 0, suffix: 'managed', kind: 'primary' },
       { title: 'Live Sessions', value: stats.examsLive || 0, suffix: 'active now', kind: 'warning' },
       { title: 'Candidates', value: stats.myTraineesCount || 0, suffix: 'registered', kind: 'success' },
-      { title: 'Average Rating', value: stats.averageRating || 0, suffix: ratingSuffix, precision: 2, kind: 'neutral' }
+      { title: 'Review Queue', value: stats.examsNeedingReview || 0, suffix: 'exams need attention', kind: 'danger' },
+      { title: 'Avg Reliability', value: stats.averageReliability ?? 0, suffix: `${stats.psychometricCoverage || 0} exams analyzed`, precision: stats.averageReliability === null ? 0 : 2, kind: 'neutral', display: stats.averageReliability === null ? '--' : undefined },
+      { title: 'Average Rating', value: stats.averageRating || 0, suffix: `${stats.feedbackCount || 0} ratings`, precision: 2, kind: 'neutral' }
     ];
   }, [dashboard]);
 
@@ -224,6 +247,58 @@ function Welcome({ user }) {
     ]
   };
 
+  const psychometricTrendData = {
+    labels: psychometricAnalytics.difficultyTrend.labels || [],
+    datasets: [
+      {
+        label: 'Average Score %',
+        data: psychometricAnalytics.difficultyTrend.averageScores || [],
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.18)',
+        tension: 0.34,
+        pointRadius: 3
+      },
+      {
+        label: 'Average Item Correctness %',
+        data: psychometricAnalytics.difficultyTrend.averageItemCorrectness || [],
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34, 197, 94, 0.18)',
+        tension: 0.34,
+        pointRadius: 3
+      }
+    ]
+  };
+
+  const flaggedSubjectsData = {
+    labels: (psychometricAnalytics.flaggedSubjects || []).map((subject) => subject.subjectLabel),
+    datasets: [
+      {
+        label: 'Flagged questions',
+        data: (psychometricAnalytics.flaggedSubjects || []).map((subject) => subject.flaggedQuestionCount),
+        backgroundColor: 'rgba(244, 114, 182, 0.42)',
+        borderColor: '#f472b6',
+        borderWidth: 1,
+        borderRadius: 8,
+        maxBarThickness: 22
+      }
+    ]
+  };
+
+  const reviewCoverageData = {
+    labels: ['Healthy exams', 'Exams needing review'],
+    datasets: [
+      {
+        data: [
+          Math.max((dashboard?.stats?.psychometricCoverage || 0) - (dashboard?.stats?.examsNeedingReview || 0), 0),
+          dashboard?.stats?.examsNeedingReview || 0
+        ],
+        backgroundColor: ['#38bdf8', '#fb7185'],
+        borderColor: ['#7dd3fc', '#fda4af'],
+        borderWidth: 1
+      }
+    ]
+  };
+
   const renderDataGrid = ({ columns, rows, emptyText }) => (
     <div className="dashboard-data-grid-shell">
       <div className="dashboard-data-grid-scroll">
@@ -242,13 +317,15 @@ function Welcome({ user }) {
               </tr>
             ) : (
               rows.map((row, index) => (
-                <tr className="dashboard-data-row" key={row.key || index}>
+                <tr className="dashboard-data-row" key={row.key || row._id || index}>
                   {columns.map((column) => (
                     <td key={column.key}>
-                      {column.emphasis ? (
-                        <span className="dashboard-cell-strong">{row[column.key] || '-'}</span>
-                      ) : (
-                        row[column.key] || '-'
+                      {column.render ? column.render(row) : (
+                        column.emphasis ? (
+                          <span className="dashboard-cell-strong">{row[column.key] || '-'}</span>
+                        ) : (
+                          row[column.key] || '-'
+                        )
                       )}
                     </td>
                   ))}
@@ -264,12 +341,12 @@ function Welcome({ user }) {
   const renderStats = (stats) => (
     <Row gutter={[16, 16]}>
       {stats.map((stat, idx) => (
-        <Col key={idx} xs={24} sm={12} xl={6}>
+        <Col key={idx} xs={24} sm={12} xl={8} xxl={4}>
           <Card className={`welcome-stat-card welcome-stat-card-${stat.kind || 'primary'}`}>
             <Statistic
               title={stat.title}
-              value={stat.value}
-              precision={stat.precision}
+              value={stat.display !== undefined ? stat.display : stat.value}
+              precision={stat.display !== undefined ? undefined : stat.precision}
               valueStyle={{ color: '#dbeafe' }}
             />
             <Tag className="welcome-stat-tag">{stat.suffix}</Tag>
@@ -327,13 +404,13 @@ function Welcome({ user }) {
           <div>
             <h2 className="dashboard-title">Instructor Analytics Hub</h2>
             <p className="dashboard-subtitle">
-              Track enrollment flow, session readiness, exam lifecycle, and learner feedback in a single control view.
+              Track enrollment flow, session readiness, assessment quality, and learner feedback in a single control view.
             </p>
           </div>
           <div className="trainer-hero-chips">
             <Tag className="welcome-stat-tag">Live sessions: {dashboard?.stats?.examsLive || 0}</Tag>
             <Tag className="welcome-stat-tag">Open registration: {dashboard?.stats?.registrationsOpen || 0}</Tag>
-            <Tag className="welcome-stat-tag">Results published: {dashboard?.stats?.resultsPublished || 0}</Tag>
+            <Tag className="welcome-stat-tag">Flagged questions: {dashboard?.stats?.flaggedQuestionsTotal || 0}</Tag>
           </div>
         </div>
       </Card>
@@ -377,22 +454,33 @@ function Welcome({ user }) {
       </Row>
 
       <Row className="trainer-bottom-row" gutter={[16, 16]}>
-        <Col xs={24} xl={13}>
+        <Col xs={24} xl={14}>
           <Card className="trainer-analytics-card">
             <div className="trainer-card-header">
-              <h3>Top Exams by Registration</h3>
-              <p>Highest enrollment exams to help prioritize live monitoring.</p>
+              <h3>Assessment Quality Trend</h3>
+              <p>Cross-exam comparison of cohort score average and item correctness.</p>
             </div>
-            <div className="trainer-chart-wrap trainer-chart-bars">
-              {topExamsByRegistrations.length ? (
-                <Bar data={topExamChartData} options={topExamsOptions} />
+            <div className="trainer-chart-wrap trainer-chart-line">
+              {psychometricAnalytics.difficultyTrend.labels.length ? (
+                <Line data={psychometricTrendData} options={trendOptions} />
               ) : (
-                <Empty description="No registration data available" />
+                <Empty description="No completed psychometric cohorts yet" />
               )}
             </div>
           </Card>
         </Col>
-        <Col xs={24} xl={11}>
+        <Col xs={24} md={12} xl={5}>
+          <Card className="trainer-analytics-card">
+            <div className="trainer-card-header">
+              <h3>Review Coverage</h3>
+              <p>{dashboard?.stats?.psychometricCoverage || 0} exams analyzed so far.</p>
+            </div>
+            <div className="trainer-chart-wrap">
+              <Doughnut data={reviewCoverageData} options={doughnutOptions} />
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} md={12} xl={5}>
           <Card className="trainer-analytics-card trainer-pipeline-card">
             <div className="trainer-card-header">
               <h3>Execution Snapshot</h3>
@@ -413,9 +501,73 @@ function Welcome({ user }) {
               </div>
             </div>
             <div className="trainer-insight-note">
-              Focus next: {pipeline.inProgress > 0 ? 'Monitor active sessions and candidate alerts.' : 'Publish results and open the next exam window.'}
+              Focus next: {(dashboard?.stats?.examsNeedingReview || 0) > 0
+                ? 'Open the flagged exam list and review low-quality items before reusing them.'
+                : (pipeline.inProgress > 0 ? 'Monitor active sessions and candidate alerts.' : 'Publish results and open the next exam window.')}
             </div>
           </Card>
+        </Col>
+      </Row>
+
+      <Row className="trainer-bottom-row" gutter={[16, 16]}>
+        <Col xs={24} xl={12}>
+          <Card className="trainer-analytics-card">
+            <div className="trainer-card-header">
+              <h3>Subjects Under Review</h3>
+              <p>Course areas accumulating the highest number of flagged questions.</p>
+            </div>
+            <div className="trainer-chart-wrap trainer-chart-bars">
+              {psychometricAnalytics.flaggedSubjects.length ? (
+                <Bar data={flaggedSubjectsData} options={topExamsOptions} />
+              ) : (
+                <Empty description="No flagged subjects yet" />
+              )}
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} xl={12}>
+          <Card className="trainer-analytics-card">
+            <div className="trainer-card-header">
+              <h3>Top Exams by Registration</h3>
+              <p>Highest enrollment exams to help prioritize live monitoring.</p>
+            </div>
+            <div className="trainer-chart-wrap trainer-chart-bars">
+              {topExamsByRegistrations.length ? (
+                <Bar data={topExamChartData} options={topExamsOptions} />
+              ) : (
+                <Empty description="No registration data available" />
+              )}
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row className="trainer-bottom-row" gutter={[16, 16]}>
+        <Col xs={24} xl={12}>
+          <h3 className="section-title">Exams Needing Review</h3>
+          {renderDataGrid({
+            columns: [
+              { title: 'Exam', key: 'title', emphasis: true },
+              { title: 'Flags', key: 'flaggedQuestionCount' },
+              { title: 'Score Avg', key: 'averagePercent', render: (row) => metricValue(row.averagePercent, 1, '%') },
+              { title: 'Reliability', key: 'reliabilityAlpha', render: (row) => metricValue(row.reliabilityAlpha, 2) }
+            ],
+            rows: psychometricAnalytics.weakestExams,
+            emptyText: 'No exam quality issues detected yet.'
+          })}
+        </Col>
+        <Col xs={24} xl={12}>
+          <h3 className="section-title">Question Review Queue</h3>
+          {renderDataGrid({
+            columns: [
+              { title: 'Exam', key: 'examTitle', emphasis: true },
+              { title: 'Question', key: 'questionLabel' },
+              { title: 'Subject', key: 'subjectLabel' },
+              { title: 'Flags', key: 'flags', render: (row) => row.flags && row.flags.length ? row.flags.join(', ') : 'Healthy' }
+            ],
+            rows: psychometricAnalytics.reviewBacklog,
+            emptyText: 'No flagged question backlog yet.'
+          })}
         </Col>
       </Row>
 
@@ -474,4 +626,3 @@ const mapStateToProps = (state) => ({
 });
 
 export default connect(mapStateToProps)(Welcome);
-
