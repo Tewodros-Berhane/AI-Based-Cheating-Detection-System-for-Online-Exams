@@ -9,8 +9,10 @@ const monitoringEventCache = new Map();
 
 const RESULT_SOCKET_TIMEOUT_MS = 3000;
 const TRAINEE_SESSION_EVENT = 'exam-shield:trainee-session';
+const DRAFT_CACHE_PREFIX = 'exam-shield:answer-draft';
 
 const buildSessionKey = (traineeId, testId) => `${testId || 'default'}:${traineeId}`;
+const buildDraftStorageKey = (traineeId, testId) => `${DRAFT_CACHE_PREFIX}:${buildSessionKey(traineeId, testId)}`;
 const buildResultSocketUrl = (traineeId, testId) => {
   const params = new URLSearchParams({
     role: 'trainee',
@@ -110,6 +112,8 @@ const waitForSocketOpen = (socket, timeoutMs = RESULT_SOCKET_TIMEOUT_MS) =>
     socket.addEventListener('error', onError, { once: true });
   });
 
+const normalizeAnswerIds = (values = []) => Array.from(new Set((Array.isArray(values) ? values : []).map((value) => String(value))));
+
 export const acquireResultSocket = (traineeId, testId) => {
   socketRefCount += 1;
   ensureResultSocket(traineeId, testId);
@@ -123,6 +127,150 @@ export const releaseResultSocket = () => {
 };
 
 export const traineeSessionEventName = TRAINEE_SESSION_EVENT;
+
+export const loadAnswerDraft = (traineeId, testId) => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(buildDraftStorageKey(traineeId, testId));
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+export const persistAnswerDraft = ({ traineeId, testId, answers = [], activeQuestionIndex = 0, sessionVersion = 0, lastSyncedAt = null }) => {
+  if (typeof window === 'undefined' || !traineeId || !testId) {
+    return;
+  }
+
+  const dirtyEntries = answers
+    .filter((answer) => answer && answer.isDirty)
+    .map((answer) => ({
+      questionid: String(answer.questionid),
+      chosenOption: normalizeAnswerIds(answer.chosenOption || []),
+      updatedAt: answer.lastLocalUpdatedAt || Date.now()
+    }));
+
+  const payload = {
+    saveVersion: Number(sessionVersion || 0),
+    activeQuestionIndex: Number(activeQuestionIndex || 0),
+    updatedAt: Date.now(),
+    lastSyncedAt: lastSyncedAt || null,
+    answers: dirtyEntries
+  };
+
+  try {
+    if (dirtyEntries.length === 0) {
+      window.localStorage.removeItem(buildDraftStorageKey(traineeId, testId));
+      return;
+    }
+    window.localStorage.setItem(buildDraftStorageKey(traineeId, testId), JSON.stringify(payload));
+  } catch (error) {
+    console.error('Unable to persist answer draft cache:', error);
+  }
+};
+
+export const clearAnswerDraft = (traineeId, testId) => {
+  if (typeof window === 'undefined' || !traineeId || !testId) {
+    return;
+  }
+  try {
+    window.localStorage.removeItem(buildDraftStorageKey(traineeId, testId));
+  } catch (error) {
+    console.error('Unable to clear answer draft cache:', error);
+  }
+};
+
+export const getDirtyAnswerEntries = (answers = []) =>
+  answers
+    .filter((answer) => answer && answer.isDirty)
+    .map((answer) => ({
+      qid: String(answer.questionid),
+      newAnswer: normalizeAnswerIds(answer.chosenOption || [])
+    }));
+
+export const requestSessionHeartbeat = ({ traineeId, testId, activeQuestionIndex, sessionVersion, pendingChanges }) =>
+  Post({
+    url: apis.TRAINEE_SESSION_HEARTBEAT,
+    data: {
+      testid: testId,
+      userid: traineeId,
+      activeQuestionIndex,
+      saveVersion: sessionVersion,
+      pendingChanges
+    }
+  });
+
+export const requestSessionResume = ({ traineeId, testId }) =>
+  Post({
+    url: apis.TRAINEE_SESSION_RESUME,
+    data: {
+      testid: testId,
+      userid: traineeId
+    }
+  });
+
+export const flushAnswerDrafts = async ({ traineeId, testId, answers = [], activeQuestionIndex = 0, sessionVersion = 0 }) => {
+  const dirtyAnswers = getDirtyAnswerEntries(answers);
+  if (!traineeId || !testId || dirtyAnswers.length === 0) {
+    return {
+      skipped: true,
+      questionIds: []
+    };
+  }
+
+  const response = await Post({
+    url: apis.TRAINEE_BATCH_SAVE_ANSWERS,
+    data: {
+      testid: testId,
+      userid: traineeId,
+      answers: dirtyAnswers,
+      saveVersion: sessionVersion,
+      lastSavedQuestionIndex: activeQuestionIndex
+    }
+  });
+
+  const payload = response && response.data ? response.data : { success: false, message: 'Unexpected response.' };
+  return {
+    ...payload,
+    questionIds: dirtyAnswers.map((entry) => entry.qid)
+  };
+};
+
+export const flushAnswerDraftsWithBeacon = ({ traineeId, testId, answers = [], activeQuestionIndex = 0, sessionVersion = 0 }) => {
+  if (typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function' || !traineeId || !testId) {
+    return false;
+  }
+
+  const dirtyAnswers = getDirtyAnswerEntries(answers);
+  if (dirtyAnswers.length === 0) {
+    return false;
+  }
+
+  const payload = {
+    testid: testId,
+    userid: traineeId,
+    answers: dirtyAnswers,
+    saveVersion: sessionVersion,
+    lastSavedQuestionIndex: activeQuestionIndex
+  };
+
+  try {
+    return navigator.sendBeacon(
+      `${apis.BASE}${apis.TRAINEE_BATCH_SAVE_ANSWERS}`,
+      new Blob([JSON.stringify(payload)], { type: 'application/json' })
+    );
+  } catch (error) {
+    return false;
+  }
+};
 
 export const sendAiResult = async (traineeId, testId, behaviour, options = {}) => {
   if (!traineeId || !behaviour) return false;
@@ -223,6 +371,7 @@ export const endTraineeTest = async ({
     }
 
     await sendAiResult(traineeId, testId, 'finished');
+    clearAnswerDraft(traineeId, testId);
 
     if (typeof clearMediaResources === 'function') {
       clearMediaResources();

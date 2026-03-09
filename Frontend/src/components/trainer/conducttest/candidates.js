@@ -165,6 +165,21 @@ class Candidates extends Component {
     );
   };
 
+  getConnectionLabel = (status) => {
+    switch (String(status || '').toLowerCase()) {
+      case 'online':
+        return 'Connected';
+      case 'reconnecting':
+        return 'Reconnecting';
+      case 'disconnected':
+        return 'Disconnected';
+      case 'finished':
+        return 'Finished';
+      default:
+        return 'Not started';
+    }
+  };
+
   renderHighlighted = (value) => (
     <Highlighter
       highlightStyle={{ backgroundColor: 'rgba(59,130,246,0.25)', padding: 0, borderRadius: 4 }}
@@ -245,6 +260,7 @@ class Candidates extends Component {
                         <td data-label="Student">
                           <div className="admin-row-title">{this.renderHighlighted(candidate.name)}</div>
                           <div className="admin-row-subtext">{this.renderHighlighted(candidate.emailid)}</div>
+                          <div className={`conduct-session-pill ${candidate?.examProgress?.connectionStatus || 'not_started'}`}>{this.getConnectionLabel(candidate?.examProgress?.connectionStatus)}</div>
                         </td>
                         <td data-label="Contact">{this.renderHighlighted(candidate.contact || '-')}</td>
                         <td data-label="Exam Link">

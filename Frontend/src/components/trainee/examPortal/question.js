@@ -3,13 +3,12 @@ import { connect } from 'react-redux';
 import './portal.css';
 import SingleQuestion from './singleQuestion';
 import Clock from './clock';
-import { fetchTraineeTestQuestions,fetchTraineeTestAnswerSheet } from '../../../actions/traineeAction'
+import { fetchTraineeTestQuestions } from '../../../actions/traineeAction'
 
 class Question extends Component {
 
     componentDidMount(){
         this.props.fetchTraineeTestQuestions(this.props.trainee.testid);
-        this.props.fetchTraineeTestAnswerSheet(this.props.trainee.testid,this.props.trainee.traineeid)
     }
     render() {
         const hasExamData = this.props.trainee.answers.length>0 && this.props.trainee.questions.length>0;
@@ -28,7 +27,7 @@ class Question extends Component {
                     ) : (
                         <div className="exam-loading-state">
                             <h3>Preparing your exam workspace...</h3>
-                            <p>Loading questions and answer sheet.</p>
+                            <p>Loading questions and saved answers.</p>
                         </div>
                     )}
                 </div>
@@ -42,10 +41,6 @@ const mapStateToProps = state => ({
     trainee : state.trainee
 });
 
-
-
-
 export default connect(mapStateToProps,{
-    fetchTraineeTestQuestions,
-    fetchTraineeTestAnswerSheet
+    fetchTraineeTestQuestions
 })(Question);

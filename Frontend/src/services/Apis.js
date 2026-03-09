@@ -75,6 +75,9 @@ const apis = {
     PROCEED_TO_TEST:'/api/v1/trainee/answersheet',
     FETCH_TRAINEE_TEST_QUESTION:'/api/v1/trainee/paper/questions',
     FETCH_TRAINEE_TEST_ANSWERSHEET:'/api/v1/trainee/chosen/options',
+    TRAINEE_SESSION_HEARTBEAT:'/api/v1/trainee/session/heartbeat',
+    TRAINEE_SESSION_RESUME:'/api/v1/trainee/session/resume',
+    TRAINEE_BATCH_SAVE_ANSWERS:'/api/v1/trainee/answers/batch-save',
     UPDATE_ANSWERS:'/api/v1/trainee/update/answer',
     END_TEST : '/api/v1/trainee/end/test',
     FETCH_OWN_RESULT:'/api/v1/final/results',
@@ -93,3 +96,4 @@ const apis = {
 };
 
 export default apis;
+

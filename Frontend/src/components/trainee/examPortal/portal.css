@@ -900,3 +900,50 @@
     max-height: 70vh;
   }
 }
+
+.trainee-session-banner {
+  margin: 0 auto 1rem;
+  max-width: min(1180px, calc(100vw - 2rem));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.2);
+}
+
+.trainee-session-banner strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.trainee-session-banner span {
+  display: block;
+  margin-top: 0.2rem;
+  color: rgba(226, 232, 240, 0.8);
+  font-size: 0.82rem;
+}
+
+.trainee-session-banner.is-disconnected,
+.trainee-session-banner.is-reconnecting {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, rgba(69, 26, 3, 0.94), rgba(120, 53, 15, 0.88));
+}
+
+.trainee-session-banner.is-disconnected strong,
+.trainee-session-banner.is-reconnecting strong {
+  color: #fde68a;
+}
+
+.trainee-session-banner.is-finished {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(135deg, rgba(69, 10, 10, 0.94), rgba(127, 29, 29, 0.88));
+}
+
+.trainee-session-banner.is-finished strong {
+  color: #fecaca;
+}
