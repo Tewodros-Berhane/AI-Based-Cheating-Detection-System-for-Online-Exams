@@ -11,7 +11,46 @@ let logger = require("./logger");
 const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMachine");
 const integrityPolicy = require("./integrityPolicy");
 const proctorTimeline = require("./proctorTimeline");
+const sessionResilience = require("./sessionResilience");
 
+
+let finalizeCandidateSession = async ({ answerSheet, testid, traineeid, completionReason, trigger, message }) => {
+    if (!answerSheet) {
+        return null;
+    }
+
+    const needsUpdate = !answerSheet.completed || answerSheet.completionReason !== completionReason;
+    if (needsUpdate) {
+        const completedAt = new Date();
+        await AnswersheetModel.updateOne(
+            { _id: answerSheet._id },
+            {
+                $set: {
+                    completed: true,
+                    completionReason,
+                    lastHeartbeatAt: completedAt
+                }
+            }
+        );
+        answerSheet.completed = true;
+        answerSheet.completionReason = completionReason;
+        answerSheet.lastHeartbeatAt = completedAt;
+    }
+
+    await proctorTimeline.recordSystemEvent({
+        testid,
+        traineeid,
+        sessionId: proctorTimeline.buildSessionId(testid, traineeid),
+        eventType: 'EXAM_FINISHED',
+        message,
+        payload: {
+            trigger
+        },
+        dedupeKey: `session-finish:${testid}:${traineeid}:${trigger}`
+    });
+
+    return answerSheet;
+};
 
 let createEditTest = (req,res,next)=>{
     var _id = req.body._id || null;
@@ -457,45 +496,56 @@ let basicTestdetails = (req,res,next)=>{
         const candidateIds = candidates.map((candidate)=>candidate._id);
         const sheets = await AnswersheetModel.find(
             {testid:testid, userid: {$in: candidateIds}},
-            {_id:1,userid:1,startTime:1,completed:1}
+            {_id:1,userid:1,startTime:1,completed:1,lastHeartbeatAt:1,graceWindowUntil:1,disconnectCount:1,completionReason:1,lastSavedQuestionIndex:1}
         );
 
         const now = Date.now();
-        const durationSeconds = Number(test.duration || 0) * 60;
         const sheetByUser = new Map();
-        const expiredSheetIds = [];
+        const completionUpdates = [];
 
         sheets.forEach((sheet)=>{
             const userKey = String(sheet.userid);
-            const startTimeMs = Number(sheet.startTime || 0);
-            const elapsedSeconds = startTimeMs > 0 ? (now - startTimeMs) / 1000 : 0;
-            const hasExpired = !sheet.completed && durationSeconds > 0 && elapsedSeconds >= durationSeconds;
+            const hasTimedOut = !sheet.completed && sessionResilience.hasSessionTimedOut({
+                startTime: sheet.startTime,
+                durationMinutes: test.duration,
+                now
+            });
+            const graceExpired = !hasTimedOut && !sheet.completed && sessionResilience.hasGraceWindowExpired(sheet, now);
 
-            if (hasExpired) {
-                sheet.completed = true;
-                expiredSheetIds.push(sheet._id);
+            if (hasTimedOut) {
+                completionUpdates.push(finalizeCandidateSession({
+                    answerSheet: sheet,
+                    testid,
+                    traineeid: sheet.userid,
+                    completionReason: 'TIMEOUT',
+                    trigger: 'timeout',
+                    message: 'Exam ended because the session timer reached zero.'
+                }));
+            } else if (graceExpired) {
+                completionUpdates.push(finalizeCandidateSession({
+                    answerSheet: sheet,
+                    testid,
+                    traineeid: sheet.userid,
+                    completionReason: 'AUTO_TERMINATED',
+                    trigger: 'grace_expired',
+                    message: 'Exam ended because the connection was unavailable for too long.'
+                }));
             }
 
             sheetByUser.set(userKey, sheet);
         });
 
-        if (expiredSheetIds.length) {
-            await AnswersheetModel.updateMany(
-                {_id: {$in: expiredSheetIds}},
-                {completed: true}
-            );
+        if (completionUpdates.length) {
+            await Promise.all(completionUpdates);
         }
 
         const data = candidates.map((candidate)=>{
             const sheet = sheetByUser.get(String(candidate._id));
             const startedWriting = Boolean(sheet);
             const completed = Boolean(sheet && sheet.completed);
-
-            let pendingSeconds = null;
-            if (sheet && !completed && durationSeconds > 0) {
-                const elapsedSeconds = (now - Number(sheet.startTime || 0)) / 1000;
-                pendingSeconds = Math.max(0, Math.floor(durationSeconds - elapsedSeconds));
-            }
+            const pendingSeconds = sheet && !completed
+                ? sessionResilience.computeRemainingSeconds({ startTime: sheet.startTime, durationMinutes: test.duration, now })
+                : null;
 
             let status = 'not_started';
             if (completed) status = 'finished';
@@ -507,7 +557,13 @@ let basicTestdetails = (req,res,next)=>{
                     status,
                     startedWriting,
                     completed,
-                    pendingSeconds
+                    pendingSeconds,
+                    connectionStatus: sessionResilience.getSessionConnectionStatus(sheet, now),
+                    disconnectCount: sheet ? Number(sheet.disconnectCount || 0) : 0,
+                    lastHeartbeatAt: sheet && sheet.lastHeartbeatAt ? sheet.lastHeartbeatAt : null,
+                    graceWindowUntil: sheet && sheet.graceWindowUntil ? sheet.graceWindowUntil : null,
+                    completionReason: sheet && sheet.completionReason ? sheet.completionReason : null,
+                    lastSavedQuestionIndex: sheet ? Number(sheet.lastSavedQuestionIndex || 0) : 0
                 }
             };
         });
@@ -622,6 +678,8 @@ let endTest = async (req,res,next)=>{
             {testbegins:false,testconducted:true,isResultgenerated:true,isRegistrationavailable:false},
             {new: true}
         );
+
+        await AnswersheetModel.updateMany({ testid: id, completed: false }, { completed: true, completionReason: 'FORCED_BY_TRAINER', lastHeartbeatAt: new Date() });
 
         const candidates = await TraineeEnterModel.find({ testid: id }, { _id: 1 });
         await Promise.all(
@@ -990,3 +1048,6 @@ module.exports = {
     updateIntegrityConfig,
     getIntegrityConfig
 }
+
+
+

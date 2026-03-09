@@ -25,5 +25,10 @@
             "redisUrl": "",
             "channelPrefix": "exam-shield"
         }
+    },
+    "session": {
+        "graceWindowMs": 120000,
+        "heartbeatIntervalMs": 10000,
+        "heartbeatStaleMs": 25000
     }
 }

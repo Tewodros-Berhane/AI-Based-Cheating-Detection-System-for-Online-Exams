@@ -16,6 +16,9 @@ router.post('/preflight/start', preflight.startPreflight);
 router.post('/preflight/check', preflight.updatePreflightCheck);
 router.post('/preflight/complete', preflight.completePreflight);
 router.post('/preflight/latest', preflight.getLatestPreflight);
+router.post('/session/heartbeat', trainee.sessionHeartbeat);
+router.post('/session/resume', trainee.resumeSession);
+router.post('/answers/batch-save', trainee.batchSaveAnswers);
 router.post('/feedback',trainee.feedback);
 router.post('/resend/testlink',trainee.resendmail);
 router.post('/correct/answers',trainee.correctAnswers);
@@ -76,3 +79,4 @@ router.post('/fetch-test-by-examid', async (req, res) => {
 
 
 module.exports = router;
+

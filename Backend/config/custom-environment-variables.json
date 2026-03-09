@@ -25,5 +25,10 @@
       "redisUrl": "RELAY_REDIS_URL",
       "channelPrefix": "RELAY_CHANNEL_PREFIX"
     }
+  },
+  "session": {
+    "graceWindowMs": "SESSION_GRACE_WINDOW_MS",
+    "heartbeatIntervalMs": "SESSION_HEARTBEAT_INTERVAL_MS",
+    "heartbeatStaleMs": "SESSION_HEARTBEAT_STALE_MS"
   }
 }
