@@ -714,121 +714,482 @@ Add:
 
 ## 5. Accommodations + Moderation
 
-## 5.1 Objective
+## 5.1 Why Needed
 
-Support fair testing accommodations and structured moderation actions.
+Production-grade exam systems need two separate but related capabilities:
 
-Examples:
+1. **Accommodations**
+   These make the exam fair and accessible for candidates with approved needs. Examples include extra time, larger text, high-contrast UI, screen-reader allowance, and candidate-level integrity exceptions where policy permits.
 
-- extra time, visual adjustments, reduced proctor strictness where policy permits
-- trainer notes, warning acknowledgements, manual review outcomes
+2. **Moderation**
+   These give trainers controlled human intervention tools when something unusual happens during or after the exam. Examples include adding a note, excusing a flagged incident, extending time, force-submitting a session, or marking a session for further review.
 
-## 5.2 Data Model Changes
+Without this layer, the platform has three production risks:
 
-### A) Trainee accommodation profile
+- fairness risk: approved candidate adjustments are handled informally or inconsistently
+- operations risk: trainers have no structured way to intervene during live issues
+- audit risk: overrides happen without a durable record of who changed what and why
 
-Option 1 (minimal impact): extend `traineeenter`.
+The goal is to make every exception explicit, policy-driven, and fully auditable.
 
-File:
+## 5.2 Product Scope
 
-- `Backend/schemas/traineeenter.js`
+This section should be implemented as two coordinated features.
 
-Add nested object:
+### A) Accommodations
 
-- `accommodations`:
-  - `extraTimePercent` (Number, default 0)
-  - `highContrastMode` (Boolean)
-  - `largeTextMode` (Boolean)
-  - `screenReaderAllowed` (Boolean)
-  - `faceVerificationExempt` (Boolean)
-  - `notes` (String)
+Per-candidate, pre-approved changes to the candidate experience or enforcement policy.
 
-Option 2 (preferred for governance): new collection `accommodation_profiles`.
+Initial scope:
 
-### B) Moderation actions log
+- extra time in minutes
+- high-contrast mode
+- larger text mode
+- screen-reader allowance
+- face verification exemption
+- microphone exemption
+- screen-share exemption
+- fullscreen exemption
+- alternate exam start window
+- alternate exam end window
+- trainer notes explaining the accommodation
 
-Add files:
+### B) Moderation
 
-- `Backend/schemas/moderationAction.js` (new)
-- `Backend/models/moderationAction.js` (new)
+Live or post-exam trainer actions recorded against a candidate and optionally linked to a proctoring event.
 
-Fields:
+Initial scope:
 
-- `testid`, `traineeid`, `trainerid`
-- `actionType` (`WARN`, `NOTE`, `ESCALATE`, `CLEAR`, `DISQUALIFY`)
-- `reason`
-- `linkedEventId` (optional)
+- add note
+- acknowledge event
+- excuse event
+- confirm concern
+- warn candidate
+- extend time
+- reopen candidate session before final publication
+- force submit
+- disqualify / invalidate result
+- clear previously raised concern with reason
+
+## 5.3 Design Principles
+
+The implementation should follow these rules.
+
+1. **Candidate-specific, not global**
+   An accommodation applies to one candidate in one exam unless explicitly modeled as reusable.
+
+2. **Policy snapshot at runtime**
+   When the candidate enters the exam, the backend should compute an effective policy snapshot and persist it to the active session. Runtime logic should use that snapshot, not repeatedly re-read mixed sources.
+
+3. **No silent override**
+   Every moderation action must capture actor, timestamp, reason, and the before/after state when applicable.
+
+4. **Controlled mutability**
+   Some settings can change only before exam start. Others can change during the exam. The rules must be explicit.
+
+5. **Simple trainer UX**
+   Trainers should not see low-level system language. Actions should use plain labels like `Give extra time` and `Excuse this alert`.
+
+## 5.4 Data Model Plan
+
+### A) Preferred accommodation storage
+
+Create a dedicated collection instead of embedding everything directly into the trainee document.
+
+New files:
+
+- `Backend/schemas/accommodationProfile.js`
+- `Backend/models/accommodationProfile.js`
+
+Recommended schema:
+
+- `testid`: ObjectId, required
+- `traineeid`: ObjectId, required
+- `createdBy`: ObjectId, required
+- `updatedBy`: ObjectId, required
+- `status`: `ACTIVE | REVOKED`
+- `reason`: String, required
+- `notes`: String, optional
+- `timeAdjustments`:
+  - `extraTimeMinutes`: Number, default `0`
+  - `customStartAt`: Date, nullable
+  - `customEndAt`: Date, nullable
+- `uiAdjustments`:
+  - `highContrastMode`: Boolean
+  - `largeTextMode`: Boolean
+  - `screenReaderAllowed`: Boolean
+- `integrityOverrides`:
+  - `faceVerificationExempt`: Boolean
+  - `microphoneExempt`: Boolean
+  - `screenShareExempt`: Boolean
+  - `fullscreenExempt`: Boolean
+- `effectiveFrom`: Date
+- `effectiveUntil`: Date, nullable
+- `createdAt`, `updatedAt`
+
+Indexes:
+
+- `{ testid: 1, traineeid: 1, status: 1 }`
+- unique partial index for one active profile per candidate/exam:
+  - `{ testid: 1, traineeid: 1, status: 1 }` where `status = ACTIVE`
+
+Why this is preferred:
+
+- cleaner governance than mutating `traineeenter`
+- easier audit trail
+- supports later approval workflow if needed
+
+### B) Moderation action log
+
+New files:
+
+- `Backend/schemas/moderationAction.js`
+- `Backend/models/moderationAction.js`
+
+Recommended schema:
+
+- `testid`: ObjectId, required
+- `traineeid`: ObjectId, required
+- `trainerid`: ObjectId, required
+- `actionType`:
+  - `NOTE`
+  - `ACK_EVENT`
+  - `EXCUSE_EVENT`
+  - `CONFIRM_EVENT`
+  - `WARN_CANDIDATE`
+  - `EXTEND_TIME`
+  - `FORCE_SUBMIT`
+  - `REOPEN_SESSION`
+  - `DISQUALIFY`
+  - `CLEAR_CONCERN`
+- `reason`: String, required
+- `linkedEventId`: ObjectId, nullable
+- `payload`: Mixed object for action-specific data
+  - examples: `{ minutes: 10 }`, `{ oldStatus: 'FINISHED', newStatus: 'REOPENED' }`
+- `beforeState`: Mixed object, optional
+- `afterState`: Mixed object, optional
+- `visibleToCandidate`: Boolean, default `false`
 - `createdAt`
 
 Indexes:
 
 - `{ testid: 1, traineeid: 1, createdAt: -1 }`
+- `{ linkedEventId: 1 }`
 
-## 5.3 Backend Changes
+### C) Runtime snapshot on answer sheet
 
-### A) Accommodation management APIs
-
-Files:
-
-- `Backend/routes/trainee.js` (or new trainer route segment)
-- `Backend/services/trainee.js` and/or new `Backend/services/accommodations.js`
-
-Endpoints:
-
-- `POST /api/v1/test/candidate/accommodations/set`
-- `POST /api/v1/test/candidate/accommodations/get`
-
-### B) Apply accommodation rules in runtime
-
-Files:
-
-- `Backend/services/trainee.js`
-- `Backend/services/examStateMachine.js`
-
-Logic:
-
-- Effective duration = base duration + extra time.
-- If `faceVerificationExempt`, skip FR checks for that candidate only.
-- Track effective policy in answer sheet/session metadata.
-
-### C) Moderation endpoints
-
-Files:
-
-- `Backend/routes/testpaper.js`
-- `Backend/services/testpaper.js` or new `Backend/services/moderation.js`
-
-Endpoints:
-
-- `POST /api/v1/test/moderation/action`
-- `POST /api/v1/test/moderation/history`
-
-## 5.4 Frontend Changes
-
-Files:
-
-- `Frontend/src/components/trainer/conducttest/candidates.js`
-- `Frontend/src/components/trainer/conducttest/details.js`
-- New components:
-  - `Frontend/src/components/trainer/conducttest/accommodationEditor.js`
-  - `Frontend/src/components/trainer/conducttest/moderationPanel.js`
+Extend `Backend/schemas/answersheet.js` with a session snapshot so runtime logic is deterministic.
 
 Add:
 
-- Candidate row action to open accommodation editor.
-- Moderation action buttons with mandatory reason input.
-- Moderation timeline next to proctor events.
+- `effectiveDurationMinutes`
+- `effectiveIntegrityPolicy`
+  - `requireCamera`
+  - `requireMicrophone`
+  - `requireFullscreen`
+  - `requireScreenShare`
+  - `requireFaceVerification`
+- `effectiveUiAdjustments`
+  - `highContrastMode`
+  - `largeTextMode`
+  - `screenReaderAllowed`
+- `moderationStatus`
+  - `NORMAL`
+  - `UNDER_REVIEW`
+  - `WARNED`
+  - `FORCE_SUBMITTED`
+  - `DISQUALIFIED`
+  - `REOPENED`
+- `lastModerationActionAt`
+- `grantedExtraTimeMinutes`
 
-Trainee UI:
+This snapshot should be written when the candidate session is initialized and updated only by allowed moderation actions.
 
-- `Frontend/src/components/trainee/examPortal/*`
-- apply visual accommodations (font scale, contrast classes).
+### D) Result/report linkage
 
-## 5.5 Acceptance Criteria
+Extend the generated result/report path so moderation history is visible in exports.
 
-- Accommodations are applied deterministically per candidate.
-- Moderation actions are logged with actor + timestamp.
-- End-of-exam report includes moderation history.
+Touchpoints:
+
+- `Backend/schemas/results.js`
+- `Backend/services/generateResults.js`
+- `Backend/services/excel.js`
+
+Add to result/report output:
+
+- `moderationSummary`
+- `finalDisposition`
+- `accommodationSummary`
+
+## 5.5 Backend Execution Plan
+
+### A) New services
+
+Create:
+
+- `Backend/services/accommodations.js`
+- `Backend/services/moderation.js`
+
+Responsibilities:
+
+`accommodations.js`
+
+- validate trainer permission for candidate/test
+- upsert active accommodation profile
+- resolve effective policy for a candidate
+- merge exam-level integrity policy with candidate-level overrides
+- calculate effective duration and allowed windows
+
+`moderation.js`
+
+- validate allowed moderation action by session state
+- persist moderation action log
+- update answer sheet runtime snapshot where required
+- emit timeline-style audit event for trainer UI
+- optionally notify active candidate session over relay channel
+
+### B) Route additions
+
+Recommended endpoints:
+
+Trainer-side accommodations:
+
+- `POST /api/v1/test/candidate/accommodations/upsert`
+- `POST /api/v1/test/candidate/accommodations/get`
+- `POST /api/v1/test/candidate/accommodations/list`
+- `POST /api/v1/test/candidate/accommodations/revoke`
+
+Trainer-side moderation:
+
+- `POST /api/v1/test/moderation/action`
+- `POST /api/v1/test/moderation/history`
+- `POST /api/v1/test/moderation/summary`
+
+Candidate/runtime lookup:
+
+- `POST /api/v1/trainee/session/effective-policy`
+
+Suggested file touchpoints:
+
+- `Backend/routes/testpaper.js`
+- `Backend/routes/trainee.js`
+- `Backend/services/testpaper.js`
+- `Backend/services/trainee.js`
+- `Backend/services/proctorTimeline.js`
+
+### C) Runtime policy merge rules
+
+The runtime policy should be computed as:
+
+- base exam integrity mode/policy
+- plus candidate accommodation overrides
+- plus trainer moderation changes allowed during the exam
+
+Examples:
+
+- if exam requires microphone but candidate has `microphoneExempt = true`, effective session policy must set `requireMicrophone = false`
+- if exam has face recognition enabled but candidate has `faceVerificationExempt = true`, FR initialization and related preflight checks must be skipped for that candidate only
+- if extra time is granted, timer calculations must use `effectiveDurationMinutes`, not `test.duration`
+
+### D) Session-state enforcement rules
+
+Allowed mutations by state:
+
+| Candidate state | Allowed accommodation changes | Allowed moderation changes |
+|---|---|---|
+| Before start | all | note, warn |
+| In progress | time extension, UI adjustments, integrity exemptions only if policy allows | note, acknowledge, excuse, confirm, warn, extend time, force submit |
+| Finished before publication | none | note, excuse, confirm, reopen session, disqualify |
+| Published result | none | note only unless admin-grade override workflow is added later |
+
+### E) Candidate communication behavior
+
+Only candidate-visible moderation actions should surface in the trainee UI.
+
+Examples:
+
+- `WARN_CANDIDATE`: show in-session warning banner/modal
+- `EXTEND_TIME`: show neutral notice like `Your exam time was updated`
+- `FORCE_SUBMIT`: show final submission notice
+
+Everything else remains internal to trainer/reporting by default.
+
+## 5.6 Frontend Execution Plan
+
+### A) Trainer live operations UI
+
+Touchpoints:
+
+- `Frontend/src/components/trainer/conducttest/candidates.js`
+- `Frontend/src/components/trainer/conducttest/details.js`
+- `Frontend/src/components/trainer/conducttest/ProctorTimelineModal.js`
+
+New components:
+
+- `Frontend/src/components/trainer/conducttest/AccommodationEditor.js`
+- `Frontend/src/components/trainer/conducttest/ModerationPanel.js`
+- `Frontend/src/components/trainer/conducttest/ModerationHistoryDrawer.js`
+
+Required UX:
+
+- candidate row action: `Accommodations`
+- candidate row action: `Moderate`
+- moderation panel with mandatory reason field
+- timeline that interleaves proctor events and moderation actions
+- badges like `Extra time`, `Face check not required`, `Under review`
+
+### B) Trainer exam details UI
+
+Touchpoints:
+
+- `Frontend/src/components/trainer/testdetails/trainee.js`
+- `Frontend/src/components/trainer/testdetails/stats.js`
+
+Add:
+
+- accommodation summary column or subpanel
+- moderation history access from student details
+- final disposition line in result/details views
+
+### C) Trainee UI changes
+
+Touchpoints:
+
+- `Frontend/src/components/trainee/examPortal/instruction.js`
+- `Frontend/src/components/trainee/examPortal/preflightWizard.js`
+- `Frontend/src/components/trainee/examPortal/portal.js`
+- related CSS files in `Frontend/src/components/trainee/examPortal/`
+
+Behavior:
+
+- hide checks that are exempted for this candidate
+- adjust labels so the candidate sees only what applies to them
+- apply high-contrast / large-text classes from effective policy
+- show updated timer if extra time is granted
+- show candidate-facing moderation notice only for actions intended to be visible
+
+### D) Copy and UX rules
+
+Avoid internal terms in trainer-facing or candidate-facing text.
+
+Examples:
+
+- avoid: `faceVerificationExempt`
+- use: `Face check not required`
+
+- avoid: `moderation action logged`
+- use: `Trainer note saved`
+
+- avoid: `integrity override`
+- use: `Exam requirement adjusted`
+
+## 5.7 Reporting and Audit Plan
+
+The moderation trail should be visible in three places.
+
+1. live operations timeline
+2. exam details / student audit history
+3. exported result artifacts
+
+Excel/result export additions:
+
+- candidate accommodation summary
+- moderation action count
+- final disposition
+- last trainer note / last moderation timestamp
+
+This is important because a production review often happens after the session, not during it.
+
+## 5.8 Mermaid Flows
+
+### Accommodation resolution flow
+
+```mermaid
+graph TD
+  A["Trainer opens candidate actions"] --> B["Trainer saves accommodation profile"]
+  B --> C["Backend validates test, trainer, and candidate"]
+  C --> D["Accommodation profile stored"]
+  D --> E["Candidate session requests effective policy"]
+  E --> F["Backend merges exam policy and candidate overrides"]
+  F --> G["Answer sheet snapshot updated"]
+  G --> H["Preflight, timer, and exam UI use effective policy"]
+```
+
+### Moderation event flow
+
+```mermaid
+graph TD
+  A["Proctor event or trainer decision"] --> B["Trainer opens moderation panel"]
+  B --> C["Reason captured"]
+  C --> D["Moderation action stored"]
+  D --> E["Answer sheet state updated if needed"]
+  E --> F["Audit timeline refreshed"]
+  F --> G["Candidate notified only when action is candidate-visible"]
+```
+
+## 5.9 Rollout Phases
+
+### Phase 5.1 Foundation
+
+- create `accommodation_profiles`
+- create `moderation_actions`
+- extend `answersheet` runtime snapshot
+- add backend resolution helpers
+
+### Phase 5.2 Runtime support
+
+- candidate effective policy endpoint
+- timer extension support
+- preflight conditional checks based on candidate profile
+- face recognition / mic / screen-share exemptions per candidate
+
+### Phase 5.3 Trainer tools
+
+- accommodation editor UI
+- moderation panel UI
+- moderation history timeline integration
+
+### Phase 5.4 Reporting
+
+- moderation summary in result details
+- moderation/accommodation info in Excel/export
+
+## 5.10 Test Plan
+
+### Backend tests
+
+- active accommodation upsert per candidate/test
+- invalid trainer cannot modify another trainer?s candidate
+- extra time changes effective duration correctly
+- candidate-level FR exemption disables only FR-related checks
+- force submit writes moderation action and updates answer sheet state
+- reopened session requires explicit trainer reason and allowed state
+
+### Frontend tests
+
+- trainer can open/save accommodations
+- trainer cannot submit moderation without reason
+- trainee instruction/preflight hides exempted checks
+- timer updates when extra time is granted during exam
+- moderation history renders in candidate audit views
+
+### End-to-end tests
+
+- candidate with extra time receives longer timer than base exam duration
+- candidate with face-check exemption enters exam without FR flow
+- trainer warns candidate during live exam and candidate sees visible warning
+- trainer force submits candidate and session closes correctly
+- exam export includes accommodation and moderation summary
+
+## 5.11 Acceptance Criteria
+
+- one active accommodation profile exists per candidate per exam
+- effective policy is deterministic and stored with the session
+- candidate-facing checks respect accommodations consistently
+- moderation actions require reason and actor identity
+- trainer moderation history is visible in live operations and exam details
+- exports include moderation/accommodation summaries
+- no hidden or silent runtime override exists without an audit record
 
 ---
 
