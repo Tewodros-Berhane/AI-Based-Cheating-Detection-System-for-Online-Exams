@@ -64,7 +64,6 @@ var proctorRiskSnapshotSchema = new mongoose.Schema({
 });
 
 proctorRiskSnapshotSchema.index({ testid: 1, traineeid: 1 }, { unique: true });
-proctorRiskSnapshotSchema.index({ sessionId: 1 });
 proctorRiskSnapshotSchema.index({ severityLevel: 1, updatedAt: -1 });
 proctorRiskSnapshotSchema.index({ testid: 1, updatedAt: -1 });
 
