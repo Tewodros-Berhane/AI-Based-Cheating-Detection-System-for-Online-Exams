@@ -4,6 +4,7 @@ import { Button, Icon, message, Tag } from 'antd-compat';
 import { ProceedtoTest, fetchTestdata } from '../../../actions/traineeAction';
 import { MediaStreamContext } from '../../../contexts/MediaStreamContext';
 import PreflightWizard from './preflightWizard';
+import CandidateSupportPanel from './CandidateSupportPanel';
 import './portal.css';
 
 function Instruction(props) {
@@ -23,6 +24,19 @@ function Instruction(props) {
       requireScreenShare: Boolean(policy.requireScreenShare)
     };
   }, [props.trainee.examMeta]);
+
+  const uiAdjustments = useMemo(() => {
+    const adjustments = (props.trainee.examMeta && props.trainee.examMeta.uiAdjustments) || {};
+    return {
+      highContrastMode: Boolean(adjustments.highContrastMode),
+      largeTextMode: Boolean(adjustments.largeTextMode)
+    };
+  }, [props.trainee.examMeta]);
+
+  const uiClassName = [
+    uiAdjustments.highContrastMode ? 'is-high-contrast' : '',
+    uiAdjustments.largeTextMode ? 'is-large-text' : ''
+  ].filter(Boolean).join(' ');
 
   useEffect(() => {
     const hasVideoTrack =
@@ -209,7 +223,7 @@ function Instruction(props) {
   };
 
   return (
-    <div className="instruction-page-wrapper">
+    <div className={`instruction-page-wrapper ${uiClassName}`.trim()}>
       <div className="instruction-page-inner">
         <div className="instruction-header">
           <h2>Exam Readiness Checklist</h2>
@@ -245,6 +259,10 @@ function Instruction(props) {
             </ul>
           </section>
         </div>
+        <CandidateSupportPanel
+          supportSummary={props.trainee.supportSummary}
+          candidateNotices={props.trainee.candidateNotices}
+        />
         <div className={`permission-badge ${requiredPermissionsSatisfied ? 'granted' : 'pending'}`}>
           <Icon type={requiredPermissionsSatisfied ? 'check-circle' : 'warning'} />
           <span>

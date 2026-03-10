@@ -34,6 +34,25 @@ const MODERATION_MESSAGES = {
   [ACTION_TYPES.FORCE_SUBMIT]: 'Trainer force submitted the session.'
 };
 
+const CANDIDATE_NOTICE_COPY = {
+  [ACTION_TYPES.WARN_CANDIDATE]: {
+    title: 'Examiner notice',
+    tone: 'warning'
+  },
+  [ACTION_TYPES.EXTEND_TIME]: {
+    title: 'Extra time added',
+    tone: 'info'
+  },
+  [ACTION_TYPES.FORCE_SUBMIT]: {
+    title: 'Exam session ended',
+    tone: 'critical'
+  },
+  [ACTION_TYPES.NOTE]: {
+    title: 'Session update',
+    tone: 'info'
+  }
+};
+
 const MODERATION_TIMELINE = {
   [ACTION_TYPES.NOTE]: {
     eventType: 'TRAINER_NOTE',
@@ -119,6 +138,59 @@ const serializeAction = (action) => {
     visibleToCandidate: Boolean(plain.visibleToCandidate),
     createdAt: plain.createdAt || null
   };
+};
+
+const buildCandidateNoticeMessage = (plain) => {
+  const reason = normalizeString(plain && plain.reason);
+  if (reason) {
+    return reason;
+  }
+
+  if (plain && plain.actionType === ACTION_TYPES.EXTEND_TIME) {
+    const minutes = Number(plain.payload && plain.payload.minutes);
+    if (Number.isFinite(minutes) && minutes > 0) {
+      return `Your exam time was extended by ${minutes} minute${minutes === 1 ? '' : 's'}.`;
+    }
+    return 'Your exam time was extended.';
+  }
+
+  if (plain && plain.actionType === ACTION_TYPES.FORCE_SUBMIT) {
+    return 'Your exam session was submitted by the examiner.';
+  }
+
+  if (plain && plain.actionType === ACTION_TYPES.WARN_CANDIDATE) {
+    return 'Please review the examiner notice and continue carefully.';
+  }
+
+  return 'There is an update from the examiner for this session.';
+};
+
+const serializeCandidateNotice = (action) => {
+  const plain = typeof action.toObject === 'function' ? action.toObject() : action;
+  const definition = CANDIDATE_NOTICE_COPY[plain.actionType] || CANDIDATE_NOTICE_COPY[ACTION_TYPES.NOTE];
+  return {
+    id: String(plain._id),
+    actionType: plain.actionType,
+    title: definition.title,
+    tone: definition.tone,
+    message: buildCandidateNoticeMessage(plain),
+    createdAt: plain.createdAt || null,
+    visibleToCandidate: Boolean(plain.visibleToCandidate),
+    payload: plain.payload || {}
+  };
+};
+
+const listVisibleCandidateNotices = async ({ testid, traineeid, limit = 6 }) => {
+  const items = await ModerationActionModel.find({
+    testid,
+    traineeid,
+    visibleToCandidate: true
+  })
+    .sort({ createdAt: -1 })
+    .limit(Math.max(1, Math.min(Number(limit) || 6, 12)))
+    .lean();
+
+  return items.map(serializeCandidateNotice);
 };
 
 const ensureTrainerScopedCandidate = async ({ trainerid, testid, traineeid }) => {
@@ -483,6 +555,57 @@ const moderationHistory = async (req, res) => {
   } catch (error) {
     return handleModerationError(res, error, {
       trainerId: req.user && req.user._id,
+      testId: testid,
+      traineeId: traineeid
+    });
+  }
+};
+
+const candidateNotices = async (req, res) => {
+  const testid = req.body.testid;
+  const traineeid = req.body.traineeid || req.body.userid;
+
+  if (!testid || !traineeid) {
+    return res.json({
+      success: false,
+      message: 'Test id and trainee id are required.'
+    });
+  }
+
+  try {
+    const [test, trainee, items] = await Promise.all([
+      TestPaperModel.findById(testid, { _id: 1, title: 1, examID: 1 }),
+      TraineeEnterModel.findOne({ _id: traineeid, testid }, { _id: 1, traineeID: 1, name: 1, emailid: 1 }),
+      listVisibleCandidateNotices({ testid, traineeid, limit: req.body.limit || 6 })
+    ]);
+
+    if (!test || !trainee) {
+      return res.json({
+        success: false,
+        message: 'Invalid test or trainee id.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Candidate notices.',
+      data: {
+        test: {
+          _id: String(test._id),
+          title: test.title || '',
+          examID: test.examID || ''
+        },
+        trainee: {
+          _id: String(trainee._id),
+          traineeID: trainee.traineeID || '',
+          name: trainee.name || '',
+          emailid: trainee.emailid || ''
+        },
+        items
+      }
+    });
+  } catch (error) {
+    return handleModerationError(res, error, {
       testId: testid,
       traineeId: traineeid
     });

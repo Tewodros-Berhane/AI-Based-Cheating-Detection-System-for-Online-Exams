@@ -30,7 +30,14 @@ const buildFlagPayload = (raw = {}) => {
         lastHeartbeatAt: raw.lastHeartbeatAt || null,
         sessionConnectionStatus: raw.sessionConnectionStatus || 'idle',
         heartbeatIntervalMs: Number(raw.heartbeatIntervalMs || 10000),
-        graceWindowMs: Number(raw.graceWindowMs || 120000)
+        graceWindowMs: Number(raw.graceWindowMs || 120000),
+        supportSummary: raw.supportSummary || {
+            active: false,
+            headline: '',
+            items: [],
+            extraTimeMinutes: 0
+        },
+        candidateNotices: Array.isArray(raw.candidateNotices) ? raw.candidateNotices : []
     };
 };
 

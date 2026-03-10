@@ -36,6 +36,13 @@ const initialState = {
     sessionStatusMessage:'',
     hasOfflineChanges:false,
     lastSyncedAt:null,
+    supportSummary:{
+        active:false,
+        headline:'',
+        items:[],
+        extraTimeMinutes:0
+    },
+    candidateNotices:[],
     examMeta:{
         title:'',
         organisation:'',
@@ -107,6 +114,13 @@ const traineeReducer = (state = initialState, action )=>{
                 sessionStatusMessage:'',
                 hasOfflineChanges:false,
                 lastSyncedAt:null,
+                supportSummary:{
+                    active:false,
+                    headline:'',
+                    items:[],
+                    extraTimeMinutes:0
+                },
+                candidateNotices:[],
                 activeQuestionIndex:0,
                 answers:[],
                 questions:[],
@@ -142,6 +156,8 @@ const traineeReducer = (state = initialState, action )=>{
                 sessionConnectionStatus:action.payload.sessionConnectionStatus || state.sessionConnectionStatus,
                 heartbeatIntervalMs:Number(action.payload.heartbeatIntervalMs || state.heartbeatIntervalMs || 10000),
                 graceWindowMs:Number(action.payload.graceWindowMs || state.graceWindowMs || 120000),
+                supportSummary:action.payload.supportSummary || state.supportSummary,
+                candidateNotices:Array.isArray(action.payload.candidateNotices) ? action.payload.candidateNotices : state.candidateNotices,
                 invalidUrl:false,
                 initialloading1:false
             }

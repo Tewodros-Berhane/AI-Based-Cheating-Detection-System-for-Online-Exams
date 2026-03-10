@@ -15,6 +15,7 @@ const integrityPolicy = require("./integrityPolicy");
 const proctorTimeline = require('./proctorTimeline');
 const sessionResilience = require('./sessionResilience');
 const accommodations = require('./accommodations');
+const moderation = require('./moderation');
 
 let getFrontendBaseUrl = (req) => {
     if (config.has('services.frontendBaseUrl')) {
@@ -195,6 +196,85 @@ let buildExamMeta = (test, runtimeContext = null) => {
         preflightEnabled: integrity.preflightEnabled,
         grantedExtraTimeMinutes: Number(context.grantedExtraTimeMinutes || 0),
         uiAdjustments: mergeUiAdjustments(context.effectiveUiAdjustments)
+    };
+};
+
+let buildSupportSummary = ({ test, examMeta }) => {
+    if (!test || !examMeta) {
+        return {
+            active: false,
+            headline: '',
+            items: []
+        };
+    }
+
+    const baseIntegrity = integrityPolicy.resolveIntegrityPolicy(
+        integrityPolicy.normalizeIntegrityMode(test.integrityMode),
+        test && test.integrityPolicy ? test.integrityPolicy : {}
+    );
+    if (!Boolean(test && test.faceRecognitionEnabled)) {
+        baseIntegrity.requireFaceVerification = false;
+    }
+
+    const effectiveIntegrity = examMeta.integrityPolicy || baseIntegrity;
+    const uiAdjustments = mergeUiAdjustments(examMeta.uiAdjustments);
+    const items = [];
+    const extraTimeMinutes = Number(examMeta.grantedExtraTimeMinutes || 0);
+
+    if (extraTimeMinutes > 0) {
+        items.push({
+            key: 'extra-time',
+            label: '+' + extraTimeMinutes + ' minute' + (extraTimeMinutes === 1 ? '' : 's') + ' extra time'
+        });
+    }
+    if (uiAdjustments.largeTextMode) {
+        items.push({
+            key: 'large-text',
+            label: 'Large text enabled'
+        });
+    }
+    if (uiAdjustments.highContrastMode) {
+        items.push({
+            key: 'high-contrast',
+            label: 'High contrast enabled'
+        });
+    }
+    if (uiAdjustments.screenReaderAllowed) {
+        items.push({
+            key: 'screen-reader',
+            label: 'Screen reader allowed'
+        });
+    }
+    if (baseIntegrity.requireFaceVerification && !effectiveIntegrity.requireFaceVerification) {
+        items.push({
+            key: 'face-check-waived',
+            label: 'Face verification waived'
+        });
+    }
+    if (baseIntegrity.requireMicrophone && !effectiveIntegrity.requireMicrophone) {
+        items.push({
+            key: 'microphone-waived',
+            label: 'Microphone check waived'
+        });
+    }
+    if (baseIntegrity.requireScreenShare && !effectiveIntegrity.requireScreenShare) {
+        items.push({
+            key: 'screen-share-waived',
+            label: 'Screen sharing waived'
+        });
+    }
+    if (baseIntegrity.requireFullscreen && !effectiveIntegrity.requireFullscreen) {
+        items.push({
+            key: 'fullscreen-waived',
+            label: 'Fullscreen requirement waived'
+        });
+    }
+
+    return {
+        active: items.length > 0,
+        headline: items.length > 0 ? 'Support settings are active for this exam.' : '',
+        items,
+        extraTimeMinutes
     };
 };
 
@@ -1011,7 +1091,7 @@ let flags = async (req,res,next)=>{
     var traineeid = req.body.traineeid;
 
     try {
-        const [answerSheet, trainee, test, accommodationProfile] = await Promise.all([
+        const [answerSheet, trainee, test, accommodationProfile, candidateNotices] = await Promise.all([
             loadActiveSession({ testid, traineeid }),
             TraineeEnterModel.findOne({_id : traineeid , testid : testid},{_id : 1}),
             TestPaperModel.findById(testid,{
@@ -1028,7 +1108,8 @@ let flags = async (req,res,next)=>{
                 questions : 1,
                 isResultgenerated: 1
             }),
-            accommodations.getActiveAccommodationProfile(testid, traineeid)
+            accommodations.getActiveAccommodationProfile(testid, traineeid),
+            moderation.listVisibleCandidateNotices({ testid, traineeid })
         ]);
 
         if(!trainee || !test){
@@ -1072,6 +1153,7 @@ let flags = async (req,res,next)=>{
         }
 
         const sessionData = buildSessionResponse({ test, answerSheet: activeSheet, now: Date.now(), resolvedAccommodation });
+        const supportSummary = buildSupportSummary({ test, examMeta: sessionData.examMeta });
         return res.json({
             success : true,
             message : 'Successful',
@@ -1094,7 +1176,9 @@ let flags = async (req,res,next)=>{
                 lastHeartbeatAt: sessionData.lastHeartbeatAt,
                 sessionConnectionStatus: sessionData.sessionConnectionStatus,
                 heartbeatIntervalMs: sessionData.heartbeatIntervalMs,
-                graceWindowMs: sessionData.graceWindowMs
+                graceWindowMs: sessionData.graceWindowMs,
+                supportSummary,
+                candidateNotices
             }
         });
     } catch (error) {

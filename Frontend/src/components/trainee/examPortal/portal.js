@@ -11,6 +11,7 @@ import TraineeStreamSender from '../TraineeStreamSender';
 import WebRTCServer from '../WebRTCServer';
 import TraineeSessionManager from '../TraineeSessionManager';
 import FaceRecognition from '../FaceRecognition';
+import CandidateSupportPanel from './CandidateSupportPanel';
 import { sendMonitoringEvent, traineeSessionEventName } from '../../../services/traineeSession';
 import withRouter from '../../../utils/withRouter';
 
@@ -180,6 +181,14 @@ class MainPortal extends Component {
         if (typeof context.setControlChannel === 'function') {
             context.setControlChannel(null);
         }
+    };
+
+    getUiClassName = () => {
+        const uiAdjustments = (this.props.trainee && this.props.trainee.examMeta && this.props.trainee.examMeta.uiAdjustments) || {};
+        return [
+            uiAdjustments.highContrastMode ? 'is-high-contrast' : '',
+            uiAdjustments.largeTextMode ? 'is-large-text' : ''
+        ].filter(Boolean).join(' ');
     };
 
     emitProctorEvent = (eventType, options = {}) => {
@@ -390,6 +399,7 @@ handleIdSubmit = async (e) => {
     render() {
         const { showIdForm } = this.state;
         const { trainee } = this.props;
+        const uiClassName = this.getUiClassName();
         
         // Destructure relevant props from trainee AFTER it's defined
         const {
@@ -513,33 +523,50 @@ handleIdSubmit = async (e) => {
 
         // Existing rendering logic based on Redux state
         if (LocaltestDone) {
-            return <div><Answer /></div>;
+            return <div className={`trainee-ui-shell ${uiClassName}`.trim()}><Answer /></div>;
         }
         if (testconducted) {
             return (
-                <div className="Test-portal-not-started-yet-wrapper">
-                    <div className="Test-portal-not-started-yet-inner app-glass-card">
-                        <Title className="Test-portal-not-started-yet-inner-message" level={4}>This exam session has ended.</Title>
-                        <p className="trainee-status-supporting-text">The examiner closed this session. If you need help, contact your examiner.</p>
+                <div className={`Test-portal-not-started-yet-wrapper ${uiClassName}`.trim()}>
+                    <div className="trainee-status-stack">
+                        <div className="Test-portal-not-started-yet-inner app-glass-card">
+                            <Title className="Test-portal-not-started-yet-inner-message" level={4}>This exam session has ended.</Title>
+                            <p className="trainee-status-supporting-text">The examiner closed this session. If you need help, contact your examiner.</p>
+                        </div>
+                        <CandidateSupportPanel
+                            supportSummary={trainee.supportSummary}
+                            candidateNotices={trainee.candidateNotices}
+                        />
                     </div>
                 </div>
             );
         }
         if (!testbegins) {
             return (
-                <div className="Test-portal-not-started-yet-wrapper">
-                    <div className="Test-portal-not-started-yet-inner app-glass-card">
-                        <Title className="Test-portal-not-started-yet-inner-message" level={4}>Exam has not started yet.</Title>
-                        <p className="trainee-status-supporting-text">Keep this page open. You will be redirected automatically once the exam begins.</p>
+                <div className={`Test-portal-not-started-yet-wrapper ${uiClassName}`.trim()}>
+                    <div className="trainee-status-stack">
+                        <div className="Test-portal-not-started-yet-inner app-glass-card">
+                            <Title className="Test-portal-not-started-yet-inner-message" level={4}>Exam has not started yet.</Title>
+                            <p className="trainee-status-supporting-text">Keep this page open. You will be redirected automatically once the exam begins.</p>
+                        </div>
+                        <CandidateSupportPanel
+                            supportSummary={trainee.supportSummary}
+                            candidateNotices={trainee.candidateNotices}
+                        />
                     </div>
                 </div>
             );
         }
         if (startedWriting) {
             return (
-                <div>
+                <div className={`trainee-ui-shell ${uiClassName}`.trim()}>
                     {traineeid && <TraineeSessionManager traineeId={traineeid} testId={testid} />}
                     {sessionBanner}
+                    <CandidateSupportPanel
+                        supportSummary={trainee.supportSummary}
+                        candidateNotices={trainee.candidateNotices}
+                        compact
+                    />
                     <TestBoard />
                     {traineeid && testid &&
                         <TraineeStreamSender

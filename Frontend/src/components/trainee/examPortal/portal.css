@@ -947,3 +947,244 @@
 .trainee-session-banner.is-finished strong {
   color: #fecaca;
 }
+
+.trainee-status-stack {
+  width: min(920px, 100%);
+  display: grid;
+  gap: 14px;
+}
+
+.trainee-ui-shell {
+  width: 100%;
+}
+
+.candidate-support-panel {
+  width: min(1180px, calc(100vw - 2rem));
+  margin: 14px auto 0;
+  display: grid;
+  gap: 12px;
+}
+
+.candidate-support-panel.is-compact {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.candidate-support-card,
+.candidate-notices-card {
+  border-radius: 16px;
+  border: 1px solid var(--border-soft);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.14), transparent 44%),
+    rgba(16, 26, 46, 0.88);
+  box-shadow: var(--shadow-soft);
+  padding: 14px 16px;
+}
+
+.candidate-support-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.candidate-support-kicker {
+  display: inline-block;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.candidate-support-card h3,
+.candidate-notices-card h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.candidate-support-tag.ant-tag {
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(59, 130, 246, 0.42) !important;
+  background: rgba(59, 130, 246, 0.16) !important;
+  color: #bfdbfe !important;
+  font-weight: 800 !important;
+}
+
+.candidate-support-chip-list {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.candidate-support-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(7, 13, 25, 0.74);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.candidate-notice-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.candidate-notice-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: flex-start;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  background: rgba(7, 13, 25, 0.68);
+  padding: 12px;
+}
+
+.candidate-notice-item.is-warning {
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.candidate-notice-item.is-critical {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.candidate-notice-item.is-info {
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.candidate-notice-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.16);
+  color: #bfdbfe;
+  font-size: 16px;
+}
+
+.candidate-notice-item.is-warning .candidate-notice-icon {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fde68a;
+}
+
+.candidate-notice-item.is-critical .candidate-notice-icon {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
+}
+
+.candidate-notice-body {
+  min-width: 0;
+}
+
+.candidate-notice-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.candidate-notice-title-row strong {
+  color: var(--text-primary);
+  font-size: 0.92rem;
+}
+
+.candidate-notice-title-row span {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.candidate-notice-body p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.instruction-page-wrapper.is-large-text,
+.Test-portal-not-started-yet-wrapper.is-large-text,
+.trainee-ui-shell.is-large-text {
+  font-size: 1.06rem;
+}
+
+.instruction-page-wrapper.is-large-text .instruction-header h2,
+.trainee-ui-shell.is-large-text .exam-session-title,
+.trainee-ui-shell.is-large-text .question-body-title,
+.Test-portal-not-started-yet-wrapper.is-large-text .Test-portal-not-started-yet-inner-message {
+  font-size: 1.15em;
+}
+
+.instruction-page-wrapper.is-large-text .instruction-block ul,
+.trainee-ui-shell.is-large-text .option-label,
+.trainee-ui-shell.is-large-text .question-body,
+.trainee-ui-shell.is-large-text .question-session-user-name,
+.Test-portal-not-started-yet-wrapper.is-large-text .trainee-status-supporting-text {
+  font-size: 1.02em;
+}
+
+.instruction-page-wrapper.is-high-contrast .instruction-page-inner,
+.Test-portal-not-started-yet-wrapper.is-high-contrast .Test-portal-not-started-yet-inner,
+.trainee-ui-shell.is-high-contrast .single-question-container,
+.trainee-ui-shell.is-high-contrast .side-panel-in-exam-dashboard,
+.trainee-ui-shell.is-high-contrast .candidate-support-card,
+.trainee-ui-shell.is-high-contrast .candidate-notices-card,
+.instruction-page-wrapper.is-high-contrast .candidate-support-card,
+.instruction-page-wrapper.is-high-contrast .candidate-notices-card,
+.Test-portal-not-started-yet-wrapper.is-high-contrast .candidate-support-card,
+.Test-portal-not-started-yet-wrapper.is-high-contrast .candidate-notices-card {
+  border-color: rgba(191, 219, 254, 0.58);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(96, 165, 250, 0.18), transparent 44%),
+    rgba(3, 7, 18, 0.96);
+}
+
+.instruction-page-wrapper.is-high-contrast .instruction-block,
+.trainee-ui-shell.is-high-contrast .question-panel,
+.trainee-ui-shell.is-high-contrast .exam-question-info,
+.trainee-ui-shell.is-high-contrast .question-list-wrapper,
+.trainee-ui-shell.is-high-contrast .candidate-notice-item,
+.instruction-page-wrapper.is-high-contrast .candidate-notice-item,
+.Test-portal-not-started-yet-wrapper.is-high-contrast .candidate-notice-item {
+  background: rgba(2, 6, 23, 0.94);
+  border-color: rgba(191, 219, 254, 0.42);
+}
+
+.instruction-page-wrapper.is-high-contrast .instruction-block ul,
+.trainee-ui-shell.is-high-contrast .option-label,
+.trainee-ui-shell.is-high-contrast .candidate-support-chip,
+.trainee-ui-shell.is-high-contrast .candidate-notice-body p,
+.instruction-page-wrapper.is-high-contrast .candidate-support-chip,
+.instruction-page-wrapper.is-high-contrast .candidate-notice-body p {
+  color: #e5edf9;
+}
+
+@media (max-width: 980px) {
+  .candidate-support-panel {
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .candidate-support-card-head,
+  .candidate-notice-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .candidate-notice-item {
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 10px;
+  }
+}
