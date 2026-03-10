@@ -502,7 +502,7 @@ function Welcome({ user }) {
             </div>
             <div className="trainer-insight-note">
               Focus next: {(dashboard?.stats?.examsNeedingReview || 0) > 0
-                ? 'Open the flagged exam list and review low-quality items before reusing them.'
+                ? 'Some exams need question review before you reuse them.'
                 : (pipeline.inProgress > 0 ? 'Monitor active sessions and candidate alerts.' : 'Publish results and open the next exam window.')}
             </div>
           </Card>
