@@ -63,6 +63,8 @@ const apis = {
     GET_TEST_CANDIDATES :'/api/v1/test/candidates',
     GET_PROCTOR_SUMMARY:'/api/v1/test/proctor/summary',
     GET_PROCTOR_EVENTS:'/api/v1/test/proctor/events',
+    GET_TEST_PSYCHOMETRIC_OVERVIEW:'/api/v1/test/psychometrics/overview',
+    GET_TEST_PSYCHOMETRIC_QUESTIONS:'/api/v1/test/psychometrics/questions',
     ACK_PROCTOR_EVENT:'/api/v1/test/proctor/event/ack',
     ESCALATE_PROCTOR_EVENT:'/api/v1/test/proctor/event/escalate',
     UPSERT_CANDIDATE_ACCOMMODATION:'/api/v1/test/candidate/accommodations/upsert',
@@ -103,4 +105,5 @@ const apis = {
 };
 
 export default apis;
+
 
