@@ -346,7 +346,7 @@ export const endTraineeTest = async ({
   refreshTestState
 }) => {
   if (!traineeId || !testId) {
-    return { success: false, message: 'Missing trainee id or test id.' };
+    return { success: false, message: 'Missing examinee ID or exam ID.' };
   }
 
   if (endingInProgress) {
@@ -397,7 +397,7 @@ export const endTraineeTest = async ({
 
     return payload;
   } catch (error) {
-    console.error('Unable to end trainee test:', error);
+    console.error('Unable to end examinee test:', error);
     return { success: false, message: 'Server error while ending test.' };
   } finally {
     endingInProgress = false;

@@ -100,7 +100,7 @@ const canApplyAction = (test, action) => {
       return {
         ok: false,
         state,
-        reason: 'Trainee actions are only allowed while exam is IN_PROGRESS.'
+        reason: 'Examinee actions are only allowed while exam is IN_PROGRESS.'
       };
     }
     return { ok: true, state };

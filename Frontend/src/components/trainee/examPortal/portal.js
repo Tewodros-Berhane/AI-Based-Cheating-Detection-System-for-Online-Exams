@@ -24,7 +24,7 @@ class MainPortal extends Component {
         super(props);
         const params = new URLSearchParams(this.props.location.search);
         const testid = params.get('testid');
-        const traineeid = params.get('traineeid');
+        const traineeid = params.get('examineeid') || params.get('traineeid');
         this.state = {
             // testDetails will now primarily be driven by Redux state once IDs are known,
             // but we can use it for initial URL params.
@@ -252,7 +252,7 @@ class MainPortal extends Component {
             (prevProps.trainee.initialloading1 || prevProps.trainee.initialloading2)) { // and we were previously loading
             this.setState({
                 showIdForm: true, // Show the form again
-                formSubmissionError: 'Invalid Test ID or Trainee ID. Please check and try again.', // Set a specific error
+                formSubmissionError: 'Invalid exam ID or examinee ID. Please check and try again.', // Set a specific error
                 attemptedFetchWithFormIds: false, // Reset flag
             });
         }
@@ -271,7 +271,7 @@ handleIdSubmit = async (e) => {
 
   // Basic validation
   if (!examID || !traineeID) {
-    this.setState({ formSubmissionError: 'Both Test ID and Trainee ID are required.' });
+    this.setState({ formSubmissionError: 'Both exam ID and examinee ID are required.' });
     return;
   }
 
@@ -289,7 +289,7 @@ handleIdSubmit = async (e) => {
     if (!traineeResult || !traineeResult.success || !traineeResult.data || !traineeResult.data._id) {
       const errorMsg = (traineeResult && traineeResult.message) 
         ? traineeResult.message 
-        : 'Invalid trainee response';
+        : 'Invalid examinee response';
       throw new Error(errorMsg);
     }
     
@@ -317,7 +317,7 @@ handleIdSubmit = async (e) => {
     // 4. Update URL
     const newSearch = new URLSearchParams({
       testid: testMongoId,
-      traineeid: traineeMongoId
+      examineeid: traineeMongoId
     }).toString();
     this.props.history.push(`${this.props.location.pathname}?${newSearch}`);
 
@@ -353,7 +353,7 @@ handleIdSubmit = async (e) => {
                             )}
                             <Form layout="vertical" className="trainee-access-form">
                                 <Form.Item
-                                    label="Candidate ID"
+                                    label="Examinee ID"
                                     name="formTraineeId"
                                     htmlFor="formTraineeId"
                                 >
@@ -363,7 +363,7 @@ handleIdSubmit = async (e) => {
                                         value={formTraineeId}
                                         onChange={this.handleInputChange}
                                         onPressEnter={this.handleIdSubmit}
-                                        placeholder="Enter your candidate ID"
+                                        placeholder="Enter your examinee ID"
                                         size="large"
                                     />
                                 </Form.Item>

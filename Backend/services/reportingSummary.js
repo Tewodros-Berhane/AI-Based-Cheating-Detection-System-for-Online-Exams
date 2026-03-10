@@ -1,7 +1,7 @@
 const integrityPolicy = require('./integrityPolicy');
 
 const ACTION_LABELS = {
-  NOTE: 'trainer note',
+  NOTE: 'examiner note',
   WARN_CANDIDATE: 'warning',
   EXTEND_TIME: 'time extension',
   FORCE_SUBMIT: 'force submit',
@@ -105,7 +105,7 @@ const buildActionCounts = (actions = []) => actions.reduce((accumulator, action)
 
 const buildModerationSummaryLine = (actions = [], counts = {}) => {
   if (!actions.length) {
-    return 'No trainer actions recorded';
+    return 'No examiner actions recorded';
   }
 
   const priorityOrder = ['DISQUALIFY', 'FORCE_SUBMIT', 'REOPEN_SESSION', 'CONFIRM_EVENT', 'EXCUSE_EVENT', 'WARN_CANDIDATE', 'EXTEND_TIME', 'NOTE'];
@@ -154,7 +154,7 @@ const buildFinalDisposition = ({ answerSheet, actions = [] }) => {
   }
 
   if (actions.length > 0) {
-    return { label: 'Completed with trainer review', tone: 'monitoring' };
+    return { label: 'Completed with examiner review', tone: 'monitoring' };
   }
 
   return { label: COMPLETION_LABELS[completionReason] || 'Completed normally', tone: 'safe' };

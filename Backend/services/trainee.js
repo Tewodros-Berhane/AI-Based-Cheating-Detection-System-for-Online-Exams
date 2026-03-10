@@ -28,7 +28,7 @@ let getFrontendBaseUrl = (req) => {
 };
 
 let buildTestLink = (req, testid, traineeid) => {
-    return `${getFrontendBaseUrl(req)}/trainee/taketest?testid=${testid}&traineeid=${traineeid}`;
+    return `${getFrontendBaseUrl(req)}/examinee/taketest?testid=${testid}&examineeid=${traineeid}`;
 };
 
 let getMailFailureMessage = (error) => {
@@ -612,8 +612,8 @@ let traineeenter = async (req, res, next) => {
                 </ul>
 
                 <div style="margin: 25px 0; text-align: center; border: 1px solid #30363d; padding: 10px; color: #c9d1d9;">
-                <p> This is your id: <strong> ${generatedTraineeID} </strong> </p>
-                <p> This is the exam id: <strong> ${examID} </strong> </p>
+                <p> Your examinee ID: <strong> ${generatedTraineeID} </strong> </p>
+                <p> Your exam ID: <strong> ${examID} </strong> </p>
                 </div>
 
                 <h3 style="color: #58a6ff; margin-top: 25px;">Important Instructions</h3>
@@ -636,7 +636,7 @@ let traineeenter = async (req, res, next) => {
             `;
 
     let emailDelivered = true;
-    let registrationMessage = 'Trainee registered successfully!';
+    let registrationMessage = 'Examinee registered successfully!';
 
     try {
       await sendmail(
@@ -867,8 +867,8 @@ let resendmail = (req, res, next) => {
                 </ul>
 
                 <div style="margin: 25px 0; text-align: center; border: 1px solid #30363d; padding: 10px; color: #c9d1d9;">
-                <p> This is your id: <strong> ${info.traineeID || info._id} </strong> </p>
-                <p> This is the exam id: <strong> ${test.examID || info.testid} </strong> </p>
+                <p> Your examinee ID: <strong> ${info.traineeID || info._id} </strong> </p>
+                <p> Your exam ID: <strong> ${test.examID || info.testid} </strong> </p>
                 </div>
 
                 <h3 style="color: #58a6ff; margin-top: 25px;">Important Instructions</h3>
@@ -1225,13 +1225,13 @@ let TraineeDetails = (req,res,next)=>{
         if(info){
             res.json({
                 success : true,
-                message : 'Trainee details',
+                message : 'Examinee details',
                 data : info
             })
         }else{
             res.json({
                 success : false,
-                message : 'This trainee does not exists'
+                message : 'This examinee does not exist'
             })
         }
     }).catch((error)=>{

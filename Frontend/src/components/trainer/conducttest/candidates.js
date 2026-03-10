@@ -175,7 +175,7 @@ class Candidates extends Component {
 
   getExamLink = (traineeId) => {
     const base = apis.BASE_LOCAL_URL || window.location.origin;
-    return `${base}/trainee/taketest?testid=${this.props.conduct.id}&traineeid=${traineeId}`;
+    return `${base}/examinee/taketest?testid=${this.props.conduct.id}&examineeid=${traineeId}`;
   };
 
   copyToClipboard = async (value) => {
@@ -352,7 +352,7 @@ class Candidates extends Component {
                               type="button"
                               className="conduct-link-copy-btn"
                               onClick={() => this.copyToClipboard(examLink)}
-                              aria-label="Copy student exam link"
+                              aria-label="Copy examinee exam link"
                             >
                               <Copy size={14} strokeWidth={2.3} />
                             </button>
@@ -369,7 +369,7 @@ class Candidates extends Component {
                         </td>
                         <td data-label="Actions">
                           <div className="admin-row-actions conduct-row-actions">
-                            <Tooltip title="Open support settings and trainer actions">
+                            <Tooltip title="Open support settings and examiner actions">
                               <Button
                                 className="admin-icon-btn"
                                 shape="circle"

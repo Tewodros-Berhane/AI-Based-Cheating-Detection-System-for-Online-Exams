@@ -77,12 +77,12 @@ const EVENT_RULES = {
   },
   TRAINER_ESCALATE: {
     baseScore: 80,
-    message: 'Trainer escalated a proctoring event.',
+    message: 'Examiner escalated a proctoring event.',
     defaultConfidence: 1
   },
   TRAINER_ACK: {
     baseScore: 0,
-    message: 'Trainer acknowledged an event.',
+    message: 'Examiner acknowledged an event.',
     defaultConfidence: 1
   }
 };

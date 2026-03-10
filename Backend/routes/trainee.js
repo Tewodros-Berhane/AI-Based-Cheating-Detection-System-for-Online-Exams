@@ -44,7 +44,7 @@ router.post('/fetch-trainee-by-traineeid', async (req, res) => {
   if (!trainee) {
     return res.status(404).json({ 
       success: false, 
-      message: "Trainee not found" 
+      message: "Examinee not found" 
     });
   }
 

@@ -47,10 +47,10 @@ const ACTION_RULES = {
 };
 
 const MODERATION_MESSAGES = {
-  [ACTION_TYPES.NOTE]: 'Trainer note saved.',
-  [ACTION_TYPES.WARN_CANDIDATE]: 'Trainer warning issued.',
-  [ACTION_TYPES.EXTEND_TIME]: 'Trainer updated the exam time.',
-  [ACTION_TYPES.FORCE_SUBMIT]: 'Trainer force submitted the session.',
+  [ACTION_TYPES.NOTE]: 'Examiner note saved.',
+  [ACTION_TYPES.WARN_CANDIDATE]: 'Examiner warning issued.',
+  [ACTION_TYPES.EXTEND_TIME]: 'Examiner updated the exam time.',
+  [ACTION_TYPES.FORCE_SUBMIT]: 'Examiner force submitted the session.',
   [ACTION_TYPES.CONFIRM_EVENT]: 'Incident marked for review.',
   [ACTION_TYPES.EXCUSE_EVENT]: 'Incident excused.',
   [ACTION_TYPES.REOPEN_SESSION]: 'Candidate session reopened.',
@@ -323,7 +323,7 @@ const ensureTrainerScopedCandidate = async ({ trainerid, testid, traineeid }) =>
   }
 
   if (!trainee) {
-    const error = new Error('Invalid trainee id.');
+    const error = new Error('Invalid examinee id.');
     error.code = 'INVALID_TRAINEE';
     throw error;
   }
@@ -416,7 +416,7 @@ const recordModerationTimelineEvent = async ({ testid, traineeid, actionType, tr
     sessionId: proctorTimeline.buildSessionId(testid, traineeid),
     source: 'TRAINER',
     eventType: definition.eventType,
-    message: reason || MODERATION_MESSAGES[actionType] || 'Trainer action recorded.',
+    message: reason || MODERATION_MESSAGES[actionType] || 'Examiner action recorded.',
     payload: {
       trainerid,
       actionType,
@@ -619,7 +619,7 @@ const applyModerationAction = async ({ trainerid, testid, traineeid, actionType,
       sessionId: proctorTimeline.buildSessionId(testid, traineeid),
       source: 'TRAINER',
       eventType: 'EXAM_FINISHED',
-      message: 'Trainer force submitted the exam session.',
+      message: 'Examiner force submitted the exam session.',
       payload: {
         trigger: 'trainer_force_submit'
       },
@@ -981,7 +981,7 @@ const candidateNotices = async (req, res) => {
   if (!testid || !traineeid) {
     return res.json({
       success: false,
-      message: 'Test id and trainee id are required.'
+      message: 'Test id and examinee id are required.'
     });
   }
 
@@ -995,7 +995,7 @@ const candidateNotices = async (req, res) => {
     if (!test || !trainee) {
       return res.json({
         success: false,
-        message: 'Invalid test or trainee id.'
+        message: 'Invalid test or examinee id.'
       });
     }
 

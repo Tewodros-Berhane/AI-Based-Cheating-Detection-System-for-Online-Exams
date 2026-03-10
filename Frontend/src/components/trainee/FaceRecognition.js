@@ -341,12 +341,12 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
         });
 
         if (!response.data.success || !response.data.data) {
-          throw new Error(response.data.message || 'Could not fetch trainee details');
+          throw new Error(response.data.message || 'Could not fetch examinee details');
         }
 
         const details = response.data.data;
         if (!details.faceImageUrl) {
-          throw new Error('No registered face image found for trainee');
+          throw new Error('No registered face image found for examinee');
         }
 
         traineeIdRef.current = details._id || initialTraineeId;

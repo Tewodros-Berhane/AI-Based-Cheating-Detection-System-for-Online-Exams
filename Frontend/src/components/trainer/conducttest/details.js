@@ -50,7 +50,7 @@ class TestDetails extends React.Component {
       return;
     }
     const base = `${window.location.protocol}//${window.location.host}/`;
-    const registerLink = `${base}trainee/register?testid=${this.props.conduct.id}`;
+    const registerLink = `${base}examinee/register?testid=${this.props.conduct.id}`;
     this.props.changeTestRegisterLink(registerLink);
     this.props.updateCurrentTestBasicDetails(this.props.conduct.id);
 

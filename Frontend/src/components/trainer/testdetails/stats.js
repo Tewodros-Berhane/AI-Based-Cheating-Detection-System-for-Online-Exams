@@ -370,7 +370,7 @@ export default class Stats extends Component {
 
         const cards = [
             { label: 'Support Plans', value: supportCount, caption: 'Candidates with active or applied support adjustments' },
-            { label: 'Trainer Reviews', value: moderatedCount, caption: 'Candidates with one or more trainer actions logged' },
+            { label: 'Examiner Reviews', value: moderatedCount, caption: 'Candidates with one or more examiner actions logged' },
             { label: 'Warnings Sent', value: warningCount, caption: 'Candidate-visible warnings issued during the exam' },
             { label: 'Force Submits', value: forceSubmitCount, caption: 'Sessions closed directly by the examiner' }
         ];
@@ -379,7 +379,7 @@ export default class Stats extends Component {
             <section className="testdetails-block">
                 <div className="testdetails-block-head">
                     <h4>Support and Review Summary</h4>
-                    <p>Track candidate accommodations and trainer interventions alongside the score report.</p>
+                    <p>Track candidate accommodations and examiner interventions alongside the score report.</p>
                 </div>
                 <div className="testdetails-reporting-grid">
                     {cards.map((card) => (
@@ -492,9 +492,9 @@ export default class Stats extends Component {
                 <section className="testdetails-block">
                     <div className="testdetails-block-head">
                         <h4>Result Export</h4>
-                        <p>Download the generated score report with support settings and trainer review details.</p>
+                        <p>Download the generated score report with support settings and examiner review details.</p>
                     </div>
-                    <div className="testdetails-export-note">Includes support adjustments, trainer actions, final disposition, and the last trainer update for each candidate.</div>
+                    <div className="testdetails-export-note">Includes support adjustments, examiner actions, final disposition, and the last examiner update for each candidate.</div>
                     <div className="download-section">
                         <button type="button" className="download-xlsx" onClick={this.downloadExcel}>Download Excel</button>
                     </div>

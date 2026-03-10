@@ -102,7 +102,7 @@ const startPreflight = async (req, res) => {
   if (!testid || !traineeid) {
     return res.status(400).json({
       success: false,
-      message: "testid and traineeid are required."
+      message: "testid and examinee id are required."
     });
   }
 
@@ -111,7 +111,7 @@ const startPreflight = async (req, res) => {
     if (!info) {
       return res.json({
         success: false,
-        message: "Invalid test or trainee reference."
+        message: "Invalid test or examinee reference."
       });
     }
 
@@ -175,7 +175,7 @@ const updatePreflightCheck = async (req, res) => {
   if (!runid || !testid || !traineeid || !checkType || typeof passed !== "boolean") {
     return res.status(400).json({
       success: false,
-      message: "runid, testid, traineeid, checkType and passed are required."
+      message: "runid, testid, examinee id, checkType and passed are required."
     });
   }
 
@@ -245,7 +245,7 @@ const completePreflight = async (req, res) => {
   if (!runid || !testid || !traineeid) {
     return res.status(400).json({
       success: false,
-      message: "runid, testid and traineeid are required."
+      message: "runid, testid and examinee id are required."
     });
   }
 
@@ -254,7 +254,7 @@ const completePreflight = async (req, res) => {
     if (!info) {
       return res.json({
         success: false,
-        message: "Invalid test or trainee reference."
+        message: "Invalid test or examinee reference."
       });
     }
 
@@ -330,7 +330,7 @@ const getLatestPreflight = async (req, res) => {
   if (!testid || !traineeid) {
     return res.status(400).json({
       success: false,
-      message: "testid and traineeid are required."
+      message: "testid and examinee id are required."
     });
   }
 
@@ -339,7 +339,7 @@ const getLatestPreflight = async (req, res) => {
     if (!info) {
       return res.json({
         success: false,
-        message: "Invalid test or trainee reference."
+        message: "Invalid test or examinee reference."
       });
     }
     const integrity = await resolveEffectiveIntegrity(info.test, info.trainee._id);

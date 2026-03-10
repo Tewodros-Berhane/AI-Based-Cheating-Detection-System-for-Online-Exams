@@ -35,12 +35,12 @@ let trainerRegister = (req,res,next)=>{
                 }).then(()=>{
                     res.json({
                         success : true,
-                        message : `Trainer's Profile updated successfully!`
+                        message : `Examiner profile updated successfully!`
                     })
                 }).catch((err)=>{
                     res.status(500).json({
                         success : false,
-                        message : "Unable to update Trainer's Profile"
+                        message : "Unable to update examiner profile"
                     })
                 })
             }
@@ -58,20 +58,20 @@ let trainerRegister = (req,res,next)=>{
                             tempdata.save().then(()=>{
                                 res.json({
                                     success : true,
-                                    message : `Trainer's Profile created successfully!`
+                                    message : `Examiner profile created successfully!`
                                 })
                             }).catch((err)=>{
                                 console.log(err);
                                 res.status(500).json({
                                     success : false,
-                                    message : "Unable to create Trainer's Profile"
+                                    message : "Unable to create examiner profile"
                                 })
                             })
                         }).catch((err)=>{
                             console.log(err);
                             res.status(500).json({
                                 success : false,
-                                message : "Unable to create Trainer's Profile"
+                                message : "Unable to create examiner profile"
                             })
                         })
                         
@@ -86,7 +86,7 @@ let trainerRegister = (req,res,next)=>{
                 }).catch((err)=>{
                     res.status(500).json({
                         success : false,
-                        message : "Unable to create Trainer Profile"
+                        message : "Unable to create examiner profile"
                     })
                 }) 
             }

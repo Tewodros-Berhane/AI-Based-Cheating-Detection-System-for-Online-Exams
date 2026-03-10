@@ -233,7 +233,7 @@ const resolveEffectivePolicyDetails = async ({ testid, traineeid }) => {
     ]);
 
     if (!test || !trainee) {
-        const error = new Error('Invalid test or trainee id.');
+        const error = new Error('Invalid test or examinee id.');
         error.code = 'INVALID_TEST_OR_TRAINEE';
         throw error;
     }
@@ -299,7 +299,7 @@ const validateTrainerAccess = async ({ trainerid, testid, traineeid }) => {
     }
 
     if (!trainee) {
-        const error = new Error('Invalid trainee id.');
+        const error = new Error('Invalid examinee id.');
         error.code = 'INVALID_TRAINEE';
         throw error;
     }
@@ -532,7 +532,7 @@ const getEffectivePolicy = async (req, res) => {
     if (!testid || !traineeid) {
         return res.json({
             success: false,
-            message: 'Test id and trainee id are required.'
+            message: 'Test id and examinee id are required.'
         });
     }
 

@@ -125,7 +125,7 @@ const getModerationStatusMeta = (status) => {
     case 'REOPENED':
       return { label: 'Reopened', tone: 'monitoring', summary: 'The session was reopened after an earlier finish state.' };
     default:
-      return { label: 'Normal', tone: 'safe', summary: 'No active trainer review status is set on this session.' };
+      return { label: 'Normal', tone: 'safe', summary: 'No active examiner review status is set on this session.' };
   }
 };
 
@@ -260,7 +260,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
         throw new Error((supportResponse.data && supportResponse.data.message) || 'Unable to load support settings.');
       }
       if (!moderationResponse.data || !moderationResponse.data.success) {
-        throw new Error((moderationResponse.data && moderationResponse.data.message) || 'Unable to load trainer actions.');
+        throw new Error((moderationResponse.data && moderationResponse.data.message) || 'Unable to load examiner actions.');
       }
 
       setSupportData(supportResponse.data.data || null);
@@ -406,7 +406,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
 
   const submitAction = async () => {
     if (!actionForm.reason.trim()) {
-      message.error('Please explain why this trainer action is being applied.');
+      message.error('Please explain why this examiner action is being applied.');
       return;
     }
 
@@ -439,10 +439,10 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
       });
 
       if (!response.data || !response.data.success) {
-        throw new Error((response.data && response.data.message) || 'Unable to save trainer action.');
+        throw new Error((response.data && response.data.message) || 'Unable to save examiner action.');
       }
 
-      message.success(response.data.message || 'Trainer action saved.');
+      message.success(response.data.message || 'Examiner action saved.');
       setActionForm((prev) => ({
         ...prev,
         reason: '',
@@ -453,7 +453,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
       await loadData();
       onChanged?.();
     } catch (error) {
-      message.error((error && error.message) || 'Unable to save trainer action.');
+      message.error((error && error.message) || 'Unable to save examiner action.');
     } finally {
       setActionSaving(false);
     }
@@ -511,7 +511,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
             onClick={() => setActiveTab(ACTIONS_TAB)}
           >
             <FileWarning size={15} strokeWidth={2.3} />
-            Trainer actions
+            Examiner actions
           </button>
         </div>
 
@@ -683,7 +683,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
               <div className="candidate-support-card-head">
                 <FileWarning size={16} strokeWidth={2.2} />
                 <div>
-                  <h4>Apply trainer action</h4>
+                  <h4>Apply examiner action</h4>
                   <p>Use this panel for session-level decisions. Confirming or excusing a specific alert is handled from the behavior audit timeline.</p>
                 </div>
               </div>
@@ -737,7 +737,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                   loading={actionSaving}
                   onClick={submitAction}
                 >
-                  Save trainer action
+                  Save examiner action
                 </Button>
               </div>
             </section>
@@ -751,7 +751,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                 </div>
               </div>
               {renderedHistory.length === 0 ? (
-                <div className="candidate-support-empty">No trainer actions have been recorded for this candidate.</div>
+                <div className="candidate-support-empty">No examiner actions have been recorded for this candidate.</div>
               ) : (
                 <div className="candidate-support-history-list">
                   {renderedHistory.map((item) => (
@@ -780,7 +780,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
 
               <div className="candidate-support-history-meta">
                 <span>Current session state: {getCandidateStateLabel(moderationData && moderationData.candidateState)}</span>
-                <span>Last trainer update: {formatDateTime(lastModerationAt)}</span>
+                <span>Last examiner update: {formatDateTime(lastModerationAt)}</span>
               </div>
             </section>
           </div>

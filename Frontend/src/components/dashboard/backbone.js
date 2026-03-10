@@ -42,6 +42,15 @@ const sidebarIconMap = {
     liveSession: MonitorPlay
 };
 
+const normalizeDashboardRoute = (routeOption = 'home') =>
+    routeOption === 'listtrainers' ? 'listexaminers' : routeOption;
+
+const roleDisplayMap = {
+    ADMIN: 'ADMIN',
+    TRAINER: 'EXAMINER',
+    TRAINEE: 'EXAMINEE'
+};
+
 class Dashboard extends React.Component{
     constructor(props){
         super(props);
@@ -88,12 +97,16 @@ class Dashboard extends React.Component{
         if(this.state.LocalIsLoggedIn && this.props.user && this.props.user.userDetails && this.props.user.userDetails.type){
             this.setState({ authBootstrapping: false });
             var existingSubUrl = (this.props.match && this.props.match.params && this.props.match.params.options) ? this.props.match.params.options : 'home';
+            var normalizedExistingSubUrl = normalizeDashboardRoute(existingSubUrl);
             var existingPermissions = this.props.user.userDetails.type === 'ADMIN' ? ADMIN_PERMISSIONS : TRAINER_PERMISSIONS;
-            var existingTargetLink = `/user/${existingSubUrl}`;
+            var existingTargetLink = `/user/${normalizedExistingSubUrl}`;
             var existingRouteIndex = existingPermissions.findIndex((o)=>o.link === existingTargetLink);
             this.props.changeActiveRoute(String(existingRouteIndex === -1 ? 0 : existingRouteIndex));
             if(existingRouteIndex === -1){
                 this.props.history.replace(existingPermissions[0].link);
+            }
+            else if(existingSubUrl !== normalizedExistingSubUrl){
+                this.props.history.replace(existingTargetLink);
             }
         }
         else if(t && t!=='undefined'){
@@ -105,7 +118,8 @@ class Dashboard extends React.Component{
                 this.props.login(user);
                 var permissions = user.type === 'ADMIN' ? ADMIN_PERMISSIONS : TRAINER_PERMISSIONS;
                 var subUrl = (this.props.match && this.props.match.params && this.props.match.params.options) ? this.props.match.params.options : 'home';
-                var targetLink = `/user/${subUrl}`;
+                var normalizedSubUrl = normalizeDashboardRoute(subUrl);
+                var targetLink = `/user/${normalizedSubUrl}`;
                 var routeIndex = permissions.findIndex((o)=>o.link === targetLink);
 
                 this.setState({
@@ -118,6 +132,9 @@ class Dashboard extends React.Component{
                 }
                 else{
                     this.props.changeActiveRoute(String(routeIndex));
+                    if(subUrl !== normalizedSubUrl){
+                        this.props.history.replace(targetLink);
+                    }
                 }
             }).catch((error)=>{
                 this.setState({ authBootstrapping: false });
@@ -153,9 +170,10 @@ class Dashboard extends React.Component{
         const frameGap = 10;
         const headerHeight = 74;
         const routeOption = (this.props.match && this.props.match.params && this.props.match.params.options) ? this.props.match.params.options : 'home';
+        const normalizedRouteOption = normalizeDashboardRoute(routeOption);
         const sectionTitles = {
             home: 'Command Center',
-            listtrainers: 'Examiner Management',
+            listexaminers: 'Examiner Management',
             listsubjects: 'Course Management',
             listquestions: 'Question Library',
             listtests: 'Exam Library',
@@ -164,39 +182,40 @@ class Dashboard extends React.Component{
         };
         const sectionSubtitles = {
             home: 'Overview of platform health and recent activity',
-            listtrainers: 'Invite, edit, and monitor examiner accounts',
+            listexaminers: 'Invite, edit, and monitor examiner accounts',
             listsubjects: 'Maintain course taxonomy for test creation',
             listquestions: 'Curate and audit question quality',
             listtests: 'Track and review all published exams',
             newtest: 'Configure a new exam from question pools',
             conducttest: 'Run active sessions and monitor candidates'
         };
-        const sectionTitle = sectionTitles[routeOption] || 'Workspace';
-        const sectionSubtitle = sectionSubtitles[routeOption] || 'Manage and review exam workflows';
+        const sectionTitle = sectionTitles[normalizedRouteOption] || 'Workspace';
+        const sectionSubtitle = sectionSubtitles[normalizedRouteOption] || 'Manage and review exam workflows';
         const userName = this.props.user?.userDetails?.name || 'Operator';
         const userRole = this.props.user?.userDetails?.type || 'USER';
+        const userRoleLabel = roleDisplayMap[userRole] || userRole;
         const siderWidth = this.state.collapsed ? 92 : 252;
         const contentOffset = outerMargin + siderWidth + frameGap;
         let torender = null;
-        if(routeOption==='listtrainers'){
+        if(normalizedRouteOption==='listexaminers'){
             torender = <AllTrainer/>;
         }
-        else if(routeOption==='listsubjects'){
+        else if(normalizedRouteOption==='listsubjects'){
             torender = <AllTopics/>
         }
-        else if(routeOption==='listquestions'){
+        else if(normalizedRouteOption==='listquestions'){
             torender = <AllQuestions/>
         }
-        else if(routeOption==='listtests'){
+        else if(normalizedRouteOption==='listtests'){
             torender = <AllTests/>
         }
-        else if(routeOption==='home'){
+        else if(normalizedRouteOption==='home'){
             torender=<Welcome />
         }
-        else if(routeOption==='newtest'){
+        else if(normalizedRouteOption==='newtest'){
             torender=<NewTest />
         }
-        else if(routeOption==='conducttest'){
+        else if(normalizedRouteOption==='conducttest'){
             const params = Object.fromEntries(new URLSearchParams(this.props.location.search).entries());
             console.log(params)
             torender=<ConductTest {...params}/>
@@ -268,7 +287,7 @@ class Dashboard extends React.Component{
                         <div className="dashboard-header-right">
                             <div className="dashboard-user-meta">
                                 <span className="dashboard-user-name">{userName}</span>
-                                <span className="dashboard-user-role">{userRole}</span>
+                                <span className="dashboard-user-role">{userRoleLabel}</span>
                             </div>
                             <Tooltip placement="bottom" title="Sign out">
                                 <Button shape="circle" onClick={this.logOut} className="logout-button">

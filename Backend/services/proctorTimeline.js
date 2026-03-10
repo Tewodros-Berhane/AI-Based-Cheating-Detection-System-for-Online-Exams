@@ -338,7 +338,7 @@ const acknowledgeEvent = async ({ eventId, ackedBy, note }) => {
     sessionId: event.sessionId,
     source: 'TRAINER',
     eventType: 'TRAINER_ACK',
-    message: note || 'Trainer acknowledged this event.',
+    message: note || 'Examiner acknowledged this event.',
     payload: {
       relatedEventId: event.eventId,
       note: note || ''
@@ -369,7 +369,7 @@ const escalateEvent = async ({ eventId, escalatedBy, severityLevel, note }) => {
     sessionId: event.sessionId,
     source: 'TRAINER',
     eventType: 'TRAINER_ESCALATE',
-    message: note || `Trainer escalated event to ${severityLevel || 'HIGH_RISK'}.`,
+    message: note || `Examiner escalated event to ${severityLevel || 'HIGH_RISK'}.`,
     payload: {
       relatedEventId: event.eventId,
       escalatedBy,

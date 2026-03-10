@@ -7,7 +7,7 @@ export const ADMIN_PERMISSIONS=[
     {
         display : 'Examiners',
         iconKey : 'examiners',
-        link : '/user/listtrainers'
+        link : '/user/listexaminers'
     },
     {
         display : 'Courses',

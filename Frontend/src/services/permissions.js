@@ -1,8 +1,8 @@
 export const AdminPermissions = [
     {
-        display : 'All Trainers',
+        display : 'All Examiners',
         icon : 'user',
-        link : '/user/listtrainers'
+        link : '/user/listexaminers'
     },
     {
         display : 'All Subjects',

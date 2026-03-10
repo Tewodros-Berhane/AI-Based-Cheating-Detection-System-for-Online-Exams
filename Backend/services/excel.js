@@ -77,9 +77,9 @@ let result = async (testid, MaxMarks) => {
     { header: 'Score', key: 'Score', width: 12 },
     { header: 'Max Marks', key: 'Outof', width: 12 },
     { header: 'Support Applied', key: 'SupportApplied', width: 34 },
-    { header: 'Trainer Review', key: 'TrainerReview', width: 34 },
+    { header: 'Examiner Review', key: 'ExaminerReview', width: 34 },
     { header: 'Final Disposition', key: 'FinalDisposition', width: 28 },
-    { header: 'Last Trainer Update', key: 'LastTrainerUpdate', width: 24 }
+    { header: 'Last Examiner Update', key: 'LastExaminerUpdate', width: 24 }
   ];
 
   worksheet.getRow(1).font = { bold: true };
@@ -103,9 +103,9 @@ let result = async (testid, MaxMarks) => {
       Score: entry.score,
       Outof: maxMarks,
       SupportApplied: candidateSummary.support.summaryLine,
-      TrainerReview: candidateSummary.moderation.summaryLine,
+      ExaminerReview: candidateSummary.moderation.summaryLine,
       FinalDisposition: candidateSummary.finalDisposition.label,
-      LastTrainerUpdate: candidateSummary.moderation.lastActionAt
+      LastExaminerUpdate: candidateSummary.moderation.lastActionAt
         ? new Date(candidateSummary.moderation.lastActionAt).toLocaleString()
         : '-'
     });
