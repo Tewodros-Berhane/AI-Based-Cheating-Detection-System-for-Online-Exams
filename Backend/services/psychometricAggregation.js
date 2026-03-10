@@ -156,24 +156,24 @@ const computeQualityFlags = ({ difficultyIndex, discriminationIndex, pointBiseri
     const flags = [];
 
     if (difficultyIndex !== null && difficultyIndex < 0.2) {
-        flags.push('Too difficult');
+        flags.push('Question may be too hard');
     }
 
     if (difficultyIndex !== null && difficultyIndex > 0.9) {
-        flags.push('Too easy');
+        flags.push('Question may be too easy');
     }
 
     if (discriminationIndex !== null && discriminationIndex < 0.15) {
-        flags.push('Low discrimination');
+        flags.push('Question may not separate stronger and weaker candidates well');
     }
 
     if (pointBiserial !== null && pointBiserial < 0) {
-        flags.push('Negative point-biserial');
+        flags.push('Question results do not align well with overall test performance');
     }
 
     (optionSelectionRates || []).forEach((optionMetric) => {
         if (!optionMetric.isCorrect && Number(optionMetric.rate || 0) > 0 && Number(optionMetric.rate || 0) < 0.05) {
-            flags.push(`Distractor ${optionMetric.label} rarely selected`);
+            flags.push(`Wrong option ${optionMetric.label} was rarely chosen`);
         }
     });
 
