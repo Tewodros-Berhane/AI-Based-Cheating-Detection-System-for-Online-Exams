@@ -61,6 +61,68 @@ var answersheetschema = new mongoose.Schema({
     lastSavedQuestionIndex: {
         type: Number,
         default: 0
+    },
+    effectiveDurationMinutes: {
+        type: Number,
+        default: null
+    },
+    effectiveIntegrityPolicy: {
+        requireCamera: {
+            type: Boolean,
+            default: null
+        },
+        requireMicrophone: {
+            type: Boolean,
+            default: null
+        },
+        requireFullscreen: {
+            type: Boolean,
+            default: null
+        },
+        requireScreenShare: {
+            type: Boolean,
+            default: null
+        },
+        requireFaceVerification: {
+            type: Boolean,
+            default: null
+        },
+        allowTabSwitchTolerance: {
+            type: Number,
+            default: null
+        },
+        preflightMaxFailures: {
+            type: Number,
+            default: null
+        }
+    },
+    effectiveUiAdjustments: {
+        highContrastMode: {
+            type: Boolean,
+            default: false
+        },
+        largeTextMode: {
+            type: Boolean,
+            default: false
+        },
+        screenReaderAllowed: {
+            type: Boolean,
+            default: false
+        }
+    },
+    moderationStatus: {
+        type: String,
+        enum: ['NORMAL', 'UNDER_REVIEW', 'WARNED', 'FORCE_SUBMITTED', 'DISQUALIFIED', 'REOPENED'],
+        default: 'NORMAL'
+    },
+    lastModerationActionAt: {
+        type: Date,
+        default: null
+    },
+    grantedExtraTimeMinutes: {
+        type: Number,
+        default: 0,
+        min: 0
     }
 })
 
