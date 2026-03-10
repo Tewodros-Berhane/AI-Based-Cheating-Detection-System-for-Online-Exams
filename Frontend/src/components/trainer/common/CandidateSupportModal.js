@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Input, Select, Switch, message } from 'antd-compat';
 import { Accessibility, Clock3, FileWarning, Shield, SlidersHorizontal } from 'lucide-react';
 import { SecurePost } from '../../../services/axiosCall';
@@ -211,6 +211,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
   const [actionForm, setActionForm] = useState(DEFAULT_ACTION_FORM);
   const [actionSaving, setActionSaving] = useState(false);
   const [moderationData, setModerationData] = useState(null);
+  const supportReasonInputRef = useRef(null);
 
   const candidateId = candidate && candidate._id ? String(candidate._id) : '';
   const candidateName = candidate && candidate.name ? candidate.name : 'Candidate';
@@ -311,9 +312,27 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
     setSupportForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const focusSupportReason = () => {
+    const textareaNode = supportReasonInputRef.current && supportReasonInputRef.current.resizableTextArea
+      ? supportReasonInputRef.current.resizableTextArea.textArea
+      : null;
+    const focusTarget = textareaNode
+      || (supportReasonInputRef.current && supportReasonInputRef.current.input)
+      || supportReasonInputRef.current;
+
+    if (focusTarget && typeof focusTarget.scrollIntoView === 'function') {
+      focusTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    if (supportReasonInputRef.current && typeof supportReasonInputRef.current.focus === 'function') {
+      supportReasonInputRef.current.focus();
+    }
+  };
+
   const saveSupport = async () => {
     if (!supportForm.reason.trim()) {
-      message.error('Please add a short reason for this support plan.');
+      message.error('Add a short reason in the "Support plan reason" section before saving.');
+      focusSupportReason();
       return;
     }
 
@@ -500,6 +519,28 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
           <div className="candidate-support-loading">Loading candidate details...</div>
         ) : activeTab === SUPPORT_TAB ? (
           <div className="candidate-support-panel">
+            <section className="candidate-support-card">
+              <div className="candidate-support-card-head">
+                <SlidersHorizontal size={16} strokeWidth={2.2} />
+                <div>
+                  <h4>Support plan reason</h4>
+                  <p>State why this candidate needs these adjustments. This is required and becomes part of the audit trail.</p>
+                </div>
+              </div>
+              <div className="candidate-support-form-grid">
+                <label className="candidate-support-field candidate-support-field-wide">
+                  <span>Reason (required)</span>
+                  <Input.TextArea
+                    ref={supportReasonInputRef}
+                    rows={3}
+                    value={supportForm.reason}
+                    onChange={(event) => onSupportFieldChange('reason', event.target.value)}
+                    placeholder="Example: approved exception for full-screen lock due to an accessibility accommodation"
+                  />
+                </label>
+              </div>
+            </section>
+
             <div className="candidate-support-panel-grid">
               <section className="candidate-support-card">
                 <div className="candidate-support-card-head">
@@ -510,14 +551,6 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                   </div>
                 </div>
                 <div className="candidate-support-form-grid">
-                  <label className="candidate-support-field">
-                    <span>Reason</span>
-                    <Input
-                      value={supportForm.reason}
-                      onChange={(event) => onSupportFieldChange('reason', event.target.value)}
-                      placeholder="Example: approved extra time accommodation"
-                    />
-                  </label>
                   <label className="candidate-support-field">
                     <span>Extra time (minutes)</span>
                     <Input
@@ -626,6 +659,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
             </section>
 
             <div className="candidate-support-actions-row">
+              <span className="candidate-support-required-note">Reason is required before support settings can be saved.</span>
               <Button
                 className="candidate-support-primary-btn"
                 loading={supportSaving}
@@ -688,7 +722,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                   </label>
                 ) : null}
                 <label className="candidate-support-field candidate-support-field-wide">
-                  <span>Reason</span>
+                  <span>Reason (required)</span>
                   <Input.TextArea
                     rows={4}
                     value={actionForm.reason}
@@ -755,3 +789,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
     </AppModal>
   );
 }
+
+
+
+

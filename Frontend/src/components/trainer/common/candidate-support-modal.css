@@ -271,6 +271,12 @@
   flex-wrap: wrap;
 }
 
+.candidate-support-required-note {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .candidate-support-primary-btn.ant-btn,
 .candidate-support-secondary-btn.ant-btn {
   min-height: 40px;
@@ -405,3 +411,4 @@
     flex-direction: column;
   }
 }
+
