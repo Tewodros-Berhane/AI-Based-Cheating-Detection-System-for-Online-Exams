@@ -124,8 +124,34 @@ export default function Trainee(props) {
     const extraTime = Number(profile.timeAdjustments && profile.timeAdjustments.extraTimeMinutes) || 0;
     const hasCheckAdjustments = Object.values((profile.integrityOverrides || {})).some(Boolean);
     return profile.isCurrentlyEffective
-      ? (extraTime > 0 ? `Support active  •  +${extraTime} min` : (hasCheckAdjustments ? 'Support active  •  adjusted checks' : 'Support active'))
+      ? (extraTime > 0 ? `Support active | +${extraTime} min` : (hasCheckAdjustments ? 'Support active | adjusted checks' : 'Support active'))
       : 'Support scheduled';
+  };
+
+  const getReviewBadge = (reporting) => {
+    if (!reporting) {
+      return null;
+    }
+
+    const actionCount = Number(reporting.moderation && reporting.moderation.actionCount) || 0;
+    const disposition = reporting.finalDisposition || {};
+
+    if (disposition.label === 'Force submitted by examiner') {
+      return { label: 'Force submitted', tone: 'critical' };
+    }
+
+    if (actionCount > 0) {
+      return {
+        label: actionCount === 1 ? '1 trainer update' : `${actionCount} trainer updates`,
+        tone: disposition.tone || 'monitoring'
+      };
+    }
+
+    if (disposition.label && disposition.label !== 'Completed normally') {
+      return { label: disposition.label, tone: disposition.tone || 'monitoring' };
+    }
+
+    return null;
   };
 
   return (
@@ -159,6 +185,10 @@ export default function Trainee(props) {
                   const passed = score >= maxMarks / 2;
                   const candidate = row.candidate || {};
                   const supportBadge = getSupportBadge(row.supportProfile);
+                  const reviewBadge = getReviewBadge(row.reportingSummary);
+                  const reviewSummary = row.reportingSummary && row.reportingSummary.moderation
+                    ? row.reportingSummary.moderation.summaryLine
+                    : '';
 
                   return (
                     <tr className="admin-data-row" key={row._id}>
@@ -180,6 +210,16 @@ export default function Trainee(props) {
                             <span className={`testdetails-support-pill ${row.supportProfile && row.supportProfile.isCurrentlyEffective ? 'active' : 'scheduled'}`}>
                               {supportBadge}
                             </span>
+                          ) : null}
+                          {reviewBadge ? (
+                            <span className={`testdetails-support-pill review ${reviewBadge.tone}`}>
+                              {reviewBadge.label}
+                            </span>
+                          ) : null}
+                          {reviewBadge && reviewSummary ? (
+                            <div className="admin-row-subtext testdetails-student-subtext">
+                              {reviewSummary}
+                            </div>
                           ) : null}
                         </div>
                       </td>

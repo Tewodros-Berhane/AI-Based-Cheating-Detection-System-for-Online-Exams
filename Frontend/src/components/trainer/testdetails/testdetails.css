@@ -665,3 +665,56 @@
   background: rgba(30, 64, 175, 0.24);
   color: #bfdbfe;
 }
+
+
+.testdetails-support-pill.review {
+  color: #dbeafe;
+}
+
+.testdetails-support-pill.review.monitoring {
+  border-color: rgba(59, 130, 246, 0.32);
+  background: rgba(30, 64, 175, 0.24);
+  color: #bfdbfe;
+}
+
+.testdetails-support-pill.review.warning {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(120, 53, 15, 0.24);
+  color: #fcd34d;
+}
+
+.testdetails-support-pill.review.critical {
+  border-color: rgba(248, 113, 113, 0.36);
+  background: rgba(127, 29, 29, 0.22);
+  color: #fca5a5;
+}
+
+.testdetails-support-pill.review.safe {
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(20, 83, 45, 0.24);
+  color: #86efac;
+}
+
+.testdetails-reporting-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.testdetails-reporting-card {
+  border-radius: 20px;
+  border: 1px solid rgba(96, 165, 250, 0.16);
+  background: linear-gradient(180deg, rgba(12, 24, 48, 0.96) 0%, rgba(9, 20, 40, 0.94) 100%);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.testdetails-export-note {
+  margin-bottom: 16px;
+  color: rgba(191, 219, 254, 0.84);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}

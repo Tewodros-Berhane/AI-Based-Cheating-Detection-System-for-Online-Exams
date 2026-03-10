@@ -355,6 +355,45 @@ export default class Stats extends Component {
         );
     }
 
+    renderSupportReviewOverview(){
+        const reportingRows = (this.state.stats || [])
+            .map((row) => row.reportingSummary)
+            .filter(Boolean);
+
+        const supportCount = reportingRows.filter((item) => item.support && item.support.hasAdjustments).length;
+        const moderatedCount = reportingRows.filter((item) => Number(item.moderation && item.moderation.actionCount) > 0).length;
+        const warningCount = reportingRows.reduce((sum, item) => {
+            const counts = item.moderation && item.moderation.counts ? item.moderation.counts : {};
+            return sum + Number(counts.WARN_CANDIDATE || 0);
+        }, 0);
+        const forceSubmitCount = reportingRows.filter((item) => item.finalDisposition && item.finalDisposition.label === 'Force submitted by examiner').length;
+
+        const cards = [
+            { label: 'Support Plans', value: supportCount, caption: 'Candidates with active or applied support adjustments' },
+            { label: 'Trainer Reviews', value: moderatedCount, caption: 'Candidates with one or more trainer actions logged' },
+            { label: 'Warnings Sent', value: warningCount, caption: 'Candidate-visible warnings issued during the exam' },
+            { label: 'Force Submits', value: forceSubmitCount, caption: 'Sessions closed directly by the examiner' }
+        ];
+
+        return (
+            <section className="testdetails-block">
+                <div className="testdetails-block-head">
+                    <h4>Support and Review Summary</h4>
+                    <p>Track candidate accommodations and trainer interventions alongside the score report.</p>
+                </div>
+                <div className="testdetails-reporting-grid">
+                    {cards.map((card) => (
+                        <article className="testdetails-reporting-card" key={card.label}>
+                            <span className="testdetails-meta-label">{card.label}</span>
+                            <strong className="testdetails-psych-value">{card.value}</strong>
+                            <span className="testdetails-psych-caption">{card.caption}</span>
+                        </article>
+                    ))}
+                </div>
+            </section>
+        );
+    }
+
     renderQuestionAnalytics(){
         const { analyticsLoading, analyticsError, questionMetrics } = this.state;
         if (analyticsLoading || analyticsError) {
@@ -448,12 +487,14 @@ export default class Stats extends Component {
             <div className="testdetails-stats-stack">
                 {this.renderPsychometricOverview()}
                 {this.renderQuestionAnalytics()}
+                {this.renderSupportReviewOverview()}
 
                 <section className="testdetails-block">
                     <div className="testdetails-block-head">
                         <h4>Result Export</h4>
-                        <p>Download the generated score report for archive or offline review.</p>
+                        <p>Download the generated score report with support settings and trainer review details.</p>
                     </div>
+                    <div className="testdetails-export-note">Includes support adjustments, trainer actions, final disposition, and the last trainer update for each candidate.</div>
                     <div className="download-section">
                         <button type="button" className="download-xlsx" onClick={this.downloadExcel}>Download Excel</button>
                     </div>
