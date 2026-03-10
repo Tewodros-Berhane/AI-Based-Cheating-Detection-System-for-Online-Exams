@@ -716,7 +716,10 @@ const moderationSummary = async (req, res) => {
 module.exports = {
   ACTION_TYPES,
   CANDIDATE_STATES,
+  serializeCandidateNotice,
+  listVisibleCandidateNotices,
   moderationAction,
   moderationHistory,
+  candidateNotices,
   moderationSummary
 };

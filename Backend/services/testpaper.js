@@ -7,6 +7,7 @@ let SubjectModel = require("../models/subject");
 let result  =require("../services/excel").result;
 let ResultModel = require("../models/results");
 let AnswersheetModel = require("../models/answersheet");
+let ModerationActionModel = require("../models/moderationAction");
 let logger = require("./logger");
 const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMachine");
 const integrityPolicy = require("./integrityPolicy");
@@ -14,6 +15,7 @@ const proctorTimeline = require("./proctorTimeline");
 const sessionResilience = require("./sessionResilience");
 const generateResults = require("./generateResults");
 const psychometrics = require("./psychometrics");
+const reportingSummary = require('./reportingSummary');
 
 
 let finalizeCandidateSession = async ({ answerSheet, testid, traineeid, completionReason, trigger, message }) => {
@@ -438,16 +440,85 @@ let basicTestdetails = (req,res,next)=>{
     try{
         var testid = req.body.testid;
         await generateResults.ensureResultsForTest(testid);
-        const candidateDetails = await ResultModel.find({testid : testid},{score : 1, userid : 1})
-            .populate('userid');
+
+        const [test, candidateDetails] = await Promise.all([
+            TestPaperModel.findOne(
+                {_id:testid,createdBy:req.user._id},
+                {duration:1,integrityMode:1,integrityPolicy:1,faceRecognitionEnabled:1,title:1,testconducted:1}
+            ),
+            ResultModel.find({testid : testid},{score : 1, userid : 1, answerSheetid: 1})
+                .populate('userid')
+        ]);
+
+        if(!test){
+            return res.json({
+                success : false,
+                message : "Invalid test id."
+            });
+        }
+
+        const userIds = candidateDetails
+            .map((entry) => entry.userid && entry.userid._id)
+            .filter(Boolean);
+
+        const answerSheetIds = candidateDetails
+            .map((entry) => entry.answerSheetid)
+            .filter(Boolean);
+
+        const [answerSheets, moderationActions] = await Promise.all([
+            AnswersheetModel.find(
+                {_id: {$in: answerSheetIds}},
+                {
+                    userid: 1,
+                    completionReason: 1,
+                    moderationStatus: 1,
+                    lastModerationActionAt: 1,
+                    grantedExtraTimeMinutes: 1,
+                    effectiveDurationMinutes: 1,
+                    effectiveIntegrityPolicy: 1,
+                    effectiveUiAdjustments: 1
+                }
+            ).lean(),
+            ModerationActionModel.find(
+                {testid, traineeid: {$in: userIds}},
+                {traineeid: 1, actionType: 1, reason: 1, visibleToCandidate: 1, createdAt: 1, payload: 1}
+            ).sort({createdAt: -1}).lean()
+        ]);
+
+        const answerSheetByUser = new Map(answerSheets.map((sheet) => [String(sheet.userid), sheet]));
+        const actionsByUser = moderationActions.reduce((accumulator, action) => {
+            const key = String(action.traineeid);
+            if (!accumulator.has(key)) {
+                accumulator.set(key, []);
+            }
+            accumulator.get(key).push(action);
+            return accumulator;
+        }, new Map());
+
+        const enrichedCandidates = candidateDetails.map((entry) => {
+            const plain = entry.toObject();
+            const userId = plain.userid && plain.userid._id ? String(plain.userid._id) : '';
+            return {
+                ...plain,
+                reportingSummary: reportingSummary.summarizeCandidateReporting({
+                    test,
+                    answerSheet: answerSheetByUser.get(userId) || null,
+                    actions: actionsByUser.get(userId) || []
+                })
+            };
+        });
 
         return res.json({
             success : true,
             message:'Candidate details',
-            data : candidateDetails
+            data : enrichedCandidates
         });
     }catch(err){
-        console.log(err)
+        logger.error('candidate_details_fetch_failed', {
+            testId: req.body && req.body.testid,
+            trainerId: req.user && req.user._id,
+            error: logger.normalizeError(err)
+        });
         return res.status(500).json({
             success : false,
             message : "Unable to fetch details"
