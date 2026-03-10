@@ -5,6 +5,7 @@ var testpaper = require("../services/testpaper");
 var proctorMonitor = require("../services/proctorMonitor");
 var psychometrics = require("../services/psychometrics");
 var accommodations = require("../services/accommodations");
+var moderation = require("../services/moderation");
 
 router.post('/new/name/check',testpaper.checkTestName)
 router.post('/create',testpaper.createEditTest);
@@ -23,6 +24,9 @@ router.post('/candidate/accommodations/upsert', accommodations.upsertAccommodati
 router.post('/candidate/accommodations/get', accommodations.getAccommodationProfile);
 router.post('/candidate/accommodations/list', accommodations.listAccommodationProfiles);
 router.post('/candidate/accommodations/revoke', accommodations.revokeAccommodationProfile);
+router.post('/moderation/action', moderation.moderationAction);
+router.post('/moderation/history', moderation.moderationHistory);
+router.post('/moderation/summary', moderation.moderationSummary);
 router.post('/trainer/details',testpaper.TestDetails);
 router.post('/candidates/details',testpaper.getCandidateDetails);
 router.post('/proctor/summary', proctorMonitor.getSummary);
