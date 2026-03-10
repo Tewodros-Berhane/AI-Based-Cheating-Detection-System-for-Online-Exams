@@ -29,14 +29,32 @@ const buildIceServers = () => {
   return iceServers;
 };
 
-const buildOfferPayload = (offer, cameraStream, screenStream, requireScreenShare) => ({
-  type: 'offer',
-  sdp: offer,
-  mediaMeta: {
+const buildMediaMeta = ({ pc, senderRoleMap, cameraStream, screenStream, requireScreenShare }) => {
+  const transceiverRoles = {};
+
+  pc.getTransceivers().forEach((transceiver) => {
+    if (!transceiver || !transceiver.sender || transceiver.mid === null || transceiver.mid === undefined) {
+      return;
+    }
+
+    const role = senderRoleMap.get(transceiver.sender);
+    if (role) {
+      transceiverRoles[String(transceiver.mid)] = role;
+    }
+  });
+
+  return {
     cameraStreamId: cameraStream && cameraStream.id ? cameraStream.id : null,
     screenStreamId: screenStream && screenStream.id ? screenStream.id : null,
-    requireScreenShare: Boolean(requireScreenShare)
-  }
+    requireScreenShare: Boolean(requireScreenShare),
+    transceiverRoles
+  };
+};
+
+const buildOfferPayload = ({ offer, pc, senderRoleMap, cameraStream, screenStream, requireScreenShare }) => ({
+  type: 'offer',
+  sdp: offer,
+  mediaMeta: buildMediaMeta({ pc, senderRoleMap, cameraStream, screenStream, requireScreenShare })
 });
 
 const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) => {
@@ -46,6 +64,7 @@ const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) 
   const mountedRef = useRef(true);
   const mediaStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
+  const senderRoleMapRef = useRef(new Map());
 
   const { mediaStream, setMediaStream, screenStream, setScreenStream } = useContext(MediaStreamContext);
 
@@ -93,9 +112,16 @@ const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) 
 
         const pc = new RTCPeerConnection({ iceServers: buildIceServers() });
         peerConnectionRef.current = pc;
+        senderRoleMapRef.current = new Map();
 
-        cameraStream.getTracks().forEach((track) => {
-          pc.addTrack(track, cameraStream);
+        cameraStream.getVideoTracks().forEach((track) => {
+          const sender = pc.addTrack(track, cameraStream);
+          senderRoleMapRef.current.set(sender, 'camera-video');
+        });
+
+        cameraStream.getAudioTracks().forEach((track) => {
+          const sender = pc.addTrack(track, cameraStream);
+          senderRoleMapRef.current.set(sender, 'camera-audio');
         });
 
         if (requireScreenShare && activeScreenStream) {
@@ -103,12 +129,11 @@ const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) 
             track.contentHint = 'detail';
             track.onended = () => {
               if (!mountedRef.current) return;
-              if (mountedRef.current) {
-                setScreenStream(null);
-              }
+              setScreenStream(null);
               message.warning('Screen sharing was stopped. This exam requires active screen sharing.');
             };
-            pc.addTrack(track, activeScreenStream);
+            const sender = pc.addTrack(track, activeScreenStream);
+            senderRoleMapRef.current.set(sender, 'screen-video');
           });
         }
 
@@ -127,13 +152,26 @@ const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) 
           params.set('sessionid', `${testId}:${traineeId}`);
         }
 
-        socketRef.current = new WebSocket(`${apis.WS_SIGNALING_URL}/?${params.toString()}`);
-        socketRef.current.onopen = async () => {
+        const sendOffer = async () => {
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           socketRef.current.send(
-            JSON.stringify(buildOfferPayload(offer, cameraStream, activeScreenStream, requireScreenShare))
+            JSON.stringify(
+              buildOfferPayload({
+                offer,
+                pc,
+                senderRoleMap: senderRoleMapRef.current,
+                cameraStream,
+                screenStream: activeScreenStream,
+                requireScreenShare
+              })
+            )
           );
+        };
+
+        socketRef.current = new WebSocket(`${apis.WS_SIGNALING_URL}/?${params.toString()}`);
+        socketRef.current.onopen = async () => {
+          await sendOffer();
         };
 
         socketRef.current.onmessage = async (event) => {
@@ -146,11 +184,7 @@ const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) 
           try {
             const signal = JSON.parse(data);
             if (signal.type === 'request-offer') {
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              socketRef.current.send(
-                JSON.stringify(buildOfferPayload(offer, cameraStream, activeScreenStream, requireScreenShare))
-              );
+              await sendOffer();
             } else if (signal.type === 'answer') {
               await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
             } else if (signal.type === 'ice-candidate') {
@@ -178,6 +212,7 @@ const TraineeStreamSender = ({ traineeId, testId, requireScreenShare = false }) 
 
     return () => {
       mountedRef.current = false;
+      senderRoleMapRef.current = new Map();
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
       }

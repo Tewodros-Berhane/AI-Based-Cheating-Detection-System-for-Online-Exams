@@ -26,6 +26,18 @@ const attachStream = (videoEl, stream) => {
   }
 };
 
+const removeTrackFromStream = (stream, track) => {
+  if (!stream || !track || typeof stream.getTracks !== 'function') {
+    return;
+  }
+
+  stream.getTracks().forEach((streamTrack) => {
+    if (streamTrack.id === track.id) {
+      stream.removeTrack(streamTrack);
+    }
+  });
+};
+
 const TrainerLivePreview = ({ traineeId, testId }) => {
   const cameraVideoRef = useRef(null);
   const screenVideoRef = useRef(null);
@@ -34,9 +46,12 @@ const TrainerLivePreview = ({ traineeId, testId }) => {
   const mediaMetaRef = useRef({
     cameraStreamId: null,
     screenStreamId: null,
-    requireScreenShare: false
+    requireScreenShare: false,
+    transceiverRoles: {}
   });
   const fallbackVideoTrackCountRef = useRef(0);
+  const cameraSinkRef = useRef(null);
+  const screenSinkRef = useRef(null);
   const [hasScreenStream, setHasScreenStream] = useState(false);
 
   useEffect(() => {
@@ -49,94 +64,98 @@ const TrainerLivePreview = ({ traineeId, testId }) => {
       }
     };
 
+    const ensureSinkStream = (role) => {
+      if (role === 'screen-video') {
+        if (!(screenSinkRef.current instanceof MediaStream)) {
+          screenSinkRef.current = new MediaStream();
+        }
+        return screenSinkRef.current;
+      }
+
+      if (!(cameraSinkRef.current instanceof MediaStream)) {
+        cameraSinkRef.current = new MediaStream();
+      }
+      return cameraSinkRef.current;
+    };
+
+    const syncVideoSurface = (role) => {
+      if (role === 'screen-video') {
+        const stream = screenSinkRef.current;
+        const hasLiveScreen = hasLiveVideo(stream);
+        setHasScreenStream(hasLiveScreen);
+        if (!hasLiveScreen) {
+          if (screenVideoRef.current) {
+            screenVideoRef.current.srcObject = null;
+          }
+          return;
+        }
+        attachStream(screenVideoRef.current, stream);
+        return;
+      }
+
+      const stream = cameraSinkRef.current;
+      if (stream && stream.getTracks().length > 0) {
+        attachStream(cameraVideoRef.current, stream);
+      } else if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = null;
+      }
+    };
+
     const bindTrackEnd = (track, role) => {
       if (!track) return;
       track.onended = () => {
-        if (role !== 'screen') {
-          return;
-        }
-        const current = screenVideoRef.current && screenVideoRef.current.srcObject;
-        setHasScreenStream(hasLiveVideo(current));
-        if (!hasLiveVideo(current) && screenVideoRef.current) {
-          screenVideoRef.current.srcObject = null;
-        }
+        const sink = role === 'screen-video' ? screenSinkRef.current : cameraSinkRef.current;
+        removeTrackFromStream(sink, track);
+        syncVideoSurface(role);
       };
     };
 
-    const resolveStreamRole = (event) => {
+    const resolveTrackRole = (event) => {
       const track = event.track;
-      const stream = event.streams && event.streams[0] ? event.streams[0] : null;
       const mediaMeta = mediaMetaRef.current || {};
+      const transceiver = event.transceiver || null;
+      const transceiverRoles = mediaMeta.transceiverRoles || {};
+      const mid = transceiver && transceiver.mid !== null && transceiver.mid !== undefined
+        ? String(transceiver.mid)
+        : null;
+
+      if (mid && transceiverRoles[mid]) {
+        return transceiverRoles[mid];
+      }
 
       if (track && track.kind === 'audio') {
-        return 'camera';
-      }
-
-      if (stream && mediaMeta.screenStreamId && stream.id === mediaMeta.screenStreamId) {
-        return 'screen';
-      }
-
-      if (stream && mediaMeta.cameraStreamId && stream.id === mediaMeta.cameraStreamId) {
-        return 'camera';
+        return 'camera-audio';
       }
 
       if (track && looksLikeScreenTrack(track)) {
-        return 'screen';
-      }
-
-      if (stream) {
-        if (!cameraVideoRef.current || !cameraVideoRef.current.srcObject) {
-          return 'camera';
-        }
-        if (
-          mediaMeta.requireScreenShare &&
-          screenVideoRef.current &&
-          screenVideoRef.current.srcObject !== stream &&
-          cameraVideoRef.current.srcObject !== stream
-        ) {
-          return 'screen';
-        }
+        return 'screen-video';
       }
 
       if (track && track.kind === 'video') {
         const nextOrder = fallbackVideoTrackCountRef.current;
         fallbackVideoTrackCountRef.current += 1;
-        return nextOrder === 0 ? 'camera' : 'screen';
+        return nextOrder === 0 ? 'camera-video' : 'screen-video';
       }
 
-      return 'camera';
+      return 'camera-video';
     };
 
-    const attachEventStream = (role, stream, track) => {
-      if (role === 'screen') {
-        attachStream(screenVideoRef.current, stream);
-        setHasScreenStream(hasLiveVideo(stream));
-      } else {
-        attachStream(cameraVideoRef.current, stream);
-      }
-      bindTrackEnd(track, role);
-    };
+    const attachTrackToSink = (role, track) => {
+      if (!track) return;
 
-    const attachEventTrack = (role, track) => {
-      const targetRef = role === 'screen' ? screenVideoRef : cameraVideoRef;
-      const videoEl = targetRef.current;
-      if (!videoEl || !track) return;
+      const sink = ensureSinkStream(role);
+      sink.getTracks().forEach((existingTrack) => {
+        if (existingTrack.kind === track.kind && existingTrack.id !== track.id) {
+          sink.removeTrack(existingTrack);
+        }
+      });
 
-      let targetStream = videoEl.srcObject;
-      if (!(targetStream instanceof MediaStream)) {
-        targetStream = new MediaStream();
-        videoEl.srcObject = targetStream;
+      const alreadyAttached = sink.getTracks().some((existingTrack) => existingTrack.id === track.id);
+      if (!alreadyAttached) {
+        sink.addTrack(track);
       }
 
-      const existing = targetStream.getTracks().some((item) => item.id === track.id);
-      if (!existing) {
-        targetStream.addTrack(track);
-      }
-      attachStream(videoEl, targetStream);
-
-      if (role === 'screen') {
-        setHasScreenStream(hasLiveVideo(targetStream));
-      }
+      syncVideoSurface(role);
       bindTrackEnd(track, role);
     };
 
@@ -160,15 +179,8 @@ const TrainerLivePreview = ({ traineeId, testId }) => {
     pcRef.current = pc;
 
     pc.ontrack = (event) => {
-      const role = resolveStreamRole(event);
-      const stream = event.streams && event.streams[0] ? event.streams[0] : null;
-
-      if (stream) {
-        attachEventStream(role, stream, event.track);
-        return;
-      }
-
-      attachEventTrack(role, event.track);
+      const role = resolveTrackRole(event);
+      attachTrackToSink(role, event.track);
     };
 
     pc.onicecandidate = (event) => {
@@ -206,7 +218,8 @@ const TrainerLivePreview = ({ traineeId, testId }) => {
             mediaMetaRef.current = {
               cameraStreamId: message.mediaMeta.cameraStreamId || null,
               screenStreamId: message.mediaMeta.screenStreamId || null,
-              requireScreenShare: Boolean(message.mediaMeta.requireScreenShare)
+              requireScreenShare: Boolean(message.mediaMeta.requireScreenShare),
+              transceiverRoles: message.mediaMeta.transceiverRoles || {}
             };
           }
 
@@ -228,8 +241,11 @@ const TrainerLivePreview = ({ traineeId, testId }) => {
       mediaMetaRef.current = {
         cameraStreamId: null,
         screenStreamId: null,
-        requireScreenShare: false
+        requireScreenShare: false,
+        transceiverRoles: {}
       };
+      cameraSinkRef.current = null;
+      screenSinkRef.current = null;
 
       if (cameraVideoNode) {
         cameraVideoNode.srcObject = null;
