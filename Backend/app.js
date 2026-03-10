@@ -130,7 +130,7 @@ app.get(/^(?!\/api\/).*/, (req,res) =>{
 });
 
 
-// tool.createadmin();
+tool.createadmin();
 
 
 //error handlings
