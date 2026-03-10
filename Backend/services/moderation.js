@@ -3,14 +3,20 @@ const ModerationActionModel = require('../models/moderationAction');
 const TestPaperModel = require('../models/testpaper');
 const TraineeEnterModel = require('../models/trainee');
 const AnswersheetModel = require('../models/answersheet');
+const ProctorEventModel = require('../models/proctorEvent');
 const logger = require('./logger');
 const proctorTimeline = require('./proctorTimeline');
+const sessionResilience = require('./sessionResilience');
 
 const ACTION_TYPES = {
   NOTE: 'NOTE',
   WARN_CANDIDATE: 'WARN_CANDIDATE',
   EXTEND_TIME: 'EXTEND_TIME',
-  FORCE_SUBMIT: 'FORCE_SUBMIT'
+  FORCE_SUBMIT: 'FORCE_SUBMIT',
+  CONFIRM_EVENT: 'CONFIRM_EVENT',
+  EXCUSE_EVENT: 'EXCUSE_EVENT',
+  REOPEN_SESSION: 'REOPEN_SESSION',
+  DISQUALIFY: 'DISQUALIFY'
 };
 
 const CANDIDATE_STATES = {
@@ -22,8 +28,21 @@ const CANDIDATE_STATES = {
 
 const ACTION_RULES = {
   [CANDIDATE_STATES.BEFORE_START]: [ACTION_TYPES.NOTE, ACTION_TYPES.WARN_CANDIDATE],
-  [CANDIDATE_STATES.IN_PROGRESS]: [ACTION_TYPES.NOTE, ACTION_TYPES.WARN_CANDIDATE, ACTION_TYPES.EXTEND_TIME, ACTION_TYPES.FORCE_SUBMIT],
-  [CANDIDATE_STATES.FINISHED]: [ACTION_TYPES.NOTE],
+  [CANDIDATE_STATES.IN_PROGRESS]: [
+    ACTION_TYPES.NOTE,
+    ACTION_TYPES.WARN_CANDIDATE,
+    ACTION_TYPES.EXTEND_TIME,
+    ACTION_TYPES.FORCE_SUBMIT,
+    ACTION_TYPES.CONFIRM_EVENT,
+    ACTION_TYPES.EXCUSE_EVENT
+  ],
+  [CANDIDATE_STATES.FINISHED]: [
+    ACTION_TYPES.NOTE,
+    ACTION_TYPES.CONFIRM_EVENT,
+    ACTION_TYPES.EXCUSE_EVENT,
+    ACTION_TYPES.REOPEN_SESSION,
+    ACTION_TYPES.DISQUALIFY
+  ],
   [CANDIDATE_STATES.PUBLISHED]: [ACTION_TYPES.NOTE]
 };
 
@@ -31,7 +50,11 @@ const MODERATION_MESSAGES = {
   [ACTION_TYPES.NOTE]: 'Trainer note saved.',
   [ACTION_TYPES.WARN_CANDIDATE]: 'Trainer warning issued.',
   [ACTION_TYPES.EXTEND_TIME]: 'Trainer updated the exam time.',
-  [ACTION_TYPES.FORCE_SUBMIT]: 'Trainer force submitted the session.'
+  [ACTION_TYPES.FORCE_SUBMIT]: 'Trainer force submitted the session.',
+  [ACTION_TYPES.CONFIRM_EVENT]: 'Incident marked for review.',
+  [ACTION_TYPES.EXCUSE_EVENT]: 'Incident excused.',
+  [ACTION_TYPES.REOPEN_SESSION]: 'Candidate session reopened.',
+  [ACTION_TYPES.DISQUALIFY]: 'Candidate result marked as disqualified.'
 };
 
 const CANDIDATE_NOTICE_COPY = {
@@ -73,7 +96,50 @@ const MODERATION_TIMELINE = {
     eventType: 'TRAINER_FORCE_SUBMIT',
     severityLevel: 'HIGH_RISK',
     severityScore: 70
+  },
+  [ACTION_TYPES.CONFIRM_EVENT]: {
+    eventType: 'TRAINER_CONCERN_CONFIRMED',
+    severityLevel: 'HIGH_RISK',
+    severityScore: 65
+  },
+  [ACTION_TYPES.EXCUSE_EVENT]: {
+    eventType: 'TRAINER_ALERT_EXCUSED',
+    severityLevel: 'NORMAL',
+    severityScore: 5
+  },
+  [ACTION_TYPES.REOPEN_SESSION]: {
+    eventType: 'TRAINER_SESSION_REOPENED',
+    severityLevel: 'NORMAL',
+    severityScore: 15
+  },
+  [ACTION_TYPES.DISQUALIFY]: {
+    eventType: 'TRAINER_RESULT_DISQUALIFIED',
+    severityLevel: 'CHEATING',
+    severityScore: 95
   }
+};
+
+const REVIEWABLE_EVENT_TYPES = new Set([
+  'AI_SUSPICIOUS',
+  'AI_CHEATING',
+  'NO_FACE',
+  'MULTI_FACE',
+  'FACE_MISMATCH',
+  'LOOKING_AWAY',
+  'AUDIO_SUSPICIOUS',
+  'AUDIO_MULTIPLE_VOICES',
+  'NETWORK_DROP',
+  'FULLSCREEN_EXIT',
+  'TAB_SWITCH'
+]);
+
+const MODERATION_STATUS = {
+  NORMAL: 'NORMAL',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  WARNED: 'WARNED',
+  FORCE_SUBMITTED: 'FORCE_SUBMITTED',
+  DISQUALIFIED: 'DISQUALIFIED',
+  REOPENED: 'REOPENED'
 };
 
 const MAX_EXTENSION_MINUTES = 240;
@@ -91,6 +157,19 @@ const normalizePositiveMinutes = (value) => {
     return null;
   }
   return Math.max(1, Math.min(Math.round(numeric), MAX_EXTENSION_MINUTES));
+};
+
+const normalizeOptionalMinutes = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return 0;
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+
+  return Math.max(0, Math.min(Math.round(numeric), MAX_EXTENSION_MINUTES));
 };
 
 const isValidObjectId = (value) => Boolean(value) && mongoose.Types.ObjectId.isValid(value);
@@ -122,8 +201,25 @@ const snapshotAnswerSheetState = ({ test, answerSheet }) => ({
   isResultgenerated: Boolean(test && test.isResultgenerated)
 });
 
+const serializeLinkedEvent = (event) => {
+  if (!event || !event._id) {
+    return null;
+  }
+
+  return {
+    id: String(event._id),
+    eventId: event.eventId || '',
+    eventType: event.eventType || '',
+    message: event.message || '',
+    createdAt: event.createdAt || null,
+    resolutionStatus: event.resolutionStatus || 'UNRESOLVED'
+  };
+};
+
 const serializeAction = (action) => {
   const plain = typeof action.toObject === 'function' ? action.toObject() : action;
+  const linkedEvent = plain.linkedEventId && plain.linkedEventId._id ? plain.linkedEventId : null;
+
   return {
     id: String(plain._id),
     testid: String(plain.testid),
@@ -131,7 +227,8 @@ const serializeAction = (action) => {
     trainerid: String(plain.trainerid),
     actionType: plain.actionType,
     reason: plain.reason,
-    linkedEventId: plain.linkedEventId ? String(plain.linkedEventId) : null,
+    linkedEventId: linkedEvent ? String(linkedEvent._id) : (plain.linkedEventId ? String(plain.linkedEventId) : null),
+    linkedEvent: serializeLinkedEvent(linkedEvent),
     payload: plain.payload || {},
     beforeState: plain.beforeState || null,
     afterState: plain.afterState || null,
@@ -234,20 +331,81 @@ const ensureTrainerScopedCandidate = async ({ trainerid, testid, traineeid }) =>
   return { test, trainee, answerSheet };
 };
 
-const ensureActionAllowed = ({ actionType, candidateState }) => {
-  const allowedActions = ACTION_RULES[candidateState] || [];
-  if (!allowedActions.includes(actionType)) {
-    const error = new Error('This moderation action is not allowed for the candidate\'s current exam state.');
-    error.code = 'ACTION_NOT_ALLOWED';
-    throw error;
-  }
-};
-
 const buildRuntimeDuration = ({ test, answerSheet }) => {
   if (answerSheet && Number.isFinite(Number(answerSheet.effectiveDurationMinutes)) && Number(answerSheet.effectiveDurationMinutes) > 0) {
     return Number(answerSheet.effectiveDurationMinutes);
   }
   return Number((test && test.duration) || 0);
+};
+
+const isExamLiveForReopen = (test) => Boolean(test && test.testbegins) && !Boolean(test && test.testconducted) && !Boolean(test && test.isResultgenerated);
+
+const getAllowedActionTypes = ({ test, answerSheet, candidateState }) => {
+  const base = [...(ACTION_RULES[candidateState] || [])];
+
+  return base.filter((actionType) => {
+    if (actionType === ACTION_TYPES.EXTEND_TIME || actionType === ACTION_TYPES.FORCE_SUBMIT) {
+      return Boolean(answerSheet) && !Boolean(answerSheet.completed);
+    }
+
+    if (actionType === ACTION_TYPES.REOPEN_SESSION) {
+      return Boolean(answerSheet && answerSheet.completed) && isExamLiveForReopen(test);
+    }
+
+    if (actionType === ACTION_TYPES.DISQUALIFY) {
+      return Boolean(answerSheet && answerSheet.completed);
+    }
+
+    if (actionType === ACTION_TYPES.CONFIRM_EVENT || actionType === ACTION_TYPES.EXCUSE_EVENT) {
+      return Boolean(answerSheet);
+    }
+
+    return true;
+  });
+};
+
+const ensureActionAllowed = ({ actionType, candidateState, test, answerSheet }) => {
+  const allowedActions = getAllowedActionTypes({ test, answerSheet, candidateState });
+  if (!allowedActions.includes(actionType)) {
+    const error = new Error('This moderation action is not allowed for the candidate\'s current exam state.');
+    error.code = 'ACTION_NOT_ALLOWED';
+    throw error;
+  }
+  return allowedActions;
+};
+
+const ensureReviewableEvent = (linkedEvent) => {
+  if (!linkedEvent) {
+    const error = new Error('Please choose the incident you want to review.');
+    error.code = 'INVALID_LINKED_EVENT';
+    throw error;
+  }
+
+  if (!REVIEWABLE_EVENT_TYPES.has(String(linkedEvent.eventType || '').toUpperCase())) {
+    const error = new Error('This incident cannot be reviewed with confirm or excuse actions.');
+    error.code = 'INVALID_LINKED_EVENT';
+    throw error;
+  }
+};
+
+const loadLinkedEvent = async ({ testid, traineeid, linkedEventId }) => {
+  if (!linkedEventId) {
+    return null;
+  }
+
+  const event = await ProctorEventModel.findOne({
+    _id: linkedEventId,
+    testid,
+    traineeid
+  });
+
+  if (!event) {
+    const error = new Error('The selected incident could not be found for this candidate.');
+    error.code = 'INVALID_LINKED_EVENT';
+    throw error;
+  }
+
+  return event;
 };
 
 const recordModerationTimelineEvent = async ({ testid, traineeid, actionType, trainerid, reason, payload = {} }) => {
@@ -270,14 +428,42 @@ const recordModerationTimelineEvent = async ({ testid, traineeid, actionType, tr
   });
 };
 
-const logModerationAction = async ({ testid, traineeid, trainerid, actionType, reason, linkedEventId = null, payload = {}, beforeState = null, afterState = null, visibleToCandidate = false }) => {
+const updateLinkedEventResolution = async ({ linkedEvent, trainerid, action, resolutionStatus, reason }) => {
+  if (!linkedEvent) {
+    return null;
+  }
+
+  linkedEvent.resolutionStatus = resolutionStatus;
+  linkedEvent.resolvedBy = trainerid;
+  linkedEvent.resolvedAt = new Date();
+  linkedEvent.resolutionReason = reason;
+  linkedEvent.resolutionActionId = action._id;
+  linkedEvent.acked = true;
+  linkedEvent.ackedBy = linkedEvent.ackedBy || trainerid;
+  linkedEvent.ackedAt = linkedEvent.ackedAt || new Date();
+  await linkedEvent.save();
+  return linkedEvent;
+};
+
+const logModerationAction = async ({
+  testid,
+  traineeid,
+  trainerid,
+  actionType,
+  reason,
+  linkedEvent = null,
+  payload = {},
+  beforeState = null,
+  afterState = null,
+  visibleToCandidate = false
+}) => {
   const action = await ModerationActionModel.create({
     testid,
     traineeid,
     trainerid,
     actionType,
     reason,
-    linkedEventId,
+    linkedEventId: linkedEvent ? linkedEvent._id : null,
     payload,
     beforeState,
     afterState,
@@ -291,8 +477,9 @@ const logModerationAction = async ({ testid, traineeid, trainerid, actionType, r
     actionType,
     reason,
     payload: {
-      linkedEventId: linkedEventId || null,
-      moderationActionId: action._id,
+      linkedEventId: linkedEvent ? String(linkedEvent._id) : null,
+      relatedEventId: linkedEvent ? linkedEvent.eventId : null,
+      moderationActionId: String(action._id),
       visibleToCandidate,
       ...payload
     }
@@ -301,10 +488,56 @@ const logModerationAction = async ({ testid, traineeid, trainerid, actionType, r
   return action;
 };
 
+const restoreStatusAfterExcuse = async ({ currentStatus, testid, traineeid, linkedEvent }) => {
+  if (currentStatus !== MODERATION_STATUS.UNDER_REVIEW || !linkedEvent) {
+    return currentStatus;
+  }
+
+  const remainingConfirmedCount = await ProctorEventModel.countDocuments({
+    testid,
+    traineeid,
+    resolutionStatus: 'CONFIRMED',
+    _id: { $ne: linkedEvent._id }
+  });
+
+  if (remainingConfirmedCount > 0) {
+    return MODERATION_STATUS.UNDER_REVIEW;
+  }
+
+  const confirmedAction = await ModerationActionModel.findOne({
+    testid,
+    traineeid,
+    linkedEventId: linkedEvent._id,
+    actionType: ACTION_TYPES.CONFIRM_EVENT
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const previousStatus = confirmedAction && confirmedAction.payload && confirmedAction.payload.previousModerationStatus
+    ? String(confirmedAction.payload.previousModerationStatus)
+    : MODERATION_STATUS.NORMAL;
+
+  return previousStatus === MODERATION_STATUS.UNDER_REVIEW
+    ? MODERATION_STATUS.NORMAL
+    : previousStatus;
+};
+
+const applyWarningStatus = (status) => {
+  if (status === MODERATION_STATUS.DISQUALIFIED || status === MODERATION_STATUS.FORCE_SUBMITTED || status === MODERATION_STATUS.UNDER_REVIEW) {
+    return status;
+  }
+  return MODERATION_STATUS.WARNED;
+};
+
 const applyModerationAction = async ({ trainerid, testid, traineeid, actionType, reason, linkedEventId = null, payload = {} }) => {
   const { test, trainee, answerSheet } = await ensureTrainerScopedCandidate({ trainerid, testid, traineeid });
   const candidateState = deriveCandidateState({ test, answerSheet });
-  ensureActionAllowed({ actionType, candidateState });
+  ensureActionAllowed({ actionType, candidateState, test, answerSheet });
+  const linkedEvent = await loadLinkedEvent({ testid, traineeid, linkedEventId });
+
+  if (actionType === ACTION_TYPES.CONFIRM_EVENT || actionType === ACTION_TYPES.EXCUSE_EVENT) {
+    ensureReviewableEvent(linkedEvent);
+  }
 
   const beforeState = snapshotAnswerSheetState({ test, answerSheet });
   const now = new Date();
@@ -319,7 +552,7 @@ const applyModerationAction = async ({ trainerid, testid, traineeid, actionType,
   if (actionType === ACTION_TYPES.WARN_CANDIDATE) {
     visibleToCandidate = true;
     if (answerSheet) {
-      answerSheet.moderationStatus = 'WARNED';
+      answerSheet.moderationStatus = applyWarningStatus(answerSheet.moderationStatus || MODERATION_STATUS.NORMAL);
       answerSheet.lastModerationActionAt = now;
       await answerSheet.save();
     }
@@ -368,7 +601,7 @@ const applyModerationAction = async ({ trainerid, testid, traineeid, actionType,
 
     answerSheet.completed = true;
     answerSheet.completionReason = 'FORCED_BY_TRAINER';
-    answerSheet.moderationStatus = 'FORCE_SUBMITTED';
+    answerSheet.moderationStatus = MODERATION_STATUS.FORCE_SUBMITTED;
     answerSheet.lastModerationActionAt = now;
     answerSheet.lastHeartbeatAt = now;
     await answerSheet.save();
@@ -392,8 +625,158 @@ const applyModerationAction = async ({ trainerid, testid, traineeid, actionType,
       },
       explicitSeverityScore: 70,
       explicitSeverityLevel: 'HIGH_RISK',
-      dedupeKey: `trainer-force-submit:${testid}:${traineeid}`
+      dedupeKey: 'trainer-force-submit:' + testid + ':' + traineeid
     });
+  }
+
+  if (actionType === ACTION_TYPES.CONFIRM_EVENT) {
+    if (!answerSheet) {
+      const error = new Error('The candidate has not started the exam yet.');
+      error.code = 'MISSING_ACTIVE_SESSION';
+      throw error;
+    }
+
+    const previousModerationStatus = String(answerSheet.moderationStatus || MODERATION_STATUS.NORMAL);
+    if (previousModerationStatus !== MODERATION_STATUS.DISQUALIFIED && previousModerationStatus !== MODERATION_STATUS.FORCE_SUBMITTED) {
+      answerSheet.moderationStatus = MODERATION_STATUS.UNDER_REVIEW;
+    }
+    answerSheet.lastModerationActionAt = now;
+    await answerSheet.save();
+
+    moderationPayload = {
+      ...payload,
+      previousModerationStatus,
+      nextModerationStatus: answerSheet.moderationStatus,
+      linkedEventId: linkedEvent ? String(linkedEvent._id) : null,
+      relatedEventId: linkedEvent ? linkedEvent.eventId : null
+    };
+    afterState = snapshotAnswerSheetState({ test, answerSheet });
+  }
+
+  if (actionType === ACTION_TYPES.EXCUSE_EVENT) {
+    if (!answerSheet) {
+      const error = new Error('The candidate has not started the exam yet.');
+      error.code = 'MISSING_ACTIVE_SESSION';
+      throw error;
+    }
+
+    const previousModerationStatus = String(answerSheet.moderationStatus || MODERATION_STATUS.NORMAL);
+    answerSheet.moderationStatus = await restoreStatusAfterExcuse({
+      currentStatus: previousModerationStatus,
+      testid,
+      traineeid,
+      linkedEvent
+    });
+    answerSheet.lastModerationActionAt = now;
+    await answerSheet.save();
+
+    moderationPayload = {
+      ...payload,
+      previousModerationStatus,
+      nextModerationStatus: answerSheet.moderationStatus,
+      linkedEventId: String(linkedEvent._id),
+      relatedEventId: linkedEvent.eventId
+    };
+    afterState = snapshotAnswerSheetState({ test, answerSheet });
+  }
+
+  if (actionType === ACTION_TYPES.DISQUALIFY) {
+    if (!answerSheet || !answerSheet.completed) {
+      const error = new Error('Disqualify is only available after the candidate has finished the exam and before results are published.');
+      error.code = 'ACTION_NOT_ALLOWED';
+      throw error;
+    }
+
+    const previousModerationStatus = String(answerSheet.moderationStatus || MODERATION_STATUS.NORMAL);
+    answerSheet.moderationStatus = MODERATION_STATUS.DISQUALIFIED;
+    answerSheet.lastModerationActionAt = now;
+    await answerSheet.save();
+
+    moderationPayload = {
+      ...payload,
+      previousModerationStatus,
+      nextModerationStatus: answerSheet.moderationStatus,
+      completionReason: answerSheet.completionReason || null
+    };
+    afterState = snapshotAnswerSheetState({ test, answerSheet });
+  }
+
+  if (actionType === ACTION_TYPES.REOPEN_SESSION) {
+    if (!answerSheet || !answerSheet.completed || !isExamLiveForReopen(test)) {
+      const error = new Error('This session can only be reopened while the exam is still running and before results are published.');
+      error.code = 'REOPEN_NOT_ALLOWED';
+      throw error;
+    }
+
+    const addedMinutes = normalizeOptionalMinutes(payload.minutes);
+    if (addedMinutes === null) {
+      const error = new Error('Enter valid extra minutes for the reopened session.');
+      error.code = 'INVALID_REOPEN_MINUTES';
+      throw error;
+    }
+
+    const currentDuration = buildRuntimeDuration({ test, answerSheet });
+    const remainingSeconds = sessionResilience.computeRemainingSeconds({
+      startTime: answerSheet.startTime,
+      durationMinutes: currentDuration,
+      now: now.getTime()
+    });
+
+    if (remainingSeconds <= 0 && addedMinutes <= 0) {
+      const error = new Error('Add extra time before reopening a session that has already run out of time.');
+      error.code = 'REOPEN_EXTENSION_REQUIRED';
+      throw error;
+    }
+
+    const previousModerationStatus = String(answerSheet.moderationStatus || MODERATION_STATUS.NORMAL);
+    const currentExtra = Number(answerSheet.grantedExtraTimeMinutes || 0);
+    const nextDuration = currentDuration + addedMinutes;
+    const nextExtra = currentExtra + addedMinutes;
+    const nextSessionVersion = Number(answerSheet.sessionVersion || 0) + 1;
+    const nextGraceWindow = sessionResilience.buildGraceWindowUntil(now.getTime());
+
+    await AnswersheetModel.updateOne(
+      { _id: answerSheet._id },
+      {
+        $set: {
+          completed: false,
+          moderationStatus: MODERATION_STATUS.REOPENED,
+          lastModerationActionAt: now,
+          lastHeartbeatAt: now,
+          graceWindowUntil: nextGraceWindow,
+          sessionVersion: nextSessionVersion,
+          effectiveDurationMinutes: nextDuration,
+          grantedExtraTimeMinutes: nextExtra
+        },
+        $unset: {
+          completionReason: 1
+        }
+      }
+    );
+
+    answerSheet.completed = false;
+    answerSheet.completionReason = undefined;
+    answerSheet.moderationStatus = MODERATION_STATUS.REOPENED;
+    answerSheet.lastModerationActionAt = now;
+    answerSheet.lastHeartbeatAt = now;
+    answerSheet.graceWindowUntil = nextGraceWindow;
+    answerSheet.sessionVersion = nextSessionVersion;
+    answerSheet.effectiveDurationMinutes = nextDuration;
+    answerSheet.grantedExtraTimeMinutes = nextExtra;
+
+    moderationPayload = {
+      ...payload,
+      minutes: addedMinutes,
+      previousCompletionReason: beforeState.completionReason,
+      previousModerationStatus,
+      nextModerationStatus: answerSheet.moderationStatus,
+      previousEffectiveDurationMinutes: currentDuration,
+      nextEffectiveDurationMinutes: nextDuration,
+      previousGrantedExtraTimeMinutes: currentExtra,
+      nextGrantedExtraTimeMinutes: nextExtra,
+      remainingSecondsBeforeReopen: remainingSeconds
+    };
+    afterState = snapshotAnswerSheetState({ test, answerSheet });
   }
 
   const action = await logModerationAction({
@@ -402,12 +785,32 @@ const applyModerationAction = async ({ trainerid, testid, traineeid, actionType,
     trainerid,
     actionType,
     reason,
-    linkedEventId,
+    linkedEvent,
     payload: moderationPayload,
     beforeState,
     afterState,
     visibleToCandidate
   });
+
+  if (actionType === ACTION_TYPES.CONFIRM_EVENT) {
+    await updateLinkedEventResolution({
+      linkedEvent,
+      trainerid,
+      action,
+      resolutionStatus: 'CONFIRMED',
+      reason
+    });
+  }
+
+  if (actionType === ACTION_TYPES.EXCUSE_EVENT) {
+    await updateLinkedEventResolution({
+      linkedEvent,
+      trainerid,
+      action,
+      resolutionStatus: 'EXCUSED',
+      reason
+    });
+  }
 
   return {
     test,
@@ -415,17 +818,25 @@ const applyModerationAction = async ({ trainerid, testid, traineeid, actionType,
     answerSheet,
     action,
     candidateState,
-    currentState: deriveCandidateState({ test, answerSheet })
+    currentState: deriveCandidateState({ test, answerSheet }),
+    availableActions: getAllowedActionTypes({
+      test,
+      answerSheet,
+      candidateState: deriveCandidateState({ test, answerSheet })
+    })
   };
 };
-
 const handleModerationError = (res, error, context = {}) => {
   if (error && (
     error.code === 'INVALID_TEST' ||
     error.code === 'INVALID_TRAINEE' ||
     error.code === 'ACTION_NOT_ALLOWED' ||
     error.code === 'MISSING_ACTIVE_SESSION' ||
-    error.code === 'INVALID_EXTENSION_MINUTES'
+    error.code === 'INVALID_EXTENSION_MINUTES' ||
+    error.code === 'INVALID_LINKED_EVENT' ||
+    error.code === 'REOPEN_NOT_ALLOWED' ||
+    error.code === 'INVALID_REOPEN_MINUTES' ||
+    error.code === 'REOPEN_EXTENSION_REQUIRED'
   )) {
     return res.json({
       success: false,
@@ -487,6 +898,7 @@ const moderationAction = async (req, res) => {
       message: MODERATION_MESSAGES[actionType] || 'Moderation action saved.',
       data: {
         candidateState: result.currentState,
+        availableActions: result.availableActions,
         action: serializeAction(result.action),
         answerSheet: snapshotAnswerSheetState({ test: result.test, answerSheet: result.answerSheet }),
         trainee: {
@@ -525,7 +937,7 @@ const moderationHistory = async (req, res) => {
     const skip = (page - 1) * limit;
     const query = { testid, traineeid };
     const [items, total] = await Promise.all([
-      ModerationActionModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      ModerationActionModel.find(query).populate('linkedEventId', 'eventId eventType message createdAt resolutionStatus').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       ModerationActionModel.countDocuments(query)
     ]);
 
@@ -545,6 +957,7 @@ const moderationHistory = async (req, res) => {
           emailid: trainee.emailid || ''
         },
         candidateState: deriveCandidateState({ test, answerSheet }),
+        availableActions: getAllowedActionTypes({ test, answerSheet, candidateState: deriveCandidateState({ test, answerSheet }) }),
         answerSheet: snapshotAnswerSheetState({ test, answerSheet }),
         items: items.map(serializeAction),
         total,
@@ -679,6 +1092,7 @@ const moderationSummary = async (req, res) => {
           emailid: trainee.emailid || ''
         },
         candidateState: deriveCandidateState({ test, answerSheet: sheet }),
+        availableActions: getAllowedActionTypes({ test, answerSheet: sheet, candidateState: deriveCandidateState({ test, answerSheet: sheet }) }),
         moderationStatus: sheet && sheet.moderationStatus ? sheet.moderationStatus : 'NORMAL',
         completionReason: sheet && sheet.completionReason ? sheet.completionReason : null,
         totalActions: moderation.totalActions,
@@ -723,3 +1137,4 @@ module.exports = {
   candidateNotices,
   moderationSummary
 };
+

@@ -30,7 +30,10 @@ const serializeRelatedEvent = (event) => {
     severityScore: Number(event.severityScore || 0),
     severityLevel: event.severityLevel,
     message: event.message,
-    createdAt: event.createdAt
+    createdAt: event.createdAt,
+    resolutionStatus: event.resolutionStatus || 'UNRESOLVED',
+    resolvedAt: event.resolvedAt || null,
+    resolutionReason: event.resolutionReason || ''
   };
 };
 
@@ -51,6 +54,11 @@ const serializeEvent = (event, relatedEvent = null) => ({
   acked: Boolean(event.acked),
   ackedBy: event.ackedBy ? String(event.ackedBy) : null,
   ackedAt: event.ackedAt || null,
+  resolutionStatus: event.resolutionStatus || 'UNRESOLVED',
+  resolvedBy: event.resolvedBy ? String(event.resolvedBy) : null,
+  resolvedAt: event.resolvedAt || null,
+  resolutionReason: event.resolutionReason || '',
+  resolutionActionId: event.resolutionActionId ? String(event.resolutionActionId) : null,
   relatedEvent: serializeRelatedEvent(relatedEvent)
 });
 

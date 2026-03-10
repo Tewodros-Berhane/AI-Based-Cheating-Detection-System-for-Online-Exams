@@ -4,7 +4,11 @@ const ACTION_LABELS = {
   NOTE: 'trainer note',
   WARN_CANDIDATE: 'warning',
   EXTEND_TIME: 'time extension',
-  FORCE_SUBMIT: 'force submit'
+  FORCE_SUBMIT: 'force submit',
+  CONFIRM_EVENT: 'confirmed concern',
+  EXCUSE_EVENT: 'excused alert',
+  REOPEN_SESSION: 'reopened session',
+  DISQUALIFY: 'disqualification'
 };
 
 const COMPLETION_LABELS = {
@@ -104,7 +108,7 @@ const buildModerationSummaryLine = (actions = [], counts = {}) => {
     return 'No trainer actions recorded';
   }
 
-  const priorityOrder = ['FORCE_SUBMIT', 'WARN_CANDIDATE', 'EXTEND_TIME', 'NOTE'];
+  const priorityOrder = ['DISQUALIFY', 'FORCE_SUBMIT', 'REOPEN_SESSION', 'CONFIRM_EVENT', 'EXCUSE_EVENT', 'WARN_CANDIDATE', 'EXTEND_TIME', 'NOTE'];
   const parts = priorityOrder
     .filter((key) => Number(counts[key] || 0) > 0)
     .map((key) => pluralize(Number(counts[key]), ACTION_LABELS[key] || key.toLowerCase()));
@@ -115,9 +119,22 @@ const buildModerationSummaryLine = (actions = [], counts = {}) => {
 const buildFinalDisposition = ({ answerSheet, actions = [] }) => {
   const counts = buildActionCounts(actions);
   const completionReason = String(answerSheet && answerSheet.completionReason ? answerSheet.completionReason : 'SUBMITTED');
+  const moderationStatus = String(answerSheet && answerSheet.moderationStatus ? answerSheet.moderationStatus : 'NORMAL');
+
+  if (counts.DISQUALIFY > 0 || moderationStatus === 'DISQUALIFIED') {
+    return { label: 'Disqualified during review', tone: 'critical' };
+  }
 
   if (counts.FORCE_SUBMIT > 0 || completionReason === 'FORCED_BY_TRAINER') {
     return { label: 'Force submitted by examiner', tone: 'critical' };
+  }
+
+  if (moderationStatus === 'UNDER_REVIEW' || counts.CONFIRM_EVENT > counts.EXCUSE_EVENT) {
+    return { label: 'Under examiner review', tone: 'monitoring' };
+  }
+
+  if (moderationStatus === 'REOPENED' || counts.REOPEN_SESSION > 0) {
+    return { label: 'Session reopened by examiner', tone: 'monitoring' };
   }
 
   if (completionReason === 'TIMEOUT') {
@@ -130,6 +147,10 @@ const buildFinalDisposition = ({ answerSheet, actions = [] }) => {
 
   if (counts.WARN_CANDIDATE > 0) {
     return { label: 'Completed after examiner warning', tone: 'warning' };
+  }
+
+  if (Number(counts.EXCUSE_EVENT || 0) > 0 && actions.length === (Number(counts.EXCUSE_EVENT || 0) + Number(counts.NOTE || 0))) {
+    return { label: 'Alert reviewed and excused', tone: 'safe' };
   }
 
   if (actions.length > 0) {

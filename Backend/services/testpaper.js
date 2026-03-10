@@ -561,7 +561,21 @@ let basicTestdetails = (req,res,next)=>{
         const candidateIds = candidates.map((candidate)=>candidate._id);
         const sheets = await AnswersheetModel.find(
             {testid:testid, userid: {$in: candidateIds}},
-            {_id:1,userid:1,startTime:1,completed:1,lastHeartbeatAt:1,graceWindowUntil:1,disconnectCount:1,completionReason:1,lastSavedQuestionIndex:1}
+            {
+                _id:1,
+                userid:1,
+                startTime:1,
+                completed:1,
+                lastHeartbeatAt:1,
+                graceWindowUntil:1,
+                disconnectCount:1,
+                completionReason:1,
+                lastSavedQuestionIndex:1,
+                moderationStatus:1,
+                lastModerationActionAt:1,
+                grantedExtraTimeMinutes:1,
+                effectiveDurationMinutes:1
+            }
         );
 
         const now = Date.now();
@@ -570,9 +584,10 @@ let basicTestdetails = (req,res,next)=>{
 
         sheets.forEach((sheet)=>{
             const userKey = String(sheet.userid);
+            const runtimeDurationMinutes = Number(sheet.effectiveDurationMinutes || test.duration || 0);
             const hasTimedOut = !sheet.completed && sessionResilience.hasSessionTimedOut({
                 startTime: sheet.startTime,
-                durationMinutes: test.duration,
+                durationMinutes: runtimeDurationMinutes,
                 now
             });
             const graceExpired = !hasTimedOut && !sheet.completed && sessionResilience.hasGraceWindowExpired(sheet, now);
@@ -608,8 +623,9 @@ let basicTestdetails = (req,res,next)=>{
             const sheet = sheetByUser.get(String(candidate._id));
             const startedWriting = Boolean(sheet);
             const completed = Boolean(sheet && sheet.completed);
+            const runtimeDurationMinutes = Number((sheet && sheet.effectiveDurationMinutes) || test.duration || 0);
             const pendingSeconds = sheet && !completed
-                ? sessionResilience.computeRemainingSeconds({ startTime: sheet.startTime, durationMinutes: test.duration, now })
+                ? sessionResilience.computeRemainingSeconds({ startTime: sheet.startTime, durationMinutes: runtimeDurationMinutes, now })
                 : null;
 
             let status = 'not_started';
@@ -628,7 +644,11 @@ let basicTestdetails = (req,res,next)=>{
                     lastHeartbeatAt: sheet && sheet.lastHeartbeatAt ? sheet.lastHeartbeatAt : null,
                     graceWindowUntil: sheet && sheet.graceWindowUntil ? sheet.graceWindowUntil : null,
                     completionReason: sheet && sheet.completionReason ? sheet.completionReason : null,
-                    lastSavedQuestionIndex: sheet ? Number(sheet.lastSavedQuestionIndex || 0) : 0
+                    lastSavedQuestionIndex: sheet ? Number(sheet.lastSavedQuestionIndex || 0) : 0,
+                    moderationStatus: sheet && sheet.moderationStatus ? sheet.moderationStatus : 'NORMAL',
+                    lastModerationActionAt: sheet && sheet.lastModerationActionAt ? sheet.lastModerationActionAt : null,
+                    grantedExtraTimeMinutes: sheet ? Number(sheet.grantedExtraTimeMinutes || 0) : 0,
+                    effectiveDurationMinutes: runtimeDurationMinutes
                 }
             };
         });

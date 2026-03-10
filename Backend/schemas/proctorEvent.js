@@ -76,6 +76,30 @@ var proctorEventSchema = new mongoose.Schema({
     ackedAt: {
         type: Date,
         default: null
+    },
+    resolutionStatus: {
+        type: String,
+        enum: ['UNRESOLVED', 'CONFIRMED', 'EXCUSED'],
+        default: 'UNRESOLVED',
+        index: true
+    },
+    resolvedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'UserModel',
+        default: null
+    },
+    resolvedAt: {
+        type: Date,
+        default: null
+    },
+    resolutionReason: {
+        type: String,
+        default: ''
+    },
+    resolutionActionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ModerationActionModel',
+        default: null
     }
 }, {
     timestamps: {
