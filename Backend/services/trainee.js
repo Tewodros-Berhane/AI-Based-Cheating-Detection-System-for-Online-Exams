@@ -3,7 +3,7 @@ var config = require('config');
 var TraineeEnterModel = require("../models/trainee");
 var TestPaperModel = require("../models/testpaper");
 var FeedbackModel = require("../models/feedback");
-var sendmail = require("../services/mail").sendmail;
+const { sendmail, MAIL_NOT_CONFIGURED_CODE } = require("../services/mail");
 var QuestionModel = require("../models/questions");
 var options = require("../models/option");
 var AnswersheetModel = require("../models/answersheet");
@@ -29,6 +29,13 @@ let getFrontendBaseUrl = (req) => {
 
 let buildTestLink = (req, testid, traineeid) => {
     return `${getFrontendBaseUrl(req)}/trainee/taketest?testid=${testid}&traineeid=${traineeid}`;
+};
+
+let getMailFailureMessage = (error) => {
+    if (error && error.code === MAIL_NOT_CONFIGURED_CODE) {
+        return 'Email delivery is not configured on the server. Please contact the administrator.';
+    }
+    return 'Email could not be sent. Please try again later.';
 };
 
 let defaultUiAdjustments = () => ({
@@ -628,23 +635,37 @@ let traineeenter = async (req, res, next) => {
             </div>
             `;
 
-    sendmail(
-      emailid,
-      'Registered Successfully - Exam Shield',
-      'You\'ve been registered-please view this email in HTML format.',
-      htmlContent,
-      [
-        {
-          filename: 'logo.jpg',
-          path: path.join(__dirname, '../public/logo.jpg'),
-          cid: 'examshieldlogo'
-        }
-      ]
-    ).catch(console.log);
+    let emailDelivered = true;
+    let registrationMessage = 'Trainee registered successfully!';
+
+    try {
+      await sendmail(
+        emailid,
+        'Registered Successfully - Exam Shield',
+        'You\'ve been registered-please view this email in HTML format.',
+        htmlContent,
+        [
+          {
+            filename: 'logo.jpg',
+            path: path.join(__dirname, '../public/logo.jpg'),
+            cid: 'examshieldlogo'
+          }
+        ]
+      );
+    } catch (mailError) {
+      emailDelivered = false;
+      registrationMessage = 'Registration completed, but the exam email could not be sent. Please contact the administrator.';
+      logger.warn('trainee_registration_email_failed', {
+        traineeId: String(u._id),
+        testId: String(testid),
+        error: logger.normalizeError(mailError)
+      });
+    }
 
     return res.json({
       success: true,
-      message: 'Trainee registered successfully!',
+      message: registrationMessage,
+      emailDelivered,
       user: u
     });
   } catch (err) {
@@ -808,7 +829,7 @@ let checkFeedback = (req,res,next)=>{
 let resendmail = (req, res, next) => {
   const userid = req.body.id;
 
-  TraineeEnterModel.findById(userid, { emailid: 1, testid: 1, name: 1 })
+  TraineeEnterModel.findById(userid, { emailid: 1, testid: 1, name: 1, traineeID: 1 })
     .then(info => {
       if (!info) {
         return res.json({
@@ -817,7 +838,7 @@ let resendmail = (req, res, next) => {
         });
       }
 
-      return TestPaperModel.findById(info.testid).then(test => {
+      return TestPaperModel.findById(info.testid, { title: 1, duration: 1, organisation: 1, examID: 1 }).then(test => {
         if (!test) {
           return res.json({
             success: false,
@@ -846,8 +867,8 @@ let resendmail = (req, res, next) => {
                 </ul>
 
                 <div style="margin: 25px 0; text-align: center; border: 1px solid #30363d; padding: 10px; color: #c9d1d9;">
-                <p> This is your id: <strong> ${info._id} </strong> </p>
-                <p> This is the exam id: <strong> ${info.testid} </strong> </p>
+                <p> This is your id: <strong> ${info.traineeID || info._id} </strong> </p>
+                <p> This is the exam id: <strong> ${test.examID || info.testid} </strong> </p>
                 </div>
 
                 <h3 style="color: #58a6ff; margin-top: 25px;">Important Instructions</h3>
@@ -887,10 +908,14 @@ let resendmail = (req, res, next) => {
             message: 'Link sent successfully!'
           });
         }).catch(err => {
-          console.error(err);
-          return res.status(500).json({
+          logger.warn('trainee_resend_email_failed', {
+            traineeId: String(info._id),
+            testId: String(info.testid),
+            error: logger.normalizeError(err)
+          });
+          return res.status(err && err.code === MAIL_NOT_CONFIGURED_CODE ? 503 : 502).json({
             success: false,
-            message: 'Email could not be sent.'
+            message: getMailFailureMessage(err)
           });
         });
       });
@@ -1629,6 +1654,12 @@ let getQuestion = (req,res,next)=>{
 
 
 module.exports = {traineeenter,getRegistrationConfig,feedback,checkFeedback,resendmail,correctAnswers,Answersheet,flags,chosenOptions,sessionHeartbeat,resumeSession,batchSaveAnswers,TraineeDetails,Testquestions,UpdateAnswers,EndTest,getQuestion}
+
+
+
+
+
+
 
 
 

@@ -21,14 +21,16 @@ class TraineeRegisterForm extends Component {
             faceImageValidationError: '',
             validatingFaceImage: false,
             faceRecognitionEnabled: true,
-            registrationConfigLoading: true
+            registrationConfigLoading: true,
+            emailDelivered: true,
+            registrationStatusMessage: ''
         };
         this.faceModelPromise = null;
     }
 
     getPersistKey = (testid) => `trainee_registration_state:${testid || 'default'}`;
 
-    persistSentState = (testid, user) => {
+    persistSentState = (testid, user, emailDelivered = true, registrationStatusMessage = "") => {
         if (!testid || !user) return;
         try {
             const payload = {
@@ -38,6 +40,8 @@ class TraineeRegisterForm extends Component {
                     emailid: user.emailid,
                     name: user.name,
                 },
+                emailDelivered,
+                registrationStatusMessage,
                 savedAt: Date.now(),
             };
             window.sessionStorage.setItem(this.getPersistKey(testid), JSON.stringify(payload));
@@ -66,6 +70,8 @@ class TraineeRegisterForm extends Component {
             testid,
             inform: persistedState ? false : true,
             user: persistedState ? persistedState.user : null,
+            emailDelivered: persistedState ? persistedState.emailDelivered !== false : true,
+            registrationStatusMessage: persistedState ? (persistedState.registrationStatusMessage || '') : '',
         }, () => {
             this.fetchRegistrationConfig(testid);
         });
@@ -236,10 +242,14 @@ class TraineeRegisterForm extends Component {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 }).then((data) => {
                     if (data.data.success) {
-                        this.persistSentState(this.state.testid, data.data.user);
+                        const emailDelivered = data.data.emailDelivered !== false;
+                        const registrationStatusMessage = data.data.message || '';
+                        this.persistSentState(this.state.testid, data.data.user, emailDelivered, registrationStatusMessage);
                         this.setState({
                             inform: false,
-                            user: data.data.user
+                            user: data.data.user,
+                            emailDelivered,
+                            registrationStatusMessage
                         });
                     } else {
                         this.props.form.resetFields();
@@ -263,13 +273,16 @@ class TraineeRegisterForm extends Component {
             }
         }).then((response) => {
             if (response.data.success) {
-                Alert('success', 'Success!', "Email has been sent to your email");
+                Alert('success', 'Success!', response.data.message || 'Email has been sent to your email');
             } else {
                 Alert('error', 'Error!', response.data.message);
             }
         }).catch((error) => {
             console.log(error);
-            Alert('error', 'Error!', "Server Error");
+            const message = error && error.response && error.response.data && error.response.data.message
+                ? error.response.data.message
+                : 'Server Error';
+            Alert('error', 'Error!', message);
         });
     }
 
@@ -427,10 +440,18 @@ class TraineeRegisterForm extends Component {
                     </div>
                 ) : (
                     <div className="reasendmail-container-register trainee-registration-success">
-                        <div className="trainee-registration-side-badge">Email Sent</div>
-                        <Title level={4}>Your exam access email has been sent.</Title>
-                        <p>We sent the exam link to <strong>{this.state.user.emailid}</strong>.</p>
-                        <p>If you did not receive it, use the resend action below.</p>
+                        <div className="trainee-registration-side-badge">{this.state.emailDelivered ? 'Email Sent' : 'Registration Complete'}</div>
+                        <Title level={4}>{this.state.emailDelivered ? 'Your exam access email has been sent.' : 'Registration completed, but the exam email could not be sent.'}</Title>
+                        <p>
+                            {this.state.emailDelivered
+                                ? <>We sent the exam link to <strong>{this.state.user.emailid}</strong>.</>
+                                : this.state.registrationStatusMessage || 'Email delivery is not configured on the server. Please contact the administrator.'}
+                        </p>
+                        <p>
+                            {this.state.emailDelivered
+                                ? 'If you did not receive it, use the resend action below.'
+                                : 'Use resend after the email service is configured, or contact the administrator for access.'}
+                        </p>
                         <Button type="primary" onClick={this.resendMail}>Resend Email</Button>
                     </div>
                 )}
@@ -441,3 +462,5 @@ class TraineeRegisterForm extends Component {
 
 const TraineeRegister = Form.create({ name: 'Trainee Registration' })(TraineeRegisterForm);
 export default withRouter(TraineeRegister);
+
+
