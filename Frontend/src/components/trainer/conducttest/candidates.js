@@ -2,12 +2,13 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Input, Button, Pagination, Tooltip, message, Spin } from 'antd-compat';
 import Highlighter from 'react-highlight-words';
-import { Copy, Eye, RefreshCw, Search } from 'lucide-react';
+import { Copy, Eye, RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
 import { updateCandidatesTest } from '../../../actions/conductTest';
 import { SecurePost } from '../../../services/axiosCall';
 import apis from '../../../services/Apis';
 import Alert from '../../common/alert';
 import AppModal from '../../common/AppModal';
+import CandidateSupportModal from '../common/CandidateSupportModal';
 import TrainerLivePreview from '../TrainerLivePreview';
 import TrainerResultPreview from '../TrainerResultPreview';
 import ProctorTimelineModal from './ProctorTimelineModal';
@@ -21,9 +22,12 @@ class Candidates extends Component {
       searchText: '',
       previewVisible: false,
       previewCandidate: null,
+      supportVisible: false,
+      supportCandidate: null,
       timelineVisible: false,
       timelineCandidate: null,
       riskByTrainee: {},
+      supportByTrainee: {},
       page: 1,
       pageSize: 6
     };
@@ -50,10 +54,17 @@ class Candidates extends Component {
     }
   }
 
+  buildSupportMap = (items = []) => items.reduce((accumulator, item) => {
+    if (item && item.trainee && item.trainee._id) {
+      accumulator[item.trainee._id] = item;
+    }
+    return accumulator;
+  }, {});
+
   refreshUserList = () => {
     if (!this.props.conduct.id) {
       this.props.updateCandidatesTest([]);
-      this.setState({ riskByTrainee: {} });
+      this.setState({ riskByTrainee: {}, supportByTrainee: {} });
       return;
     }
 
@@ -66,9 +77,13 @@ class Candidates extends Component {
       SecurePost({
         url: apis.GET_PROCTOR_SUMMARY,
         data: { testid: this.props.conduct.id }
+      }),
+      SecurePost({
+        url: apis.LIST_TEST_ACCOMMODATIONS,
+        data: { testid: this.props.conduct.id }
       })
     ])
-      .then(([candidateResult, summaryResult]) => {
+      .then(([candidateResult, summaryResult, supportResult]) => {
         if (candidateResult.status === 'fulfilled') {
           const response = candidateResult.value;
           if (response.data.success) {
@@ -89,6 +104,15 @@ class Candidates extends Component {
           this.setState({ riskByTrainee });
         } else {
           this.setState({ riskByTrainee: {} });
+        }
+
+        if (supportResult.status === 'fulfilled' && supportResult.value.data && supportResult.value.data.success) {
+          const supportItems = supportResult.value.data.data && Array.isArray(supportResult.value.data.data.items)
+            ? supportResult.value.data.data.items
+            : [];
+          this.setState({ supportByTrainee: this.buildSupportMap(supportItems) });
+        } else {
+          this.setState({ supportByTrainee: {} });
         }
       })
       .finally(() => {
@@ -118,6 +142,20 @@ class Candidates extends Component {
     this.setState({
       previewVisible: false,
       previewCandidate: null
+    });
+  };
+
+  openSupport = (candidate) => {
+    this.setState({
+      supportVisible: true,
+      supportCandidate: candidate
+    });
+  };
+
+  closeSupport = () => {
+    this.setState({
+      supportVisible: false,
+      supportCandidate: null
     });
   };
 
@@ -180,6 +218,24 @@ class Candidates extends Component {
     }
   };
 
+  getSupportBadge = (candidateId) => {
+    const profile = this.state.supportByTrainee[candidateId];
+    if (!profile) {
+      return null;
+    }
+
+    const extraTime = Number(profile.timeAdjustments && profile.timeAdjustments.extraTimeMinutes) || 0;
+    const hasCheckAdjustments = Object.values((profile.integrityOverrides || {})).some(Boolean);
+    const label = profile.isCurrentlyEffective
+      ? (extraTime > 0 ? `Support active  •  +${extraTime} min` : (hasCheckAdjustments ? 'Support active  •  adjusted checks' : 'Support active'))
+      : 'Support scheduled';
+
+    return {
+      label,
+      tone: profile.isCurrentlyEffective ? 'active' : 'scheduled'
+    };
+  };
+
   renderHighlighted = (value) => (
     <Highlighter
       highlightStyle={{ backgroundColor: 'rgba(59,130,246,0.25)', padding: 0, borderRadius: 4 }}
@@ -197,6 +253,7 @@ class Candidates extends Component {
     const visibleRows = filteredCandidates.slice(start, end);
     const previewCandidate = this.state.previewCandidate;
     const timelineCandidate = this.state.timelineCandidate;
+    const supportCandidate = this.state.supportCandidate;
 
     return (
       <section className="conduct-candidates-wrap">
@@ -238,7 +295,7 @@ class Candidates extends Component {
                   <th>Contact</th>
                   <th>Exam Link</th>
                   <th>Alerts</th>
-                  <th>Preview</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,12 +312,16 @@ class Candidates extends Component {
                 ) : (
                   visibleRows.map((candidate) => {
                     const examLink = this.getExamLink(candidate._id);
+                    const supportBadge = this.getSupportBadge(candidate._id);
                     return (
                       <tr className="admin-data-row" key={candidate._id}>
                         <td data-label="Student">
                           <div className="admin-row-title">{this.renderHighlighted(candidate.name)}</div>
                           <div className="admin-row-subtext">{this.renderHighlighted(candidate.emailid)}</div>
                           <div className={`conduct-session-pill ${candidate?.examProgress?.connectionStatus || 'not_started'}`}>{this.getConnectionLabel(candidate?.examProgress?.connectionStatus)}</div>
+                          {supportBadge ? (
+                            <div className={`conduct-support-pill ${supportBadge.tone}`}>{supportBadge.label}</div>
+                          ) : null}
                         </td>
                         <td data-label="Contact">{this.renderHighlighted(candidate.contact || '-')}</td>
                         <td data-label="Exam Link">
@@ -285,8 +346,17 @@ class Candidates extends Component {
                             />
                           </div>
                         </td>
-                        <td data-label="Preview">
-                          <div className="admin-row-actions">
+                        <td data-label="Actions">
+                          <div className="admin-row-actions conduct-row-actions">
+                            <Tooltip title="Open support settings and trainer actions">
+                              <Button
+                                className="admin-icon-btn"
+                                shape="circle"
+                                onClick={() => this.openSupport(candidate)}
+                              >
+                                <SlidersHorizontal size={16} strokeWidth={2.3} />
+                              </Button>
+                            </Tooltip>
                             <Tooltip title="Open live preview">
                               <Button
                                 className="admin-icon-btn"
@@ -345,6 +415,14 @@ class Candidates extends Component {
             <div className="conduct-preview-empty">No candidate selected.</div>
           )}
         </AppModal>
+
+        <CandidateSupportModal
+          open={this.state.supportVisible}
+          candidate={supportCandidate}
+          testId={this.props.conduct.id}
+          onClose={this.closeSupport}
+          onChanged={this.refreshUserList}
+        />
 
         <ProctorTimelineModal
           open={this.state.timelineVisible}

@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Tooltip } from 'antd-compat';
-import { History } from 'lucide-react';
+import { History, SlidersHorizontal } from 'lucide-react';
 import { SecurePost } from '../../../services/axiosCall';
 import apis from '../../../services/Apis';
+import CandidateSupportModal from '../common/CandidateSupportModal';
 import ProctorTimelineModal from '../conducttest/ProctorTimelineModal';
 
 export default function Trainee(props) {
@@ -10,36 +11,63 @@ export default function Trainee(props) {
   const rows = useMemo(() => props.stats || [], [props.stats]);
   const testId = props.id;
   const [riskByTrainee, setRiskByTrainee] = useState({});
+  const [supportByTrainee, setSupportByTrainee] = useState({});
   const [timelineVisible, setTimelineVisible] = useState(false);
   const [timelineCandidate, setTimelineCandidate] = useState(null);
+  const [supportVisible, setSupportVisible] = useState(false);
+  const [supportCandidate, setSupportCandidate] = useState(null);
 
   const refreshRiskSummary = useCallback(async () => {
     if (!testId) {
       setRiskByTrainee({});
+      setSupportByTrainee({});
       return;
     }
 
     try {
-      const response = await SecurePost({
-        url: apis.GET_PROCTOR_SUMMARY,
-        data: {
-          testid: testId
-        }
-      });
+      const [summaryResponse, supportResponse] = await Promise.all([
+        SecurePost({
+          url: apis.GET_PROCTOR_SUMMARY,
+          data: {
+            testid: testId
+          }
+        }),
+        SecurePost({
+          url: apis.LIST_TEST_ACCOMMODATIONS,
+          data: {
+            testid: testId
+          }
+        })
+      ]);
 
-      if (!response.data || !response.data.success) {
+      if (summaryResponse.data && summaryResponse.data.success) {
+        const items = Array.isArray(summaryResponse.data.data) ? summaryResponse.data.data : [];
+        const nextMap = items.reduce((accumulator, item) => {
+          accumulator[item.traineeid] = item;
+          return accumulator;
+        }, {});
+        setRiskByTrainee(nextMap);
+      } else {
         setRiskByTrainee({});
-        return;
       }
 
-      const items = Array.isArray(response.data.data) ? response.data.data : [];
-      const nextMap = items.reduce((accumulator, item) => {
-        accumulator[item.traineeid] = item;
-        return accumulator;
-      }, {});
-      setRiskByTrainee(nextMap);
+      if (supportResponse.data && supportResponse.data.success) {
+        const supportItems = supportResponse.data.data && Array.isArray(supportResponse.data.data.items)
+          ? supportResponse.data.data.items
+          : [];
+        const nextSupportMap = supportItems.reduce((accumulator, item) => {
+          if (item && item.trainee && item.trainee._id) {
+            accumulator[item.trainee._id] = item;
+          }
+          return accumulator;
+        }, {});
+        setSupportByTrainee(nextSupportMap);
+      } else {
+        setSupportByTrainee({});
+      }
     } catch (error) {
       setRiskByTrainee({});
+      setSupportByTrainee({});
     }
   }, [testId]);
 
@@ -55,10 +83,11 @@ export default function Trainee(props) {
           ...row,
           candidate,
           candidateId: candidate && candidate._id ? String(candidate._id) : '',
-          snapshot: candidate && candidate._id ? riskByTrainee[String(candidate._id)] || null : null
+          snapshot: candidate && candidate._id ? riskByTrainee[String(candidate._id)] || null : null,
+          supportProfile: candidate && candidate._id ? supportByTrainee[String(candidate._id)] || null : null
         };
       }),
-    [rows, riskByTrainee]
+    [rows, riskByTrainee, supportByTrainee]
   );
 
   const openTimeline = (candidate) => {
@@ -74,11 +103,36 @@ export default function Trainee(props) {
     setTimelineCandidate(null);
   };
 
+  const openSupport = (candidate) => {
+    if (!candidate || !candidate._id) {
+      return;
+    }
+    setSupportCandidate(candidate);
+    setSupportVisible(true);
+  };
+
+  const closeSupport = () => {
+    setSupportVisible(false);
+    setSupportCandidate(null);
+  };
+
+  const getSupportBadge = (profile) => {
+    if (!profile) {
+      return null;
+    }
+
+    const extraTime = Number(profile.timeAdjustments && profile.timeAdjustments.extraTimeMinutes) || 0;
+    const hasCheckAdjustments = Object.values((profile.integrityOverrides || {})).some(Boolean);
+    return profile.isCurrentlyEffective
+      ? (extraTime > 0 ? `Support active  •  +${extraTime} min` : (hasCheckAdjustments ? 'Support active  •  adjusted checks' : 'Support active'))
+      : 'Support scheduled';
+  };
+
   return (
     <section className="testdetails-block">
       <div className="testdetails-block-head">
         <h4>Student Performance</h4>
-        <p>Review each candidate outcome, scoring status, and behavior audit trail.</p>
+        <p>Review each candidate outcome, scoring status, support plan, and behavior audit trail.</p>
       </div>
 
       <div className="admin-data-grid-shell">
@@ -91,7 +145,7 @@ export default function Trainee(props) {
                 <th>Organization</th>
                 <th>Score</th>
                 <th>Status</th>
-                <th>Audit</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -104,7 +158,7 @@ export default function Trainee(props) {
                   const score = Number(row.score || 0);
                   const passed = score >= maxMarks / 2;
                   const candidate = row.candidate || {};
-                  const hasAuditData = Boolean(row.snapshot);
+                  const supportBadge = getSupportBadge(row.supportProfile);
 
                   return (
                     <tr className="admin-data-row" key={row._id}>
@@ -118,15 +172,30 @@ export default function Trainee(props) {
                       <td data-label="Organization">{candidate.organisation || '-'}</td>
                       <td data-label="Score">{score}</td>
                       <td data-label="Status">
-                        <span className={`testdetails-status-pill ${passed ? 'pass' : 'fail'}`}>
-                          {passed ? 'Pass' : 'Fail'}
-                        </span>
+                        <div className="testdetails-status-stack">
+                          <span className={`testdetails-status-pill ${passed ? 'pass' : 'fail'}`}>
+                            {passed ? 'Pass' : 'Fail'}
+                          </span>
+                          {supportBadge ? (
+                            <span className={`testdetails-support-pill ${row.supportProfile && row.supportProfile.isCurrentlyEffective ? 'active' : 'scheduled'}`}>
+                              {supportBadge}
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
-                      <td data-label="Audit">
+                      <td data-label="Actions">
                         <div className="admin-row-actions testdetails-audit-actions">
-                          <Tooltip
-                            title={hasAuditData ? 'Open behavior audit' : 'Open behavior audit timeline'}
-                          >
+                          <Tooltip title="Open support settings and trainer actions">
+                            <Button
+                              className="admin-icon-btn"
+                              shape="circle"
+                              disabled={!row.candidateId}
+                              onClick={() => openSupport(candidate)}
+                            >
+                              <SlidersHorizontal size={16} strokeWidth={2.3} />
+                            </Button>
+                          </Tooltip>
+                          <Tooltip title="Open behavior audit">
                             <Button
                               className="admin-icon-btn"
                               shape="circle"
@@ -146,6 +215,14 @@ export default function Trainee(props) {
           </table>
         </div>
       </div>
+
+      <CandidateSupportModal
+        open={supportVisible}
+        candidate={supportCandidate}
+        testId={testId}
+        onClose={closeSupport}
+        onChanged={refreshRiskSummary}
+      />
 
       <ProctorTimelineModal
         open={timelineVisible}

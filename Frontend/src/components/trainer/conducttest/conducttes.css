@@ -1143,3 +1143,34 @@
   background: rgba(17, 94, 89, 0.28);
   color: #99f6e4;
 }
+
+.conduct-row-actions {
+  justify-content: center;
+  gap: 8px;
+}
+
+.conduct-support-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.45rem;
+  padding: 0.2rem 0.58rem;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  background: rgba(30, 64, 175, 0.24);
+  color: #bfdbfe;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.conduct-support-pill.active {
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(20, 83, 45, 0.32);
+  color: #86efac;
+}
+
+.conduct-support-pill.scheduled {
+  border-color: rgba(59, 130, 246, 0.32);
+  background: rgba(30, 64, 175, 0.26);
+  color: #bfdbfe;
+}
