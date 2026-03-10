@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 var trainee = require("../services/trainee");
 var preflight = require("../services/preflight");
+var accommodations = require("../services/accommodations");
 var TraineeEnterModel = require("../models/trainee");
 let TestPaperModel = require("../models/testpaper");
 const { upload } = require("./fileUpload");
@@ -16,6 +17,7 @@ router.post('/preflight/start', preflight.startPreflight);
 router.post('/preflight/check', preflight.updatePreflightCheck);
 router.post('/preflight/complete', preflight.completePreflight);
 router.post('/preflight/latest', preflight.getLatestPreflight);
+router.post('/session/effective-policy', accommodations.getEffectivePolicy);
 router.post('/session/heartbeat', trainee.sessionHeartbeat);
 router.post('/session/resume', trainee.resumeSession);
 router.post('/answers/batch-save', trainee.batchSaveAnswers);
@@ -79,4 +81,3 @@ router.post('/fetch-test-by-examid', async (req, res) => {
 
 
 module.exports = router;
-

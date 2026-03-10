@@ -98,7 +98,6 @@ var accommodationProfileSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-accommodationProfileSchema.index({ testid: 1, traineeid: 1, status: 1 });
 accommodationProfileSchema.index(
     { testid: 1, traineeid: 1, status: 1 },
     { unique: true, partialFilterExpression: { status: 'ACTIVE' } }
