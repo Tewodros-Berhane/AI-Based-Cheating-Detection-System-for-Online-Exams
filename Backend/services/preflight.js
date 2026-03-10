@@ -3,7 +3,7 @@ var PreflightRunModel = require("../models/preflightRun");
 var TestPaperModel = require("../models/testpaper");
 var TraineeEnterModel = require("../models/trainee");
 var logger = require("./logger");
-var integrityPolicy = require("./integrityPolicy");
+var accommodations = require("./accommodations");
 
 const REQUIRED_CHECK_BY_POLICY = {
   requireCamera: "camera",
@@ -32,13 +32,16 @@ const normalizeCheckType = (value) => String(value || "").trim().toLowerCase();
 
 const toCheckLabel = (checkType) => CHECK_LABEL_BY_TYPE[checkType] || String(checkType || "check");
 
-const resolveEffectiveIntegrity = (test) => {
-  const mode = integrityPolicy.normalizeIntegrityMode(test && test.integrityMode);
-  const policy = integrityPolicy.resolveIntegrityPolicy(mode, (test && test.integrityPolicy) || {});
-  if (!Boolean(test && test.faceRecognitionEnabled)) {
-    policy.requireFaceVerification = false;
-  }
-  return { mode, policy };
+const resolveEffectiveIntegrity = async (test, traineeid) => {
+  const profile = await accommodations.getActiveAccommodationProfile(test && test._id, traineeid);
+  const resolved = accommodations.buildResolvedAccommodation({ test, profile });
+
+  return {
+    mode: resolved.integrityMode,
+    policy: resolved.effectiveIntegrityPolicy,
+    preflightEnabled: resolved.preflightEnabled,
+    faceRecognitionEnabled: Boolean(test && test.faceRecognitionEnabled && resolved.effectiveIntegrityPolicy && resolved.effectiveIntegrityPolicy.requireFaceVerification)
+  };
 };
 
 const ensureCandidateAndTest = async (testid, traineeid) => {
@@ -112,7 +115,7 @@ const startPreflight = async (req, res) => {
       });
     }
 
-    const integrity = resolveEffectiveIntegrity(info.test);
+    const integrity = await resolveEffectiveIntegrity(info.test, info.trainee._id);
     const mode = integrity.mode;
     const policy = integrity.policy;
     const lastRun = await PreflightRunModel.findOne({
@@ -126,9 +129,9 @@ const startPreflight = async (req, res) => {
       traineeid: info.trainee._id,
       attemptNo: nextAttempt,
       mode,
-      status: info.test.preflightEnabled ? "PENDING" : "PASSED",
+      status: integrity.preflightEnabled ? "PENDING" : "PASSED",
       startedAt: new Date(),
-      completedAt: info.test.preflightEnabled ? null : new Date(),
+      completedAt: integrity.preflightEnabled ? null : new Date(),
       checks: [],
       policy,
       clientMeta: toClientMeta(req.body.clientMeta)
@@ -136,13 +139,13 @@ const startPreflight = async (req, res) => {
 
     return res.json({
       success: true,
-      message: info.test.preflightEnabled
+      message: integrity.preflightEnabled
         ? "Setup check started."
         : "Setup check is disabled for this exam.",
       data: {
         runid: run._id,
         status: run.status,
-        preflightEnabled: Boolean(info.test.preflightEnabled),
+        preflightEnabled: Boolean(integrity.preflightEnabled),
         integrityMode: mode,
         integrityPolicy: policy
       }
@@ -193,7 +196,7 @@ const updatePreflightCheck = async (req, res) => {
     if (run.status !== "PENDING") {
       return res.json({
         success: false,
-      message: "This preflight run is not active.",
+        message: "This preflight run is not active.",
         data: {
           runid: run._id,
           status: run.status
@@ -268,13 +271,16 @@ const completePreflight = async (req, res) => {
       });
     }
 
-    if (!info.test.preflightEnabled) {
+    const integrity = await resolveEffectiveIntegrity(info.test, info.trainee._id);
+
+    if (!integrity.preflightEnabled) {
       run.status = "PASSED";
       run.completedAt = new Date();
+      run.policy = integrity.policy;
       await run.save();
       return res.json({
         success: true,
-      message: "Setup check skipped because it is disabled for this exam.",
+        message: "Setup check skipped because it is disabled for this exam.",
         data: {
           runid: run._id,
           status: run.status,
@@ -283,13 +289,10 @@ const completePreflight = async (req, res) => {
       });
     }
 
-    const integrity = resolveEffectiveIntegrity(info.test);
-    const mode = integrity.mode;
-    const policy = integrity.policy;
-    const missingChecks = getMissingRequiredChecks(policy, run.checks);
+    const missingChecks = getMissingRequiredChecks(integrity.policy, run.checks);
 
-    run.mode = mode;
-    run.policy = policy;
+    run.mode = integrity.mode;
+    run.policy = integrity.policy;
     run.completedAt = new Date();
     run.status = missingChecks.length === 0 ? "PASSED" : "FAILED";
     await run.save();
@@ -339,7 +342,7 @@ const getLatestPreflight = async (req, res) => {
         message: "Invalid test or trainee reference."
       });
     }
-    const integrity = resolveEffectiveIntegrity(info.test);
+    const integrity = await resolveEffectiveIntegrity(info.test, info.trainee._id);
 
     const run = await PreflightRunModel.findOne({
       testid: info.test._id,
@@ -352,7 +355,7 @@ const getLatestPreflight = async (req, res) => {
         message: "No setup check run found.",
         data: {
           run: null,
-          preflightEnabled: Boolean(info.test.preflightEnabled),
+          preflightEnabled: Boolean(integrity.preflightEnabled),
           integrityMode: integrity.mode,
           integrityPolicy: integrity.policy
         }
@@ -364,7 +367,7 @@ const getLatestPreflight = async (req, res) => {
       message: "Latest setup check run fetched.",
       data: {
         run,
-        preflightEnabled: Boolean(info.test.preflightEnabled),
+        preflightEnabled: Boolean(integrity.preflightEnabled),
         integrityMode: integrity.mode,
         integrityPolicy: integrity.policy
       }

@@ -14,6 +14,7 @@ const { canApplyAction, ExamActions, deriveExamState } = require("./examStateMac
 const integrityPolicy = require("./integrityPolicy");
 const proctorTimeline = require('./proctorTimeline');
 const sessionResilience = require('./sessionResilience');
+const accommodations = require('./accommodations');
 
 let getFrontendBaseUrl = (req) => {
     if (config.has('services.frontendBaseUrl')) {
@@ -29,15 +30,64 @@ let buildTestLink = (req, testid, traineeid) => {
     return `${getFrontendBaseUrl(req)}/trainee/taketest?testid=${testid}&traineeid=${traineeid}`;
 };
 
-let resolveTestIntegrity = (test) => {
-    const mode = integrityPolicy.normalizeIntegrityMode(test && test.integrityMode);
-    const policy = integrityPolicy.resolveIntegrityPolicy(mode, test && test.integrityPolicy ? test.integrityPolicy : {});
-    if (!Boolean(test && test.faceRecognitionEnabled)) {
-        policy.requireFaceVerification = false;
+let defaultUiAdjustments = () => ({
+    highContrastMode: false,
+    largeTextMode: false,
+    screenReaderAllowed: false
+});
+
+let mergeIntegrityPolicy = (basePolicy, overridePolicy = null) => {
+    const nextPolicy = { ...(basePolicy || {}) };
+    if (!overridePolicy || typeof overridePolicy !== 'object') {
+        return nextPolicy;
     }
+
+    Object.keys(nextPolicy).forEach((key) => {
+        if (overridePolicy[key] !== null && overridePolicy[key] !== undefined) {
+            nextPolicy[key] = overridePolicy[key];
+        }
+    });
+
+    return nextPolicy;
+};
+
+let mergeUiAdjustments = (overrideAdjustments = null) => {
+    const nextAdjustments = defaultUiAdjustments();
+    if (!overrideAdjustments || typeof overrideAdjustments !== 'object') {
+        return nextAdjustments;
+    }
+
+    Object.keys(nextAdjustments).forEach((key) => {
+        if (overrideAdjustments[key] !== null && overrideAdjustments[key] !== undefined) {
+            nextAdjustments[key] = Boolean(overrideAdjustments[key]);
+        }
+    });
+
+    return nextAdjustments;
+};
+
+let hasStoredIntegritySnapshot = (answerSheet) => {
+    if (!answerSheet || !answerSheet.effectiveIntegrityPolicy) {
+        return false;
+    }
+
+    const policy = typeof answerSheet.effectiveIntegrityPolicy.toObject === 'function'
+        ? answerSheet.effectiveIntegrityPolicy.toObject()
+        : answerSheet.effectiveIntegrityPolicy;
+
+    return Object.values(policy || {}).some((value) => value !== null && value !== undefined);
+};
+
+let resolveTestIntegrity = (test, runtimeContext = null) => {
+    const mode = integrityPolicy.normalizeIntegrityMode(test && test.integrityMode);
+    const basePolicy = integrityPolicy.resolveIntegrityPolicy(mode, test && test.integrityPolicy ? test.integrityPolicy : {});
+    if (!Boolean(test && test.faceRecognitionEnabled)) {
+        basePolicy.requireFaceVerification = false;
+    }
+
     return {
         mode,
-        policy,
+        policy: mergeIntegrityPolicy(basePolicy, runtimeContext && runtimeContext.effectiveIntegrityPolicy ? runtimeContext.effectiveIntegrityPolicy : null),
         preflightEnabled: typeof (test && test.preflightEnabled) === "boolean"
             ? Boolean(test.preflightEnabled)
             : false
@@ -58,16 +108,61 @@ let normalizeAnswerIds = (values) => {
     );
 };
 
+let buildRuntimeContext = ({ test, answerSheet = null, resolvedAccommodation = null }) => {
+    const snapshotDuration = answerSheet && Number.isFinite(Number(answerSheet.effectiveDurationMinutes)) && Number(answerSheet.effectiveDurationMinutes) > 0
+        ? Number(answerSheet.effectiveDurationMinutes)
+        : null;
+    const effectiveDurationMinutes = snapshotDuration
+        || (resolvedAccommodation && Number.isFinite(Number(resolvedAccommodation.effectiveDurationMinutes)) && Number(resolvedAccommodation.effectiveDurationMinutes) > 0
+            ? Number(resolvedAccommodation.effectiveDurationMinutes)
+            : Number((test && test.duration) || 0));
+
+    const effectiveIntegrityPolicy = hasStoredIntegritySnapshot(answerSheet)
+        ? (typeof answerSheet.effectiveIntegrityPolicy.toObject === 'function'
+            ? answerSheet.effectiveIntegrityPolicy.toObject()
+            : answerSheet.effectiveIntegrityPolicy)
+        : (resolvedAccommodation && resolvedAccommodation.effectiveIntegrityPolicy
+            ? { ...resolvedAccommodation.effectiveIntegrityPolicy }
+            : null);
+
+    const effectiveUiAdjustments = answerSheet && answerSheet.effectiveUiAdjustments
+        ? mergeUiAdjustments(
+            typeof answerSheet.effectiveUiAdjustments.toObject === 'function'
+                ? answerSheet.effectiveUiAdjustments.toObject()
+                : answerSheet.effectiveUiAdjustments
+        )
+        : mergeUiAdjustments(resolvedAccommodation && resolvedAccommodation.effectiveUiAdjustments
+            ? resolvedAccommodation.effectiveUiAdjustments
+            : null);
+
+    const grantedExtraTimeMinutes = answerSheet && Number.isFinite(Number(answerSheet.grantedExtraTimeMinutes))
+        ? Number(answerSheet.grantedExtraTimeMinutes)
+        : Number((resolvedAccommodation && resolvedAccommodation.timeAdjustments && resolvedAccommodation.timeAdjustments.extraTimeMinutes) || 0);
+
+    return {
+        effectiveDurationMinutes,
+        effectiveIntegrityPolicy,
+        effectiveUiAdjustments,
+        grantedExtraTimeMinutes
+    };
+};
+
+let getEffectiveDurationMinutes = (test, answerSheet = null, resolvedAccommodation = null) =>
+    buildRuntimeContext({ test, answerSheet, resolvedAccommodation }).effectiveDurationMinutes;
+
 let buildEmptyExamMeta = () => ({
     title: '',
     organisation: '',
     duration: 0,
+    baseDuration: 0,
     totalQuestions: 0,
     examID: '',
     faceRecognitionEnabled: false,
     integrityMode: 'STANDARD',
     integrityPolicy: integrityPolicy.resolveIntegrityPolicy('STANDARD', {}),
-    preflightEnabled: false
+    preflightEnabled: false,
+    grantedExtraTimeMinutes: 0,
+    uiAdjustments: defaultUiAdjustments()
 });
 
 let serializeAnswersForClient = (answers = []) =>
@@ -80,31 +175,36 @@ let serializeAnswersForClient = (answers = []) =>
         };
     });
 
-let buildExamMeta = (test) => {
+let buildExamMeta = (test, runtimeContext = null) => {
     if (!test) {
         return buildEmptyExamMeta();
     }
 
-    const integrity = resolveTestIntegrity(test);
+    const context = runtimeContext || buildRuntimeContext({ test });
+    const integrity = resolveTestIntegrity(test, context);
     return {
         title: test.title || '',
         organisation: test.organisation || '',
-        duration: test.duration || 0,
+        duration: Number(context.effectiveDurationMinutes || 0),
+        baseDuration: Number(test.duration || 0),
         totalQuestions: Array.isArray(test.questions) ? test.questions.length : 0,
         examID: test.examID || '',
-        faceRecognitionEnabled: Boolean(test.faceRecognitionEnabled),
+        faceRecognitionEnabled: Boolean(test.faceRecognitionEnabled && integrity.policy.requireFaceVerification),
         integrityMode: integrity.mode,
         integrityPolicy: integrity.policy,
-        preflightEnabled: integrity.preflightEnabled
+        preflightEnabled: integrity.preflightEnabled,
+        grantedExtraTimeMinutes: Number(context.grantedExtraTimeMinutes || 0),
+        uiAdjustments: mergeUiAdjustments(context.effectiveUiAdjustments)
     };
 };
 
-let buildSessionResponse = ({ test, answerSheet, answers = [], now = Date.now() }) => {
-    const examMeta = buildExamMeta(test);
+let buildSessionResponse = ({ test, answerSheet, answers = [], now = Date.now(), resolvedAccommodation = null }) => {
+    const runtimeContext = buildRuntimeContext({ test, answerSheet, resolvedAccommodation });
+    const examMeta = buildExamMeta(test, runtimeContext);
     const remainingSeconds = answerSheet
         ? sessionResilience.computeRemainingSeconds({
             startTime: answerSheet.startTime,
-            durationMinutes: test && test.duration,
+            durationMinutes: runtimeContext.effectiveDurationMinutes,
             now
         })
         : null;
@@ -119,7 +219,7 @@ let buildSessionResponse = ({ test, answerSheet, answers = [], now = Date.now() 
         pending: completed || remainingSeconds === null ? null : remainingSeconds,
         m_left: completed || remainingSeconds === null ? 0 : Math.floor(remainingSeconds / 60),
         s_left: completed || remainingSeconds === null ? 0 : remainingSeconds % 60,
-        faceRecognitionEnabled: Boolean(test && test.faceRecognitionEnabled),
+        faceRecognitionEnabled: examMeta.faceRecognitionEnabled,
         preflightEnabled: examMeta.preflightEnabled,
         integrityMode: examMeta.integrityMode,
         examMeta,
@@ -214,7 +314,7 @@ let persistAnswerChanges = async ({ testid, userid, entries = [], saveVersion, l
     const now = Date.now();
     if (!answerSheet.completed && sessionResilience.hasSessionTimedOut({
         startTime: answerSheet.startTime,
-        durationMinutes: test.duration,
+        durationMinutes: getEffectiveDurationMinutes(test, answerSheet),
         now
     })) {
         await markAnswerSheetCompleted({
@@ -809,7 +909,14 @@ let Answersheet = async (req,res,next)=>{
             });
         }
 
-        const integrity = resolveTestIntegrity(test);
+        const accommodationProfile = await accommodations.getActiveAccommodationProfile(testid, userid);
+        const resolvedAccommodation = accommodations.buildResolvedAccommodation({ test, profile: accommodationProfile });
+        const integrity = {
+            mode: resolvedAccommodation.integrityMode,
+            policy: resolvedAccommodation.effectiveIntegrityPolicy,
+            preflightEnabled: resolvedAccommodation.preflightEnabled
+        };
+
         if (integrity.preflightEnabled) {
             const latestPassedRun = await PreflightRunModel.findOne({
                 testid: testid,
@@ -828,6 +935,14 @@ let Answersheet = async (req,res,next)=>{
 
         const existing = await AnswersheetModel.findOne({userid:userid,testid:testid});
         if(existing){
+            if (!hasStoredIntegritySnapshot(existing) || !Number(existing.effectiveDurationMinutes || 0)) {
+                existing.effectiveDurationMinutes = resolvedAccommodation.effectiveDurationMinutes;
+                existing.effectiveIntegrityPolicy = resolvedAccommodation.effectiveIntegrityPolicy;
+                existing.effectiveUiAdjustments = resolvedAccommodation.effectiveUiAdjustments;
+                existing.grantedExtraTimeMinutes = Number((resolvedAccommodation.timeAdjustments && resolvedAccommodation.timeAdjustments.extraTimeMinutes) || 0);
+                await existing.save();
+            }
+
             return res.json({
                 success : true,
                 message : 'Answer Sheet already exists!',
@@ -836,11 +951,13 @@ let Answersheet = async (req,res,next)=>{
         }
 
         var qus = test.questions;
-        var answer = qus.map((d)=>({
-            questionid:d,
-            chosenOption:[],
-            userid:userid
-        }));
+        var answer = qus.map((d)=>(
+            {
+                questionid:d,
+                chosenOption:[],
+                userid:userid
+            }
+        ));
         const ans = await AnswersModel.insertMany(answer);
         const startedAt = Date.now();
         const startedAtDate = new Date(startedAt);
@@ -855,7 +972,11 @@ let Answersheet = async (req,res,next)=>{
             disconnectCount: 0,
             graceWindowUntil: sessionResilience.buildGraceWindowUntil(startedAt),
             sessionVersion: 0,
-            lastSavedQuestionIndex: 0
+            lastSavedQuestionIndex: 0,
+            effectiveDurationMinutes: resolvedAccommodation.effectiveDurationMinutes,
+            effectiveIntegrityPolicy: resolvedAccommodation.effectiveIntegrityPolicy,
+            effectiveUiAdjustments: resolvedAccommodation.effectiveUiAdjustments,
+            grantedExtraTimeMinutes: Number((resolvedAccommodation.timeAdjustments && resolvedAccommodation.timeAdjustments.extraTimeMinutes) || 0)
         });
         await tempdata.save();
         await proctorTimeline.recordSystemEvent({
@@ -890,7 +1011,7 @@ let flags = async (req,res,next)=>{
     var traineeid = req.body.traineeid;
 
     try {
-        const [answerSheet, trainee, test] = await Promise.all([
+        const [answerSheet, trainee, test, accommodationProfile] = await Promise.all([
             loadActiveSession({ testid, traineeid }),
             TraineeEnterModel.findOne({_id : traineeid , testid : testid},{_id : 1}),
             TestPaperModel.findById(testid,{
@@ -906,7 +1027,8 @@ let flags = async (req,res,next)=>{
                 examID : 1,
                 questions : 1,
                 isResultgenerated: 1
-            })
+            }),
+            accommodations.getActiveAccommodationProfile(testid, traineeid)
         ]);
 
         if(!trainee || !test){
@@ -916,11 +1038,16 @@ let flags = async (req,res,next)=>{
             });
         }
 
+        const resolvedAccommodation = accommodations.buildResolvedAccommodation({
+            test,
+            profile: accommodationProfile
+        });
+
         let activeSheet = answerSheet;
         const now = Date.now();
         if (activeSheet && !activeSheet.completed && sessionResilience.hasSessionTimedOut({
             startTime: activeSheet.startTime,
-            durationMinutes: test.duration,
+            durationMinutes: getEffectiveDurationMinutes(test, activeSheet, resolvedAccommodation),
             now
         })) {
             activeSheet = await markAnswerSheetCompleted({
@@ -944,7 +1071,7 @@ let flags = async (req,res,next)=>{
             });
         }
 
-        const sessionData = buildSessionResponse({ test, answerSheet: activeSheet, now: Date.now() });
+        const sessionData = buildSessionResponse({ test, answerSheet: activeSheet, now: Date.now(), resolvedAccommodation });
         return res.json({
             success : true,
             message : 'Successful',
@@ -1065,7 +1192,7 @@ let sessionHeartbeat = async (req,res,next)=>{
 
         if (!answerSheet.completed && sessionResilience.hasSessionTimedOut({
             startTime: answerSheet.startTime,
-            durationMinutes: test.duration,
+            durationMinutes: getEffectiveDurationMinutes(test, answerSheet),
             now: Date.now()
         })) {
             await markAnswerSheetCompleted({
@@ -1171,7 +1298,7 @@ let resumeSession = async (req,res,next)=>{
 
         if (!answerSheet.completed && sessionResilience.hasSessionTimedOut({
             startTime: answerSheet.startTime,
-            durationMinutes: test.duration,
+            durationMinutes: getEffectiveDurationMinutes(test, answerSheet),
             now: Date.now()
         })) {
             await markAnswerSheetCompleted({
