@@ -413,12 +413,7 @@ handleIdSubmit = async (e) => {
             traineeid,
             testid,
             faceRecognitionEnabled,
-            examMeta,
-            sessionConnectionStatus,
-            hasOfflineChanges,
-            sessionRestorePending,
-            sessionSyncing,
-            sessionStatusMessage
+            examMeta
         } = trainee;
 
 
@@ -483,44 +478,6 @@ handleIdSubmit = async (e) => {
             );
         }
 
-
-        let sessionBanner = null;
-        if (startedWriting) {
-            let bannerClassName = 'trainee-session-banner';
-            let bannerTitle = '';
-            let bannerMessage = '';
-
-            if (sessionConnectionStatus === 'disconnected') {
-                bannerClassName += ' is-disconnected';
-                bannerTitle = 'Connection lost';
-                bannerMessage = sessionStatusMessage || 'Your latest answers are kept locally until the connection returns.';
-            } else if (sessionRestorePending || sessionConnectionStatus === 'reconnecting') {
-                bannerClassName += ' is-reconnecting';
-                bannerTitle = 'Reconnecting to your exam';
-                bannerMessage = sessionStatusMessage || 'Restoring your latest saved state and syncing your answers.';
-            } else if (sessionSyncing) {
-                bannerTitle = 'Saving progress';
-                bannerMessage = sessionStatusMessage || 'Saving your latest answers to the server.';
-            } else if (hasOfflineChanges) {
-                bannerTitle = 'Unsynced changes available';
-                bannerMessage = sessionStatusMessage || 'Your latest answers are stored locally and will sync automatically once the connection is stable.';
-            } else if (sessionStatusMessage) {
-                bannerTitle = 'Session status';
-                bannerMessage = sessionStatusMessage;
-            }
-
-            if (bannerTitle && bannerMessage) {
-                sessionBanner = (
-                    <div className={bannerClassName}>
-                        <div>
-                            <strong>{bannerTitle}</strong>
-                            <span>{bannerMessage}</span>
-                        </div>
-                    </div>
-                );
-            }
-        }
-
         // Existing rendering logic based on Redux state
         if (LocaltestDone) {
             return <div className={`trainee-ui-shell ${uiClassName}`.trim()}><Answer /></div>;
@@ -561,9 +518,8 @@ handleIdSubmit = async (e) => {
             return (
                 <div className={`trainee-ui-shell ${uiClassName}`.trim()}>
                     {traineeid && <TraineeSessionManager traineeId={traineeid} testId={testid} />}
-                    {sessionBanner}
                     <CandidateSupportPanel
-                        supportSummary={trainee.supportSummary}
+                        supportSummary={null}
                         candidateNotices={trainee.candidateNotices}
                         compact
                     />
@@ -601,5 +557,9 @@ export default withRouter(connect(mapStateToProps, {
     fetchTraineeByTraineeID,
     fetchTestByExamID,
 })(MainPortal));
+
+
+
+
 
 

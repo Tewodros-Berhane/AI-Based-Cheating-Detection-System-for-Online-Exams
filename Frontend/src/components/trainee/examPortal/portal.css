@@ -952,6 +952,22 @@
   width: min(920px, 100%);
   display: grid;
   gap: 14px;
+  justify-items: center;
+}
+
+.trainee-status-stack > * {
+  width: 100%;
+}
+
+.trainee-status-stack .Test-portal-not-started-yet-inner,
+.trainee-status-stack .trainee-status-card {
+  margin-inline: auto;
+}
+
+.Test-portal-not-started-yet-wrapper .candidate-support-panel {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
 }
 
 .trainee-ui-shell {
@@ -959,10 +975,12 @@
 }
 
 .candidate-support-panel {
-  width: min(1180px, calc(100vw - 2rem));
+  width: 100%;
+  max-width: 1180px;
   margin: 14px auto 0;
   display: grid;
   gap: 12px;
+  box-sizing: border-box;
 }
 
 .candidate-support-panel.is-compact {
@@ -1188,3 +1206,5 @@
     gap: 10px;
   }
 }
+
+
