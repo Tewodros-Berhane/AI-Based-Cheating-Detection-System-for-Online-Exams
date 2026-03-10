@@ -183,6 +183,10 @@
   grid-column: span 2;
 }
 
+.conduct-details-card-full {
+  grid-column: 1 / -1;
+}
+
 .conduct-details-label {
   color: var(--text-muted);
   text-transform: uppercase;
@@ -225,7 +229,7 @@
 }
 
 .conduct-integrity-card {
-  grid-column: span 2;
+  min-width: 0;
 }
 
 .conduct-integrity-config {
@@ -359,18 +363,20 @@
 }
 
 .conduct-controls-card {
-  grid-column: span 3;
+  align-self: stretch;
 }
 
 .conduct-controls-stack {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 10px;
-  flex-wrap: wrap;
 }
 
 .conduct-controls-stack .conduct-action-btn.ant-btn {
-  flex: 1 1 190px;
+  width: 100%;
+  min-width: 0;
+  padding-inline: 14px !important;
   justify-content: center;
 }
 
@@ -1103,12 +1109,16 @@
   }
 
   .conduct-details-card-wide {
-    grid-column: span 2;
-  }
+  grid-column: span 2;
+}
+
+.conduct-details-card-full {
+  grid-column: 1 / -1;
+}
 
   .conduct-integrity-card {
-    grid-column: span 2;
-  }
+  min-width: 0;
+}
 
   .conduct-controls-card {
     grid-column: span 2;
@@ -1150,14 +1160,9 @@
     grid-template-columns: 1fr;
   }
 
-  .conduct-details-card-wide {
-    grid-column: span 1;
-  }
-
-  .conduct-integrity-card {
-    grid-column: span 1;
-  }
-
+  .conduct-details-card-wide,
+  .conduct-details-card-full,
+  .conduct-integrity-card,
   .conduct-controls-card {
     grid-column: span 1;
   }
@@ -1316,3 +1321,6 @@
   background: rgba(30, 64, 175, 0.26);
   color: #bfdbfe;
 }
+
+
+

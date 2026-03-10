@@ -346,7 +346,7 @@ class TestDetails extends React.Component {
       <section className="conduct-details-wrap">
         <div className="conduct-details-head">
           <h4>Exam Control Snapshot</h4>
-          <p>Review exam metadata, registration posture, and session runtime controls.</p>
+          <p>Review exam metadata, entry rules, and session runtime controls.</p>
         </div>
 
         <div className="conduct-details-grid">
@@ -370,10 +370,7 @@ class TestDetails extends React.Component {
             <span className="conduct-details-value">{organization}</span>
           </article>
 
-          <article className="conduct-details-card">
-            <span className="conduct-details-label">Exam ID</span>
-            <span className="conduct-details-value conduct-details-value-id">{this.props.conduct.id || '-'}</span>
-          </article>
+
 
           <article className="conduct-details-card conduct-details-card-wide">
             <span className="conduct-details-label">Registration Link</span>
@@ -388,20 +385,6 @@ class TestDetails extends React.Component {
                 <Copy size={14} strokeWidth={2.3} />
               </button>
             </div>
-          </article>
-
-          <article className="conduct-details-card">
-            <span className="conduct-details-label">Registration</span>
-            <span className={`conduct-status-badge ${registrationOpen ? 'open' : 'closed'}`}>
-              {registrationOpen ? 'Open' : 'Closed'}
-            </span>
-          </article>
-
-          <article className="conduct-details-card">
-            <span className="conduct-details-label">Session</span>
-            <span className={`conduct-status-badge ${examLive ? 'live' : 'idle'}`}>
-              {examLive ? 'In Progress' : 'Not Started'}
-            </span>
           </article>
 
           <article className="conduct-details-card">
@@ -424,7 +407,31 @@ class TestDetails extends React.Component {
             </span>
           </article>
 
-          <article className="conduct-details-card conduct-integrity-card">
+          <article className="conduct-details-card conduct-controls-card">
+            <span className="conduct-details-label">Session Controls</span>
+            <div className="conduct-controls-stack">
+              <Button
+                className={`conduct-action-btn ${registrationOpen ? 'registration-stop' : 'registration-open'}`}
+                disabled={examLive}
+                onClick={() => this.changeRegistrationStatus(!registrationOpen)}
+              >
+                <UserRoundCheck size={15} strokeWidth={2.2} />
+                {registrationOpen ? 'Stop Registration' : 'Open Registration'}
+              </Button>
+
+              <Button className="conduct-action-btn conduct-start-btn" disabled={examLive} onClick={this.startExam}>
+                <PlayCircle size={15} strokeWidth={2.2} />
+                Start Exam
+              </Button>
+
+              <Button className="conduct-action-btn conduct-end-btn" disabled={!examLive} onClick={this.endExam}>
+                <Power size={15} strokeWidth={2.2} />
+                End Exam
+              </Button>
+            </div>
+          </article>
+
+          <article className="conduct-details-card conduct-integrity-card conduct-details-card-full">
             <span className="conduct-details-label">Exam Entry Settings</span>
             <div className="conduct-integrity-config">
               <div className="conduct-integrity-field">
@@ -463,30 +470,6 @@ class TestDetails extends React.Component {
               Set candidate entry rules before the exam starts.
             </span>
           </article>
-
-          <article className="conduct-details-card conduct-controls-card">
-            <span className="conduct-details-label">Session Controls</span>
-            <div className="conduct-controls-stack">
-              <Button
-                className={`conduct-action-btn ${registrationOpen ? 'registration-stop' : 'registration-open'}`}
-                disabled={examLive}
-                onClick={() => this.changeRegistrationStatus(!registrationOpen)}
-              >
-                <UserRoundCheck size={15} strokeWidth={2.2} />
-                {registrationOpen ? 'Stop Registration' : 'Open Registration'}
-              </Button>
-
-              <Button className="conduct-action-btn conduct-start-btn" disabled={examLive} onClick={this.startExam}>
-                <PlayCircle size={15} strokeWidth={2.2} />
-                Start Exam
-              </Button>
-
-              <Button className="conduct-action-btn conduct-end-btn" disabled={!examLive} onClick={this.endExam}>
-                <Power size={15} strokeWidth={2.2} />
-                End Exam
-              </Button>
-            </div>
-          </article>
         </div>
 
         {this.state.testMetaLoading ? (
@@ -507,3 +490,8 @@ export default connect(mapStateToProps, {
   changeTestRegisterStatus,
   changeTestStatus
 })(TestDetails);
+
+
+
+
+
