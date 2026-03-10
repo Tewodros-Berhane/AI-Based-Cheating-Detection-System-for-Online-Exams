@@ -227,13 +227,30 @@ class Candidates extends Component {
     const extraTime = Number(profile.timeAdjustments && profile.timeAdjustments.extraTimeMinutes) || 0;
     const hasCheckAdjustments = Object.values((profile.integrityOverrides || {})).some(Boolean);
     const label = profile.isCurrentlyEffective
-      ? (extraTime > 0 ? `Support active  •  +${extraTime} min` : (hasCheckAdjustments ? 'Support active  •  adjusted checks' : 'Support active'))
+      ? (extraTime > 0 ? `Support active | +${extraTime} min` : (hasCheckAdjustments ? 'Support active | adjusted checks' : 'Support active'))
       : 'Support scheduled';
 
     return {
       label,
       tone: profile.isCurrentlyEffective ? 'active' : 'scheduled'
     };
+  };
+
+  getModerationBadge = (status) => {
+    switch (String(status || '').toUpperCase()) {
+      case 'UNDER_REVIEW':
+        return { label: 'Under review', tone: 'monitoring' };
+      case 'WARNED':
+        return { label: 'Warning sent', tone: 'warning' };
+      case 'FORCE_SUBMITTED':
+        return { label: 'Force submitted', tone: 'critical' };
+      case 'DISQUALIFIED':
+        return { label: 'Disqualified', tone: 'critical' };
+      case 'REOPENED':
+        return { label: 'Reopened', tone: 'info' };
+      default:
+        return null;
+    }
   };
 
   renderHighlighted = (value) => (
@@ -313,6 +330,7 @@ class Candidates extends Component {
                   visibleRows.map((candidate) => {
                     const examLink = this.getExamLink(candidate._id);
                     const supportBadge = this.getSupportBadge(candidate._id);
+                    const moderationBadge = this.getModerationBadge(candidate?.examProgress?.moderationStatus);
                     return (
                       <tr className="admin-data-row" key={candidate._id}>
                         <td data-label="Student">
@@ -321,6 +339,9 @@ class Candidates extends Component {
                           <div className={`conduct-session-pill ${candidate?.examProgress?.connectionStatus || 'not_started'}`}>{this.getConnectionLabel(candidate?.examProgress?.connectionStatus)}</div>
                           {supportBadge ? (
                             <div className={`conduct-support-pill ${supportBadge.tone}`}>{supportBadge.label}</div>
+                          ) : null}
+                          {moderationBadge ? (
+                            <div className={`conduct-moderation-pill ${moderationBadge.tone}`}>{moderationBadge.label}</div>
                           ) : null}
                         </td>
                         <td data-label="Contact">{this.renderHighlighted(candidate.contact || '-')}</td>

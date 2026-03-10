@@ -77,6 +77,12 @@
   color: #fcd34d;
 }
 
+.candidate-support-status.critical {
+  border-color: rgba(248, 113, 113, 0.36);
+  background: rgba(127, 29, 29, 0.34);
+  color: #fecaca;
+}
+
 .candidate-support-status.idle {
   border-color: rgba(148, 163, 184, 0.36);
   background: rgba(30, 41, 59, 0.4);
@@ -337,6 +343,30 @@
   margin-top: 6px;
   color: #bfdbfe;
   line-height: 1.45;
+}
+
+.candidate-support-linked-event {
+  margin-top: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.24);
+  border-radius: 10px;
+  background: rgba(16, 26, 46, 0.52);
+  padding: 10px 12px;
+}
+
+.candidate-support-linked-event span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.candidate-support-linked-event strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-primary);
+  line-height: 1.4;
 }
 
 .candidate-support-history-meta {

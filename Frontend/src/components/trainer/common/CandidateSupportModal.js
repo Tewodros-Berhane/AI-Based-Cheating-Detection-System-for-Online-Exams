@@ -10,18 +10,15 @@ const SUPPORT_TAB = 'support';
 const ACTIONS_TAB = 'actions';
 
 const ACTION_TYPE_OPTIONS = [
-  { value: 'NOTE', label: 'Add note' },
-  { value: 'WARN_CANDIDATE', label: 'Send warning' },
-  { value: 'EXTEND_TIME', label: 'Add extra time' },
-  { value: 'FORCE_SUBMIT', label: 'Force submit exam' }
+  { value: 'NOTE', label: 'Add note', availableInSupportPanel: true },
+  { value: 'WARN_CANDIDATE', label: 'Send warning', availableInSupportPanel: true },
+  { value: 'EXTEND_TIME', label: 'Add extra time', availableInSupportPanel: true, minutesLabel: 'Minutes to add', minMinutes: 1, defaultMinutes: 10 },
+  { value: 'FORCE_SUBMIT', label: 'Force submit exam', availableInSupportPanel: true },
+  { value: 'CONFIRM_EVENT', label: 'Confirm concern', availableInSupportPanel: false },
+  { value: 'EXCUSE_EVENT', label: 'Excuse alert', availableInSupportPanel: false },
+  { value: 'REOPEN_SESSION', label: 'Reopen session', availableInSupportPanel: true, minutesLabel: 'Extra minutes to add (optional)', minMinutes: 0, defaultMinutes: 0 },
+  { value: 'DISQUALIFY', label: 'Disqualify result', availableInSupportPanel: true }
 ];
-
-const ACTIONS_BY_STATE = {
-  BEFORE_START: ['NOTE', 'WARN_CANDIDATE'],
-  IN_PROGRESS: ['NOTE', 'WARN_CANDIDATE', 'EXTEND_TIME', 'FORCE_SUBMIT'],
-  FINISHED: ['NOTE'],
-  PUBLISHED: ['NOTE']
-};
 
 const DEFAULT_SUPPORT_FORM = {
   reason: '',
@@ -103,9 +100,33 @@ const getCandidateStateLabel = (state) => {
   }
 };
 
+const ACTION_OPTIONS_BY_VALUE = ACTION_TYPE_OPTIONS.reduce((accumulator, item) => {
+  accumulator[item.value] = item;
+  return accumulator;
+}, {});
+
+const SUPPORT_PANEL_ACTIONS = ACTION_TYPE_OPTIONS.filter((item) => item.availableInSupportPanel);
+
 const getActionLabel = (value) => {
-  const match = ACTION_TYPE_OPTIONS.find((item) => item.value === value);
+  const match = ACTION_OPTIONS_BY_VALUE[value];
   return match ? match.label : value;
+};
+
+const getModerationStatusMeta = (status) => {
+  switch (String(status || '').toUpperCase()) {
+    case 'UNDER_REVIEW':
+      return { label: 'Under review', tone: 'monitoring', summary: 'The session has at least one confirmed concern waiting for examiner review.' };
+    case 'WARNED':
+      return { label: 'Warning sent', tone: 'warning', summary: 'The candidate has been warned during this session.' };
+    case 'FORCE_SUBMITTED':
+      return { label: 'Force submitted', tone: 'critical', summary: 'The examiner ended this candidate session.' };
+    case 'DISQUALIFIED':
+      return { label: 'Disqualified', tone: 'critical', summary: 'The result is marked as disqualified pending reporting and export.' };
+    case 'REOPENED':
+      return { label: 'Reopened', tone: 'monitoring', summary: 'The session was reopened after an earlier finish state.' };
+    default:
+      return { label: 'Normal', tone: 'safe', summary: 'No active trainer review status is set on this session.' };
+  }
 };
 
 const getSupportStatus = (profile) => {
@@ -152,12 +173,31 @@ const buildSupportHighlights = (resolved) => {
 
 const summarizeActionPayload = (action) => {
   if (!action || !action.payload) return '';
+
   if (action.actionType === 'EXTEND_TIME' && Number(action.payload.minutes || 0) > 0) {
     return `Added ${action.payload.minutes} min. Total time is now ${action.payload.nextEffectiveDurationMinutes || '-'} min.`;
   }
+
+  if (action.actionType === 'REOPEN_SESSION') {
+    const minutes = Number(action.payload.minutes || 0);
+    if (minutes > 0) {
+      return `Session reopened with ${minutes} extra min. Total time is now ${action.payload.nextEffectiveDurationMinutes || '-'} min.`;
+    }
+    return 'Session reopened without changing the total exam time.';
+  }
+
   if (action.actionType === 'FORCE_SUBMIT') {
     return 'Exam session was closed by the examiner.';
   }
+
+  if (action.actionType === 'DISQUALIFY') {
+    return 'The candidate result was marked as disqualified for reporting.';
+  }
+
+  if ((action.actionType === 'CONFIRM_EVENT' || action.actionType === 'EXCUSE_EVENT') && action.linkedEvent) {
+    return `Related incident: ${action.linkedEvent.message || getActionLabel(action.linkedEvent.eventType)}`;
+  }
+
   return '';
 };
 
@@ -227,11 +267,18 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
 
       const moderationPayload = moderationResponse.data.data || {};
       setModerationData(moderationPayload);
-      const allowedActions = ACTIONS_BY_STATE[moderationPayload.candidateState] || ['NOTE'];
+      const allowedActionValues = Array.isArray(moderationPayload.availableActions) && moderationPayload.availableActions.length
+        ? moderationPayload.availableActions
+        : ['NOTE'];
+      const supportActionValues = SUPPORT_PANEL_ACTIONS
+        .map((item) => item.value)
+        .filter((value) => allowedActionValues.includes(value));
+      const fallbackAction = supportActionValues[0] || 'NOTE';
       setActionForm((prev) => ({
         ...prev,
-        actionType: allowedActions.includes(prev.actionType) ? prev.actionType : allowedActions[0],
-        reason: ''
+        actionType: supportActionValues.includes(prev.actionType) ? prev.actionType : fallbackAction,
+        reason: '',
+        minutes: ACTION_OPTIONS_BY_VALUE[supportActionValues.includes(prev.actionType) ? prev.actionType : fallbackAction]?.defaultMinutes ?? prev.minutes
       }));
     } catch (error) {
       message.error((error && error.message) || 'Unable to load candidate support data.');
@@ -250,8 +297,11 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
   }, [open, candidateId, testId]);
 
   const allowedActions = useMemo(() => {
-    const state = moderationData && moderationData.candidateState ? moderationData.candidateState : 'BEFORE_START';
-    return ACTION_TYPE_OPTIONS.filter((item) => (ACTIONS_BY_STATE[state] || ['NOTE']).includes(item.value));
+    const availableActionValues = Array.isArray(moderationData && moderationData.availableActions)
+      ? moderationData.availableActions
+      : ['NOTE'];
+
+    return SUPPORT_PANEL_ACTIONS.filter((item) => availableActionValues.includes(item.value));
   }, [moderationData]);
 
   const supportStatus = useMemo(() => getSupportStatus(supportData && supportData.resolved && supportData.resolved.accommodationProfile), [supportData]);
@@ -341,8 +391,14 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
       return;
     }
 
+    const selectedActionMeta = ACTION_OPTIONS_BY_VALUE[actionForm.actionType] || null;
     if (actionForm.actionType === 'EXTEND_TIME' && toWholeMinutes(actionForm.minutes, 0) < 1) {
       message.error('Please enter valid extension minutes.');
+      return;
+    }
+
+    if (actionForm.actionType === 'REOPEN_SESSION' && toWholeMinutes(actionForm.minutes, 0) < 0) {
+      message.error('Please enter valid extra minutes for the reopened session.');
       return;
     }
 
@@ -357,7 +413,9 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
           reason: actionForm.reason.trim(),
           payload: actionForm.actionType === 'EXTEND_TIME'
             ? { minutes: toWholeMinutes(actionForm.minutes, 10) }
-            : {}
+            : (actionForm.actionType === 'REOPEN_SESSION'
+              ? { minutes: toWholeMinutes(actionForm.minutes, 0) }
+              : {})
         }
       });
 
@@ -369,7 +427,9 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
       setActionForm((prev) => ({
         ...prev,
         reason: '',
-        minutes: prev.actionType === 'EXTEND_TIME' ? prev.minutes : 10
+        minutes: selectedActionMeta && typeof selectedActionMeta.defaultMinutes === 'number'
+          ? selectedActionMeta.defaultMinutes
+          : prev.minutes
       }));
       await loadData();
       onChanged?.();
@@ -385,7 +445,9 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
   const currentDuration = resolved ? Number(resolved.effectiveDurationMinutes || 0) : 0;
   const baseDuration = resolved ? Number(resolved.baseDurationMinutes || 0) : 0;
   const moderationStatus = moderationData && moderationData.answerSheet ? moderationData.answerSheet.moderationStatus : 'NORMAL';
+  const moderationStatusMeta = getModerationStatusMeta(moderationStatus);
   const lastModerationAt = moderationData && moderationData.answerSheet ? moderationData.answerSheet.lastModerationActionAt : null;
+  const selectedActionMeta = ACTION_OPTIONS_BY_VALUE[actionForm.actionType] || ACTION_OPTIONS_BY_VALUE.NOTE;
 
   return (
     <AppModal
@@ -410,7 +472,8 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
           <article className="candidate-support-summary-card">
             <span className="candidate-support-summary-label">Exam progress</span>
             <strong>{getCandidateStateLabel(moderationData && moderationData.candidateState)}</strong>
-            <p>{moderationStatus === 'NORMAL' ? 'No active trainer flag on the session.' : `Current session status: ${String(moderationStatus).replace('_', ' ').toLowerCase()}.`}</p>
+            <div className={`candidate-support-status ${moderationStatusMeta.tone}`}>{moderationStatusMeta.label}</div>
+            <p>{moderationStatusMeta.summary}</p>
           </article>
         </div>
 
@@ -587,7 +650,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                 <FileWarning size={16} strokeWidth={2.2} />
                 <div>
                   <h4>Apply trainer action</h4>
-                  <p>Keep actions explicit and auditable. Every action you take will be logged on the candidate timeline.</p>
+                  <p>Use this panel for session-level decisions. Confirming or excusing a specific alert is handled from the behavior audit timeline.</p>
                 </div>
               </div>
               <div className="candidate-support-form-grid candidate-support-moderation-grid">
@@ -595,7 +658,13 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                   <span>Action</span>
                   <Select
                     value={actionForm.actionType}
-                    onChange={(value) => setActionForm((prev) => ({ ...prev, actionType: value }))}
+                    onChange={(value) => setActionForm((prev) => ({
+                      ...prev,
+                      actionType: value,
+                      minutes: typeof ACTION_OPTIONS_BY_VALUE[value]?.defaultMinutes === 'number'
+                        ? ACTION_OPTIONS_BY_VALUE[value].defaultMinutes
+                        : prev.minutes
+                    }))}
                     className="candidate-support-select"
                     dropdownClassName="proctor-filter-dropdown"
                     getPopupContainer={(triggerNode) => (triggerNode && triggerNode.ownerDocument ? triggerNode.ownerDocument.body : document.body)}
@@ -607,12 +676,12 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                     ))}
                   </Select>
                 </label>
-                {actionForm.actionType === 'EXTEND_TIME' ? (
+                {selectedActionMeta && typeof selectedActionMeta.defaultMinutes === 'number' ? (
                   <label className="candidate-support-field">
-                    <span>Minutes to add</span>
+                    <span>{selectedActionMeta.minutesLabel || 'Minutes'}</span>
                     <Input
                       type="number"
-                      min={1}
+                      min={selectedActionMeta.minMinutes ?? 0}
                       value={actionForm.minutes}
                       onChange={(event) => setActionForm((prev) => ({ ...prev, minutes: event.target.value }))}
                     />
@@ -663,6 +732,12 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                         </div>
                       </div>
                       <p>{item.reason}</p>
+                      {item.linkedEvent ? (
+                        <div className="candidate-support-linked-event">
+                          <span>Related incident</span>
+                          <strong>{item.linkedEvent.message || getActionLabel(item.linkedEvent.eventType)}</strong>
+                        </div>
+                      ) : null}
                       {summarizeActionPayload(item) ? <small>{summarizeActionPayload(item)}</small> : null}
                     </article>
                   ))}
