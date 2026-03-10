@@ -9,8 +9,8 @@ var createadmin = ()=>{
         var tempdata = new UserModel({
             name : 'admin',
             password : hash,
-            emailid : 'tewodrosberhaneabraha@gmail.com',
-            contact : '251973859009',
+            emailid : 'admin@gmail.com',
+            contact : '+251912345678',
             type: 'ADMIN',
         })
         tempdata.save().then(()=>{
