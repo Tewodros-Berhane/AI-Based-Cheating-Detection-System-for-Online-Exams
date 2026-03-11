@@ -1,0 +1,100 @@
+diff --git a/node_modules/face-api.js/build/commonjs/env/index.js b/node_modules/face-api.js/build/commonjs/env/index.js
+index 1dbe744..298a2ee 100644
+--- a/node_modules/face-api.js/build/commonjs/env/index.js
++++ b/node_modules/face-api.js/build/commonjs/env/index.js
+@@ -1,10 +1,7 @@
+ "use strict";
+ Object.defineProperty(exports, "__esModule", { value: true });
+ var createBrowserEnv_1 = require("./createBrowserEnv");
+-var createFileSystem_1 = require("./createFileSystem");
+-var createNodejsEnv_1 = require("./createNodejsEnv");
+ var isBrowser_1 = require("./isBrowser");
+-var isNodejs_1 = require("./isNodejs");
+ var environment;
+ function getEnv() {
+     if (!environment) {
+@@ -15,15 +12,19 @@ function getEnv() {
+ function setEnv(env) {
+     environment = env;
+ }
++function createFileSystem() {
++    throw new Error('createFileSystem is not available in the browser build of face-api.js');
++}
++function createNodejsEnv() {
++    throw new Error('createNodejsEnv is not available in the browser build of face-api.js');
++}
++function isNodejs() {
++    return false;
++}
+ function initialize() {
+-    // check for isBrowser() first to prevent electron renderer process
+-    // to be initialized with wrong environment due to isNodejs() returning true
+     if (isBrowser_1.isBrowser()) {
+         setEnv(createBrowserEnv_1.createBrowserEnv());
+     }
+-    if (isNodejs_1.isNodejs()) {
+-        setEnv(createNodejsEnv_1.createNodejsEnv());
+-    }
+ }
+ function monkeyPatch(env) {
+     if (!environment) {
+@@ -47,11 +48,10 @@ exports.env = {
+     setEnv: setEnv,
+     initialize: initialize,
+     createBrowserEnv: createBrowserEnv_1.createBrowserEnv,
+-    createFileSystem: createFileSystem_1.createFileSystem,
+-    createNodejsEnv: createNodejsEnv_1.createNodejsEnv,
++    createFileSystem: createFileSystem,
++    createNodejsEnv: createNodejsEnv,
+     monkeyPatch: monkeyPatch,
+     isBrowser: isBrowser_1.isBrowser,
+-    isNodejs: isNodejs_1.isNodejs
++    isNodejs: isNodejs
+ };
+ initialize();
+-//# sourceMappingURL=index.js.map
+\ No newline at end of file
+diff --git a/node_modules/face-api.js/build/es6/env/index.js b/node_modules/face-api.js/build/es6/env/index.js
+index 831fb00..c8a4860 100644
+--- a/node_modules/face-api.js/build/es6/env/index.js
++++ b/node_modules/face-api.js/build/es6/env/index.js
+@@ -1,8 +1,5 @@
+ import { createBrowserEnv } from './createBrowserEnv';
+-import { createFileSystem } from './createFileSystem';
+-import { createNodejsEnv } from './createNodejsEnv';
+ import { isBrowser } from './isBrowser';
+-import { isNodejs } from './isNodejs';
+ var environment;
+ function getEnv() {
+     if (!environment) {
+@@ -13,15 +10,19 @@ function getEnv() {
+ function setEnv(env) {
+     environment = env;
+ }
++function createFileSystem() {
++    throw new Error('createFileSystem is not available in the browser build of face-api.js');
++}
++function createNodejsEnv() {
++    throw new Error('createNodejsEnv is not available in the browser build of face-api.js');
++}
++function isNodejs() {
++    return false;
++}
+ function initialize() {
+-    // check for isBrowser() first to prevent electron renderer process
+-    // to be initialized with wrong environment due to isNodejs() returning true
+     if (isBrowser()) {
+         setEnv(createBrowserEnv());
+     }
+-    if (isNodejs()) {
+-        setEnv(createNodejsEnv());
+-    }
+ }
+ function monkeyPatch(env) {
+     if (!environment) {
+@@ -52,4 +53,3 @@ export var env = {
+     isNodejs: isNodejs
+ };
+ initialize();
+-//# sourceMappingURL=index.js.map
+\ No newline at end of file

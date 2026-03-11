@@ -31,7 +31,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "smoke": "cypress run --spec cypress/e2e/smoke.cy.js",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "postinstall": "patch-package"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "ajv": "^8.18.0",
-    "ajv-keywords": "^5.1.0"
+    "ajv-keywords": "^5.1.0",
+    "patch-package": "^8.0.1"
   }
 }
