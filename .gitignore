@@ -1,2 +1,4 @@
 .env.docker
 log.txt
+Frontend/cypress/screenshots/
+Frontend/cypress/videos/
