@@ -15,7 +15,6 @@ import { changeActiveRoute } from '../../actions/useraction';
 import Alert from '../common/alert';
 import { Link, Navigate } from 'react-router-dom';
 import { Layout, Menu,Button, Tooltip } from 'antd-compat';
-import brandMark from '../../assets/examshield-mark.svg';
 import withRouter from '../../utils/withRouter';
 import { ADMIN_PERMISSIONS, TRAINER_PERMISSIONS } from '../../services/userOption';
 import {
@@ -44,6 +43,8 @@ const sidebarIconMap = {
 
 const normalizeDashboardRoute = (routeOption = 'home') =>
     routeOption === 'listtrainers' ? 'listexaminers' : routeOption;
+
+const brandMark = `${process.env.PUBLIC_URL}/favicon.ico`;
 
 const roleDisplayMap = {
     ADMIN: 'ADMIN',

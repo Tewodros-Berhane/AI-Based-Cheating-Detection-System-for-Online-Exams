@@ -118,12 +118,12 @@ class TestDetails extends Component {
         }
     }
 
-    copyToClipboard = async (text) => {
+    copyToClipboard = async (text, itemLabel = 'Value') => {
         try {
             await navigator.clipboard.writeText(text);
-            message.success('Link Copied to clipboard');
+            message.success(itemLabel + ' copied to clipboard');
         } catch (error) {
-            message.error('Unable to copy link');
+            message.error('Unable to copy ' + itemLabel.toLowerCase());
         }
     }
 
@@ -174,7 +174,22 @@ class TestDetails extends Component {
 
                                 <article className="testdetails-link-card">
                                     <span className="testdetails-meta-label">Exam ID</span>
-                                    <span className="testdetails-meta-value testdetails-meta-value-id">{examId}</span>
+                                    <div className="testdetails-link-row">
+                                        <input
+                                            readOnly
+                                            value={examId}
+                                            className="testdetails-meta-value-id"
+                                            aria-label="Exam ID"
+                                        />
+                                        <button
+                                            type="button"
+                                            className="testdetails-link-copy"
+                                            onClick={() => this.copyToClipboard(examId, 'Exam ID')}
+                                            aria-label="Copy exam ID"
+                                        >
+                                            <Copy size={14} strokeWidth={2.3} />
+                                        </button>
+                                    </div>
                                 </article>
 
                                 <article className="testdetails-link-card">
@@ -184,7 +199,7 @@ class TestDetails extends Component {
                                         <button
                                             type="button"
                                             className="testdetails-link-copy"
-                                            onClick={() => this.copyToClipboard(examLink)}
+                                            onClick={() => this.copyToClipboard(examLink, 'Exam link')}
                                             aria-label="Copy exam link"
                                         >
                                             <Copy size={14} strokeWidth={2.3} />

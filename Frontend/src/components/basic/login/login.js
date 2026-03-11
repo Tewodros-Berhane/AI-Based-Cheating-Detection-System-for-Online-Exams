@@ -8,7 +8,7 @@ import apis from "../../../services/Apis";
 import { Post } from "../../../services/axiosCall";
 import Alert from "../../common/alert";
 import { Navigate } from "react-router-dom";
-import brandMark from "../../../assets/examshield-mark.svg";
+const brandMark = `${process.env.PUBLIC_URL}/favicon.ico`;
 
 const safeJsonParse = (value) => {
   if (typeof value !== "string") {
