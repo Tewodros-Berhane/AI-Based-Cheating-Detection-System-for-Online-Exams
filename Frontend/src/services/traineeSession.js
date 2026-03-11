@@ -398,7 +398,7 @@ export const endTraineeTest = async ({
     return payload;
   } catch (error) {
     console.error('Unable to end examinee test:', error);
-    return { success: false, message: 'Server error while ending test.' };
+    return { success: false, message: 'Something went wrong while ending the exam. Please try again.' };
   } finally {
     endingInProgress = false;
   }

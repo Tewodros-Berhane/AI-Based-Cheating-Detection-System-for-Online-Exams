@@ -191,7 +191,7 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
       testId: testIdRef.current,
       eventType: 'NO_FACE',
       source: 'FACE',
-      message: 'Candidate face was not detected for a sustained period.',
+      message: 'Examinee face was not detected for a sustained period.',
       confidence: 0.92,
       payload: {
         timeoutSeconds: NO_FACE_TIMEOUT_SECONDS
@@ -249,7 +249,7 @@ export default function FaceRecognition({ traineeId: initialTraineeId, testId: i
             testId: testIdRef.current,
             eventType: 'MULTI_FACE',
             source: 'FACE',
-            message: 'Multiple faces were detected in the candidate camera feed.',
+            message: 'Multiple faces were detected in the examinee camera feed.',
             confidence: 0.96,
             payload: {
               strikeCount: multiFaceStrikeRef.current

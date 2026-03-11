@@ -4,7 +4,7 @@ import './portal.css';
 import Operations from './operations';
 
 const Sidepanel = ({ mode, trainee }) => {
-  const candidateName = trainee?.traineeDetails?.name || 'Candidate';
+  const candidateName = trainee?.traineeDetails?.name || 'Examinee';
   return (
     <div className={`side-panel-in-exam-dashboard navigator-only ${mode === 'desktop' ? 'w-20' : 'w-100'}`}>
       <div className="navigator-candidate-name" title={candidateName}>

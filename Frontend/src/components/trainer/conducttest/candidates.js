@@ -92,7 +92,7 @@ class Candidates extends Component {
             Alert('error', 'Error!', response.data.message);
           }
         } else {
-          Alert('error', 'Error!', 'Server Error');
+          Alert('error', 'Error!', 'Something went wrong. Please try again.');
         }
 
         if (summaryResult.status === 'fulfilled' && summaryResult.value.data && summaryResult.value.data.success) {
@@ -276,7 +276,7 @@ class Candidates extends Component {
       <section className="conduct-candidates-wrap">
         <div className="conduct-candidates-head">
           <h4>Registered Students Monitor</h4>
-          <p>Track enrollment, share direct exam links, and open live candidate preview.</p>
+          <p>Track registration, share direct exam links, and open live examinee preview.</p>
         </div>
 
         <div className="admin-table-toolbar conduct-candidates-toolbar">
@@ -418,8 +418,8 @@ class Candidates extends Component {
           title="Student Live Feed"
           subtitle={
             previewCandidate
-              ? `${previewCandidate.name || 'Student'}${previewCandidate.emailid ? `  |  ${previewCandidate.emailid}` : ''}`
-              : 'Monitor candidate camera stream in real time.'
+              ? `${previewCandidate.name || 'Examinee'}${previewCandidate.emailid ? `  |  ${previewCandidate.emailid}` : ''}`
+              : 'Monitor the examinee camera stream in real time.'
           }
         >
           {previewCandidate ? (
@@ -433,7 +433,7 @@ class Candidates extends Component {
               </div>
             </div>
           ) : (
-            <div className="conduct-preview-empty">No candidate selected.</div>
+            <div className="conduct-preview-empty">No examinee selected.</div>
           )}
         </AppModal>
 

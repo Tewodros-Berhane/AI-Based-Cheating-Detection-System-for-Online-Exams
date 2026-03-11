@@ -152,7 +152,7 @@ export default class Stats extends Component {
             ]);
 
             if (!overviewResponse.data.success) {
-                throw new Error(overviewResponse.data.message || 'Unable to load psychometric overview.');
+                throw new Error(overviewResponse.data.message || 'Unable to load the exam quality overview.');
             }
 
             if (!questionsResponse.data.success) {
@@ -168,7 +168,7 @@ export default class Stats extends Component {
         } catch (error) {
             this.setState({
                 analyticsLoading: false,
-                analyticsError: error && error.message ? error.message : 'Unable to load psychometric analytics.'
+                analyticsError: error && error.message ? error.message : 'Unable to load exam quality insights.'
             });
         }
     }
@@ -192,8 +192,8 @@ export default class Stats extends Component {
             return (
                 <section className="testdetails-block">
                     <div className="testdetails-block-head">
-                        <h4>Psychometric Overview</h4>
-                        <p>The core analytics engine could not finish this request.</p>
+                        <h4>Exam Quality Overview</h4>
+                        <p>We could not load the exam quality summary for this exam.</p>
                     </div>
                     <div className="testdetails-empty">{analyticsError}</div>
                 </section>
@@ -239,17 +239,17 @@ export default class Stats extends Component {
         };
         const summaryCards = [
             { label: 'Average Score', value: `${metricValue(summary.averageScore, 1)} / ${metricValue(maxScore, 0)}`, caption: `${directPercent(summary.averagePercent)} cohort average` },
-            { label: 'Median Score', value: `${metricValue(summary.medianScore, 1)} / ${metricValue(maxScore, 0)}`, caption: `${directPercent(summary.medianPercent)} midpoint candidate` },
-            { label: 'Pass Rate', value: ratioPercent(summary.passRate), caption: 'Candidates at or above 50%' },
+            { label: 'Median Score', value: `${metricValue(summary.medianScore, 1)} / ${metricValue(maxScore, 0)}`, caption: `${directPercent(summary.medianPercent)} midpoint examinee` },
+            { label: 'Pass Rate', value: ratioPercent(summary.passRate), caption: 'Examinees at or above 50%' },
             { label: 'Reliability', value: metricValue(summary.reliabilityAlpha, 2), caption: 'Internal consistency signal' },
             { label: 'Flagged Questions', value: String(summary.flaggedQuestionCount || 0), caption: 'Items that need review' },
-            { label: 'Sample Size', value: String(sampleSize || 0), caption: 'Completed candidate attempts' }
+            { label: 'Sample Size', value: String(sampleSize || 0), caption: 'Completed examinee attempts' }
         ];
 
         return (
             <section className="testdetails-block">
                 <div className="testdetails-block-head">
-                    <h4>Psychometric Overview</h4>
+                    <h4>Exam Quality Overview</h4>
                     <p>Use these signals to review question quality, consistency, and cohort performance.</p>
                 </div>
 
@@ -369,9 +369,9 @@ export default class Stats extends Component {
         const forceSubmitCount = reportingRows.filter((item) => item.finalDisposition && item.finalDisposition.label === 'Force submitted by examiner').length;
 
         const cards = [
-            { label: 'Support Plans', value: supportCount, caption: 'Candidates with active or applied support adjustments' },
-            { label: 'Examiner Reviews', value: moderatedCount, caption: 'Candidates with one or more examiner actions logged' },
-            { label: 'Warnings Sent', value: warningCount, caption: 'Candidate-visible warnings issued during the exam' },
+            { label: 'Support Plans', value: supportCount, caption: 'Examinees with active or applied support adjustments' },
+            { label: 'Examiner Reviews', value: moderatedCount, caption: 'Examinees with one or more examiner actions logged' },
+            { label: 'Warnings Sent', value: warningCount, caption: 'Visible session warnings issued during the exam' },
             { label: 'Force Submits', value: forceSubmitCount, caption: 'Sessions closed directly by the examiner' }
         ];
 
@@ -379,7 +379,7 @@ export default class Stats extends Component {
             <section className="testdetails-block">
                 <div className="testdetails-block-head">
                     <h4>Support and Review Summary</h4>
-                    <p>Track candidate accommodations and examiner interventions alongside the score report.</p>
+                    <p>Track examinee support plans and examiner interventions alongside the score report.</p>
                 </div>
                 <div className="testdetails-reporting-grid">
                     {cards.map((card) => (
@@ -404,7 +404,7 @@ export default class Stats extends Component {
             <section className="testdetails-block">
                 <div className="testdetails-block-head">
                     <h4>Question Analytics</h4>
-                    <p>Inspect item-level quality, distractor behaviour, and correction priorities.</p>
+                    <p>Inspect item-level quality, answer-choice performance, and correction priorities.</p>
                 </div>
                 {!questionMetrics.length ? (
                     <div className="testdetails-empty">No completed attempts are available yet for question-level analytics.</div>
@@ -494,7 +494,7 @@ export default class Stats extends Component {
                         <h4>Result Export</h4>
                         <p>Download the generated score report with support settings and examiner review details.</p>
                     </div>
-                    <div className="testdetails-export-note">Includes support adjustments, examiner actions, final disposition, and the last examiner update for each candidate.</div>
+                    <div className="testdetails-export-note">Includes support adjustments, examiner actions, final disposition, and the last examiner update for each examinee.</div>
                     <div className="download-section">
                         <button type="button" className="download-xlsx" onClick={this.downloadExcel}>Download Excel</button>
                     </div>
@@ -503,7 +503,7 @@ export default class Stats extends Component {
                 <section className="testdetails-block">
                     <div className="testdetails-block-head">
                         <h4>Score Distribution</h4>
-                        <p>Compare score spread against candidate count.</p>
+                        <p>Compare score spread against examinee count.</p>
                     </div>
                     <div className="testdetails-chart-wrap testdetails-chart-wrap-bar">
                         <Bar
@@ -535,7 +535,7 @@ export default class Stats extends Component {
                             <div className="testdetails-chart-block">
                                 <div className="testdetails-block-head">
                                     <h4>Score Bands</h4>
-                                    <p>Candidate distribution by percentage range.</p>
+                                    <p>Examinee distribution by percentage range.</p>
                                 </div>
                                 <div className="testdetails-chart-wrap">
                                     <Doughnut data={DoughNutData2} />

@@ -381,7 +381,7 @@ class NewQuestion extends Component {
           });
           const errorMessage =
             (error && error.response && error.response.data && error.response.data.message) ||
-            'Server Error';
+            'Something went wrong. Please try again.';
           Alert('error', 'Error!', errorMessage);
         });
     });

@@ -151,7 +151,7 @@ export const ProceedtoTest=(d1,d2,d3)=>dispatch=>{
             type:'PROCEEDING_TO_TEST',
             payload:false
         })
-        Alert('error','Error!',"Server error");
+        Alert('error','Error!',"Something went wrong. Please try again.");
         throw error;
     })
 }
@@ -174,7 +174,7 @@ export const fetchTraineeTestQuestions=(tid)=>dispatch=>{
         }
         return response.data;
     }).catch((error)=>{
-        Alert('error','Error!',"Server error");
+        Alert('error','Error!',"Something went wrong. Please try again.");
         throw error;
     })
 }
@@ -203,7 +203,7 @@ export const fetchTraineeTestAnswerSheet=(tid,uid)=>dispatch=>{
         }
         return response.data;
     }).catch((error)=>{
-        Alert('error','Error!',"Server error");
+        Alert('error','Error!',"Something went wrong. Please try again.");
         throw error;
     })
 }

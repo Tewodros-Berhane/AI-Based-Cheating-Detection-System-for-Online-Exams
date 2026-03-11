@@ -62,7 +62,7 @@ class Feedback extends Component {
             })
             .catch((error) => {
                 console.log(error);
-                Alert('error', 'Failed', 'Server Error');
+                Alert('error', 'Failed', 'Something went wrong. Please try again.');
                 this.setState({ loading: false });
             });
     };

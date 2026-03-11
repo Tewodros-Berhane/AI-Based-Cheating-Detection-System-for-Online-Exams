@@ -49,7 +49,7 @@ class NewTopics extends Component {
         })
         .catch(() => {
           this.closeModal();
-          Alert('error', 'Error!', 'Server Error');
+          Alert('error', 'Error!', 'Something went wrong. Please try again.');
         })
         .finally(() => {
           this.setState({ submitting: false });

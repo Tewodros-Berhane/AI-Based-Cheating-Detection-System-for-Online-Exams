@@ -41,7 +41,7 @@ class FinalQuestionView extends React.Component {
                 Alert('error', 'Error!', response.data.message);
             }
         }).catch(()=>{
-            Alert('error', 'Error!', 'Server Error');
+            Alert('error', 'Error!', 'Something went wrong. Please try again.');
         });
     }
 

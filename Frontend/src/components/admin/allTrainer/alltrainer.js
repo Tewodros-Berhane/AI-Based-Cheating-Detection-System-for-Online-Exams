@@ -50,7 +50,7 @@ class AllTrainer extends Component {
         Alert('warning', 'Warning!', response.data.message);
       })
       .catch(() => {
-        Alert('error', 'Error!', 'Server Error');
+        Alert('error', 'Error!', 'Something went wrong. Please try again.');
       });
   };
 

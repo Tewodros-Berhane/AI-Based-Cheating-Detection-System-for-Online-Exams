@@ -46,14 +46,14 @@ const DEFAULT_ACTION_FORM = {
 const SUPPORT_TOGGLE_GROUPS = {
   accessibility: [
     { key: 'highContrastMode', label: 'High contrast view', help: 'Improve color contrast for readability.' },
-    { key: 'largeTextMode', label: 'Larger text', help: 'Present larger interface text for this candidate.' },
+    { key: 'largeTextMode', label: 'Larger text', help: 'Present larger interface text for this examinee.' },
     { key: 'screenReaderAllowed', label: 'Assistive reader allowed', help: 'Permit approved screen-reader use during the exam.' }
   ],
   integrity: [
-    { key: 'faceVerificationExempt', label: 'Skip face verification', help: 'Do not require face comparison checks for this candidate.' },
+    { key: 'faceVerificationExempt', label: 'Skip face verification', help: 'Do not require face comparison checks for this examinee.' },
     { key: 'microphoneExempt', label: 'Skip microphone check', help: 'Allow entry and participation without microphone access.' },
     { key: 'screenShareExempt', label: 'Skip screen sharing', help: 'Allow entry without sharing the screen when policy permits.' },
-    { key: 'fullscreenExempt', label: 'Skip full-screen lock', help: 'Do not require this candidate to stay in full screen.' }
+    { key: 'fullscreenExempt', label: 'Skip full-screen lock', help: 'Do not require this examinee to stay in full screen.' }
   ]
 };
 
@@ -119,7 +119,7 @@ const getModerationStatusMeta = (status) => {
     case 'WARNED':
       return { label: 'Warning sent', tone: 'warning', summary: 'The candidate has been warned during this session.' };
     case 'FORCE_SUBMITTED':
-      return { label: 'Force submitted', tone: 'critical', summary: 'The examiner ended this candidate session.' };
+      return { label: 'Force submitted', tone: 'critical', summary: 'The examiner ended this examinee session.' };
     case 'DISQUALIFIED':
       return { label: 'Disqualified', tone: 'critical', summary: 'The result is marked as disqualified pending reporting and export.' };
     case 'REOPENED':
@@ -214,7 +214,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
   const supportReasonInputRef = useRef(null);
 
   const candidateId = candidate && candidate._id ? String(candidate._id) : '';
-  const candidateName = candidate && candidate.name ? candidate.name : 'Candidate';
+  const candidateName = candidate && candidate.name ? candidate.name : 'Examinee';
 
   const hydrateSupportForm = (resolved) => {
     const profile = resolved && resolved.accommodationProfile ? resolved.accommodationProfile : null;
@@ -282,7 +282,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
         minutes: ACTION_OPTIONS_BY_VALUE[supportActionValues.includes(prev.actionType) ? prev.actionType : fallbackAction]?.defaultMinutes ?? prev.minutes
       }));
     } catch (error) {
-      message.error((error && error.message) || 'Unable to load candidate support data.');
+      message.error((error && error.message) || 'Unable to load examinee support data.');
       setSupportData(null);
       setModerationData(null);
       setSupportForm(DEFAULT_SUPPORT_FORM);
@@ -473,7 +473,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
       open={open}
       onClose={onClose}
       width={980}
-      title="Candidate support and review"
+      title="Examinee support and review"
       subtitle={`${candidateName}${candidate && candidate.emailid ? `  |  ${candidate.emailid}` : ''}`}
     >
       <div className="candidate-support-shell">
@@ -516,7 +516,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
         </div>
 
         {loading ? (
-          <div className="candidate-support-loading">Loading candidate details...</div>
+          <div className="candidate-support-loading">Loading examinee details...</div>
         ) : activeTab === SUPPORT_TAB ? (
           <div className="candidate-support-panel">
             <section className="candidate-support-card">
@@ -524,7 +524,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                 <SlidersHorizontal size={16} strokeWidth={2.2} />
                 <div>
                   <h4>Support plan reason</h4>
-                  <p>State why this candidate needs these adjustments. This is required and becomes part of the audit trail.</p>
+                  <p>State why this examinee needs these adjustments. This is required and becomes part of the audit trail.</p>
                 </div>
               </div>
               <div className="candidate-support-form-grid">
@@ -547,7 +547,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                   <Clock3 size={16} strokeWidth={2.2} />
                   <div>
                     <h4>Time and scheduling</h4>
-                    <p>Use this section when a candidate needs more time or a custom exam window.</p>
+                    <p>Use this section when an examinee needs more time or a custom exam window.</p>
                   </div>
                 </div>
                 <div className="candidate-support-form-grid">
@@ -614,7 +614,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                   <Accessibility size={16} strokeWidth={2.2} />
                   <div>
                     <h4>Accessibility options</h4>
-                    <p>Turn on interface adjustments that help the candidate complete the exam.</p>
+                    <p>Turn on interface adjustments that help the examinee complete the exam.</p>
                   </div>
                 </div>
                 <div className="candidate-support-toggle-list">
@@ -639,7 +639,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                 <Shield size={16} strokeWidth={2.2} />
                 <div>
                   <h4>Monitoring exceptions</h4>
-                  <p>Only use these when a candidate has an approved exception to the standard exam checks.</p>
+                  <p>Only use these when an examinee has an approved exception to the standard exam checks.</p>
                 </div>
               </div>
               <div className="candidate-support-toggle-list candidate-support-toggle-list-grid">
@@ -747,11 +747,11 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                 <FileWarning size={16} strokeWidth={2.2} />
                 <div>
                   <h4>Action history</h4>
-                  <p>Review what was applied to this candidate and when it happened.</p>
+                  <p>Review what was applied to this examinee and when it happened.</p>
                 </div>
               </div>
               {renderedHistory.length === 0 ? (
-                <div className="candidate-support-empty">No examiner actions have been recorded for this candidate.</div>
+                <div className="candidate-support-empty">No examiner actions have been recorded for this examinee.</div>
               ) : (
                 <div className="candidate-support-history-list">
                   {renderedHistory.map((item) => (
@@ -762,7 +762,7 @@ export default function CandidateSupportModal({ open, candidate, testId, onClose
                           <span>{formatDateTime(item.createdAt)}</span>
                         </div>
                         <div className={`candidate-support-status ${item.visibleToCandidate ? 'safe' : 'idle'}`}>
-                          {item.visibleToCandidate ? 'Visible to candidate' : 'Internal note'}
+                          {item.visibleToCandidate ? 'Visible to examinee' : 'Internal note'}
                         </div>
                       </div>
                       <p>{item.reason}</p>

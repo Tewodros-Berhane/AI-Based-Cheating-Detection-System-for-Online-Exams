@@ -60,7 +60,7 @@ export const fetchSubjectWiseQuestion = (d) => dispatch =>{
             })
         }
     }).catch((error)=>{
-        Alert('error','Error!','Server Error');
+        Alert('error','Error!','Something went wrong. Please try again.');
         dispatch({
             type : 'FETCH_QUESTIONS_BASED_ON_SUBJECT',
             payload:[]

@@ -54,7 +54,7 @@ export const ChangeQuestionTableData = (d)=> dispatch =>{
             })
         }
     }).catch((error)=>{
-        Alert('error','Error!','Server Error');
+        Alert('error','Error!','Something went wrong. Please try again.');
         dispatch({
             type : 'CHANGE_QUESTION_TABLE_LOADING_STATUS',
             payload1 : false,
@@ -131,7 +131,7 @@ export const ChangeTestTableData = ()=> dispatch =>{
     }
     }).catch((error)=>{
         console.log(error);
-        Alert('error','Error!','Server Error');
+        Alert('error','Error!','Something went wrong. Please try again.');
         dispatch({
             type : 'CHANGE_TEST_TABLE_LOADING_STATUS',
             payload1 : false,

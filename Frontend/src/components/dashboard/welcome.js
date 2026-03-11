@@ -141,9 +141,9 @@ function Welcome({ user }) {
     return [
       { title: 'Total Exams', value: stats.myExamCount || 0, suffix: 'managed', kind: 'primary' },
       { title: 'Live Sessions', value: stats.examsLive || 0, suffix: 'active now', kind: 'warning' },
-      { title: 'Candidates', value: stats.myTraineesCount || 0, suffix: 'registered', kind: 'success' },
+      { title: 'Examinees', value: stats.myTraineesCount || 0, suffix: 'registered', kind: 'success' },
       { title: 'Review Queue', value: stats.examsNeedingReview || 0, suffix: 'exams need attention', kind: 'danger' },
-      { title: 'Avg Reliability', value: stats.averageReliability ?? 0, suffix: `${stats.psychometricCoverage || 0} exams analyzed`, precision: stats.averageReliability === null ? 0 : 2, kind: 'neutral', display: stats.averageReliability === null ? '--' : undefined },
+      { title: 'Consistency', value: stats.averageReliability ?? 0, suffix: `${stats.psychometricCoverage || 0} exams analyzed`, precision: stats.averageReliability === null ? 0 : 2, kind: 'neutral', display: stats.averageReliability === null ? '--' : undefined },
       { title: 'Average Rating', value: stats.averageRating || 0, suffix: `${stats.feedbackCount || 0} ratings`, precision: 2, kind: 'neutral' }
     ];
   }, [dashboard]);
@@ -363,7 +363,7 @@ function Welcome({ user }) {
         <Card className="welcome-hero-card">
           <h2 className="dashboard-title">Exam Operations Overview</h2>
           <p className="dashboard-subtitle">
-            Monitor exam volume, candidate activity, and platform updates from one place.
+            Monitor exam volume, examinee activity, and platform updates from one place.
           </p>
         </Card>
         {renderStats(adminStats)}
@@ -402,9 +402,9 @@ function Welcome({ user }) {
       <Card className="welcome-hero-card trainer-hero-card">
         <div className="trainer-hero-content">
           <div>
-            <h2 className="dashboard-title">Instructor Analytics Hub</h2>
+            <h2 className="dashboard-title">Examiner Analytics Hub</h2>
             <p className="dashboard-subtitle">
-              Track enrollment flow, session readiness, assessment quality, and learner feedback in a single control view.
+              Track enrollment flow, session readiness, exam quality, and examinee feedback in a single control view.
             </p>
           </div>
           <div className="trainer-hero-chips">
@@ -457,14 +457,14 @@ function Welcome({ user }) {
         <Col xs={24} xl={14}>
           <Card className="trainer-analytics-card">
             <div className="trainer-card-header">
-              <h3>Assessment Quality Trend</h3>
+              <h3>Exam Quality Trend</h3>
               <p>Cross-exam comparison of cohort score average and item correctness.</p>
             </div>
             <div className="trainer-chart-wrap trainer-chart-line">
               {psychometricAnalytics.difficultyTrend.labels.length ? (
                 <Line data={psychometricTrendData} options={trendOptions} />
               ) : (
-                <Empty description="No completed psychometric cohorts yet" />
+                <Empty description="Not enough completed exam data yet." />
               )}
             </div>
           </Card>
@@ -503,7 +503,7 @@ function Welcome({ user }) {
             <div className="trainer-insight-note">
               Focus next: {(dashboard?.stats?.examsNeedingReview || 0) > 0
                 ? 'Some exams need question review before you reuse them.'
-                : (pipeline.inProgress > 0 ? 'Monitor active sessions and candidate alerts.' : 'Publish results and open the next exam window.')}
+                : (pipeline.inProgress > 0 ? 'Monitor active sessions and examinee alerts.' : 'Publish results and open the next exam window.')}
             </div>
           </Card>
         </Col>
@@ -573,7 +573,7 @@ function Welcome({ user }) {
 
       <Row className="trainer-bottom-row" gutter={[16, 16]}>
         <Col xs={24} xl={14}>
-          <h3 className="section-title">Recent Students</h3>
+          <h3 className="section-title">Recent Examinees</h3>
           {renderDataGrid({
             columns: [
               { title: 'Name', key: 'name', emphasis: true },

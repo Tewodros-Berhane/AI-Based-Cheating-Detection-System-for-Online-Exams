@@ -187,7 +187,7 @@ class Dashboard extends React.Component{
             listquestions: 'Curate and audit question quality',
             listtests: 'Track and review all published exams',
             newtest: 'Configure a new exam from question pools',
-            conducttest: 'Run active sessions and monitor candidates'
+            conducttest: 'Run active sessions and monitor examinees'
         };
         const sectionTitle = sectionTitles[normalizedRouteOption] || 'Workspace';
         const sectionSubtitle = sectionSubtitles[normalizedRouteOption] || 'Manage and review exam workflows';

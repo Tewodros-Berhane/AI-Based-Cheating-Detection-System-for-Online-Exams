@@ -258,7 +258,7 @@ class TraineeRegisterForm extends Component {
                 }).catch((error) => {
                     console.log(error);
                     this.props.form.resetFields();
-                    Alert('error', 'Error!', "Server Error");
+                    Alert('error', 'Error!', "Something went wrong. Please try again.");
                 });
             }
         });
@@ -281,7 +281,7 @@ class TraineeRegisterForm extends Component {
             console.log(error);
             const message = error && error.response && error.response.data && error.response.data.message
                 ? error.response.data.message
-                : 'Server Error';
+                : 'Something went wrong. Please try again.';
             Alert('error', 'Error!', message);
         });
     }
@@ -299,7 +299,7 @@ class TraineeRegisterForm extends Component {
                     <div className="trainee-registration-layout">
                         <aside className="trainee-registration-side">
                             <div className="trainee-registration-side-badge">Exam Shield</div>
-                            <h3>Candidate Onboarding</h3>
+                            <h3>Examinee Registration</h3>
                             <p>Complete the registration form once. Your secure exam link will be delivered by email.</p>
                             <div className="trainee-registration-side-chip">Exam Ref: {examRef}</div>
                             <ul className="trainee-registration-checklist">
@@ -310,7 +310,7 @@ class TraineeRegisterForm extends Component {
                         </aside>
                         <section className="trainee-registration-content">
                             <div className="trainee-registration-header">
-                                <Title level={3}>Exam Candidate Registration</Title>
+                                <Title level={3}>Exam Registration</Title>
                                 <p>Provide your details exactly as they appear in your identity document.</p>
                             </div>
                             <Form onSubmit={this.handleSubmit} hideRequiredMark className="admin-form-shell trainee-register-form-shell">

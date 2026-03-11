@@ -165,7 +165,7 @@ class BasicTestFormO extends Component {
                                 <Switch checkedChildren="Required" unCheckedChildren="Optional" />
                             )}
                             <div className="newtest-inline-hint">
-                                When enabled, candidates must complete a quick device check before entering the exam.
+                                When enabled, examinees must complete a quick device check before entering the exam.
                             </div>
                         </Form.Item>
                         <Form.Item className="newtest-form-actions">

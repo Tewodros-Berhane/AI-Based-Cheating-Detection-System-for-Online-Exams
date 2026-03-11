@@ -25,7 +25,7 @@ export const ChangeTrainerModalState = (d1,d2,d3)=> dispatch =>{
                 return Alert('warning','Warning!',response.data.message);
             }
         }).catch((error)=>{
-            return Alert('error','Error!','Server Error');
+            return Alert('error','Error!','Something went wrong. Please try again.');
         })
     }
     else{
@@ -88,7 +88,7 @@ export const ChangeTrainerTableData = ()=> dispatch =>{
             })
         }
       }).catch((error)=>{
-        Alert('error','Error!','Server Error');
+        Alert('error','Error!','Something went wrong. Please try again.');
         dispatch({
             type : 'CHANGE_TRAINER_TABLE_LOADING_STATUS',
             payload1 : false,
@@ -115,7 +115,7 @@ export const ChangeSubjectModalState = (d1,d2,d3)=> dispatch =>{
                 return Alert('warning','Warning!',response.data.message);
             }
         }).catch((error)=>{
-            return Alert('error','Error!','Server Error');
+            return Alert('error','Error!','Something went wrong. Please try again.');
         })
     }
     else{
@@ -174,7 +174,7 @@ export const ChangeSubjectTableData = (d)=> dispatch =>{
             })
         }
       }).catch((error)=>{
-        Alert('error','Error!','Server Error');
+        Alert('error','Error!','Something went wrong. Please try again.');
         dispatch({
             type : 'CHANGE_SUBJECT_TABLE_LOADING_STATUS',
             payload1 : false,

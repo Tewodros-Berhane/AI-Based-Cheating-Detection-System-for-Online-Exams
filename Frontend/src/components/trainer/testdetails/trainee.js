@@ -40,7 +40,7 @@ export default function Trainee(props) {
     <section className="testdetails-block">
       <div className="testdetails-block-head">
         <h4>Student Performance</h4>
-        <p>Review each candidate outcome and behavior audit trail after the exam is complete.</p>
+        <p>Review each examinee outcome and behavior audit trail after the exam is complete.</p>
       </div>
 
       <div className="admin-data-grid-shell">

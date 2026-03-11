@@ -14,7 +14,7 @@ export default function FeedBacks(props) {
     <section className="testdetails-block">
       <div className="testdetails-block-head">
         <h4>Feedback Stream</h4>
-        <p>Candidate sentiment captured after exam completion.</p>
+        <p>Examinee feedback collected after exam completion.</p>
       </div>
 
       {feedbacks.length === 0 ? (

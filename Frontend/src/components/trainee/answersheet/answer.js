@@ -66,7 +66,7 @@ class Answer extends React.Component {
         if (resultRes.status !== 'fulfilled' || !resultRes.value.data || !resultRes.value.data.success) {
             const message = resultRes.status === 'fulfilled'
                 ? (resultRes.value.data && resultRes.value.data.message) || 'Unable to load results.'
-                : 'Server Error';
+                : 'Something went wrong. Please try again.';
             this.setState({
                 loading: false,
                 loadError: message,
@@ -78,7 +78,7 @@ class Answer extends React.Component {
         if (questionsRes.status !== 'fulfilled' || !questionsRes.value.data || !questionsRes.value.data.success) {
             const message = questionsRes.status === 'fulfilled'
                 ? (questionsRes.value.data && questionsRes.value.data.message) || 'Unable to load question paper.'
-                : 'Server Error';
+                : 'Something went wrong. Please try again.';
             this.setState({
                 loading: false,
                 loadError: message,
@@ -231,7 +231,7 @@ class Answer extends React.Component {
                         column={{ xxl: 1, xl: 1, lg: 1, md: 1, sm: 1, xs: 1 }}
                         className="result-meta"
                     >
-                        <Descriptions.Item label="Candidate">{td.name}</Descriptions.Item>
+                        <Descriptions.Item label="Examinee">{td.name}</Descriptions.Item>
                         <Descriptions.Item label="Email">{td.emailid}</Descriptions.Item>
                         <Descriptions.Item label="Contact">{td.contact}</Descriptions.Item>
                         <Descriptions.Item label="Total Score">{this.state.TotalScore}</Descriptions.Item>
@@ -332,7 +332,7 @@ class SingleQuestionDetails extends React.Component {
                     fetching: false,
                 });
                 console.log(error);
-                Alert('error', 'Error !', 'Server Error');
+                Alert('error', 'Error !', 'Something went wrong. Please try again.');
             });
     };
 

@@ -58,7 +58,7 @@ class ConductTestS extends Component {
       <div className="admin-modern-headline">
         <div className="admin-modern-title-group">
           <h3>Live Exam Operations</h3>
-          <p>Enter an exam id to open session controls, candidate monitoring, and question review.</p>
+          <p>Enter an exam ID to open session controls, examinee monitoring, and question review.</p>
         </div>
         <div className="admin-modern-headline-right">
           <Tag className="admin-modern-chip">Session Access</Tag>

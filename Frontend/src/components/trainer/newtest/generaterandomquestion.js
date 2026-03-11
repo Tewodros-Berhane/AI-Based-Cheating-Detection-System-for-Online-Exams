@@ -193,7 +193,7 @@ class SingleQuestionDetails extends React.Component{
                 fetching:false
             })
             console.log(error)
-            Alert('error','Error !',"Server Error");
+            Alert('error','Error !',"Something went wrong. Please try again.");
         })
     }
     

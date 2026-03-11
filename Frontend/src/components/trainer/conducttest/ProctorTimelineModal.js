@@ -58,12 +58,12 @@ const REVIEW_ACTION_COPY = {
   CONFIRM_EVENT: {
     title: 'Confirm concern',
     actionLabel: 'Confirm concern',
-    helperText: 'Record that this incident needs examiner review and should count against the candidate.'
+    helperText: 'Record that this incident needs examiner review and should count against the examinee.'
   },
   EXCUSE_EVENT: {
     title: 'Excuse alert',
     actionLabel: 'Excuse alert',
-    helperText: 'Record that this incident was reviewed and should not count against the candidate.'
+    helperText: 'Record that this incident was reviewed and should not count against the examinee.'
   }
 };
 
@@ -396,8 +396,8 @@ export default function ProctorTimelineModal({
         title="Proctor Timeline"
         subtitle={
           candidate
-            ? `${candidate.name || 'Candidate'}${candidate.emailid ? `  |  ${candidate.emailid}` : ''}`
-            : 'Candidate monitoring history'
+            ? `${candidate.name || 'Examinee'}${candidate.emailid ? `  |  ${candidate.emailid}` : ''}`
+            : 'Examinee monitoring history'
         }
       >
         <div className="proctor-timeline-shell">

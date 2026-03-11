@@ -97,7 +97,7 @@ class TestDetails extends React.Component {
         }
       })
       .catch(() => {
-        Alert('error', 'Error!', 'Server Error');
+        Alert('error', 'Error!', 'Something went wrong. Please try again.');
       });
   };
 
@@ -117,7 +117,7 @@ class TestDetails extends React.Component {
         }
       })
       .catch(() => {
-        Alert('error', 'Error!', 'Server Error');
+        Alert('error', 'Error!', 'Something went wrong. Please try again.');
       });
   };
 
@@ -138,7 +138,7 @@ class TestDetails extends React.Component {
         }
       })
       .catch(() => {
-        Alert('error', 'Error!', 'Server Error');
+        Alert('error', 'Error!', 'Something went wrong. Please try again.');
       });
   };
 
@@ -267,7 +267,7 @@ class TestDetails extends React.Component {
         }
       })
       .catch(() => {
-        Alert('error', 'Error!', 'Server Error');
+        Alert('error', 'Error!', 'Something went wrong. Please try again.');
       })
       .finally(() => {
         this.setState({ faceRecognitionSaving: false });
@@ -314,7 +314,7 @@ class TestDetails extends React.Component {
         Alert('error', 'Error!', response.data.message);
       }
     }).catch(() => {
-      Alert('error', 'Error!', 'Server Error');
+      Alert('error', 'Error!', 'Something went wrong. Please try again.');
     }).finally(() => {
       this.setState({ integritySaving: false });
     });
@@ -467,7 +467,7 @@ class TestDetails extends React.Component {
               Save Entry Settings
             </Button>
             <span className="conduct-details-hint">
-              Set candidate entry rules before the exam starts.
+              Set examinee entry rules before the exam starts.
             </span>
           </article>
         </div>

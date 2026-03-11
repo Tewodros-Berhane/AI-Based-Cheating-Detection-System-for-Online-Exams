@@ -62,7 +62,7 @@ class AllTests extends Component {
         Alert('warning', 'Warning!', response.data.message);
       })
       .catch(() => {
-        Alert('error', 'Error!', 'Server Error');
+        Alert('error', 'Error!', 'Something went wrong. Please try again.');
       });
   };
 
@@ -261,7 +261,7 @@ class AllTests extends Component {
           onClose={this.closeModal}
           width={1240}
           title="Exam Details"
-          subtitle="Inspect exam metadata, question set, candidate activity, and outcomes."
+          subtitle="Inspect exam metadata, question sets, examinee activity, and outcomes."
         >
           {this.props.trainer.DataActiveTestDetails.testDetailsId ? <TestDetails /> : null}
         </AppModal>

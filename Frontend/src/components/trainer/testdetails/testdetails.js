@@ -113,7 +113,7 @@ class TestDetails extends Component {
                 loading: false
             });
         } catch (error) {
-            Alert('error', 'Error !', 'Server Error.');
+            Alert('error', 'Error !', 'Something went wrong. Please try again..');
             this.setState({ loading: false });
         }
     }
