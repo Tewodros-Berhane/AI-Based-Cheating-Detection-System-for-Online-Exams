@@ -1,111 +1,107 @@
-# Docker Setup Guide (Windows + Docker Desktop)
+# Docker Setup Guide
 
-This guide runs the whole project with a single command using Docker Compose:
+This guide is for running the full platform locally with Docker Desktop and Docker Compose.
 
-- Frontend (React build served by Nginx)
-- Backend API + WebSocket servers
-- AI Server (Python inference + WebRTC offer endpoint)
-- MongoDB
+Services started by the stack:
+- `frontend`: React production build served by Nginx
+- `backend`: API, exam engine, reporting, moderation, and relay services
+- `ai-server`: Python media-analysis service
+- `mongo`: MongoDB database
 
-## 1. Prerequisites
+## Prerequisites
 
-1. Install Docker Desktop for Windows.
-2. Enable virtualization in BIOS (if Docker says virtualization is off).
-3. Enable WSL2 integration in Docker Desktop:
-   - Docker Desktop -> Settings -> Resources -> WSL Integration
-   - Turn on your default distro.
-4. Verify installation:
+1. Install Docker Desktop.
+2. Enable virtualization in BIOS if Docker reports it is disabled.
+3. Enable WSL2 integration in Docker Desktop.
+4. Confirm Docker is available:
 
 ```powershell
 docker --version
 docker compose version
 ```
 
-## 2. Project Files Added for Docker
+## Environment Setup
 
-- [`docker-compose.yml`](c:/Users/tewod/OneDrive/Desktop/AI-Based-Cheating-Detection-System-for-Online-Exams/docker-compose.yml)
-- [`Backend/Dockerfile`](c:/Users/tewod/OneDrive/Desktop/AI-Based-Cheating-Detection-System-for-Online-Exams/Backend/Dockerfile)
-- [`Frontend/Dockerfile`](c:/Users/tewod/OneDrive/Desktop/AI-Based-Cheating-Detection-System-for-Online-Exams/Frontend/Dockerfile)
-- [`Frontend/nginx.conf`](c:/Users/tewod/OneDrive/Desktop/AI-Based-Cheating-Detection-System-for-Online-Exams/Frontend/nginx.conf)
-- [`AI Server/Dockerfile`](c:/Users/tewod/OneDrive/Desktop/AI-Based-Cheating-Detection-System-for-Online-Exams/AI%20Server/Dockerfile)
-- [`AI Server/requirements.txt`](c:/Users/tewod/OneDrive/Desktop/AI-Based-Cheating-Detection-System-for-Online-Exams/AI%20Server/requirements.txt)
-- [`.env.docker.example`](c:/Users/tewod/OneDrive/Desktop/AI-Based-Cheating-Detection-System-for-Online-Exams/.env.docker.example)
-
-## 3. Configure Environment
-
-From project root:
+From the project root:
 
 ```powershell
 Copy-Item .env.docker.example .env.docker
 ```
 
-Edit `.env.docker` and set at minimum:
-
+Review at minimum:
 - `JWT_SECRET`
-- `MAIL_USER` and `MAIL_PASSWORD` (if you need mail sending in flows)
-- Optional TURN settings for production
-- `REACT_APP_API_BASE_URL=http://localhost:3000` (frontend nginx proxies `/api/*` to backend)
+- `MAIL_USER`
+- `MAIL_PASSWORD`
+- `FRONTEND_BASE_URL`
+- `REACT_APP_API_BASE_URL`
 
-## 4. Build and Start Everything
+Important frontend rule:
+- When using the Dockerized frontend, keep `REACT_APP_API_BASE_URL=http://localhost:3000`
+- Nginx proxies frontend requests to the backend container
 
-From project root:
+## Build And Start
 
 ```powershell
 docker compose --env-file .env.docker up --build -d
 ```
 
-First build can take several minutes (AI image installs PyTorch + TensorFlow).
+The first AI build is the slowest because the Python image installs ML dependencies.
 
-## 5. Access the App
+## Access Points
 
 - Frontend: `http://localhost:3000`
-- Backend API health: `http://localhost:5001/api/v1/system/health`
-- MongoDB exposed on host: `localhost:27017`
-- AI offer endpoint: `http://localhost:5020/offer`
-- WS signaling: `ws://localhost:8080`
-- WS results: `ws://localhost:8081`
+- Backend health: `http://localhost:5001/api/v1/system/health`
+- MongoDB: `localhost:27017`
+- AI server: `http://localhost:5020`
+- Signaling relay: `ws://localhost:8080`
+- Result relay: `ws://localhost:8081`
 
-## 6. Useful Operations
+## Default Admin Account
 
-See running containers:
+On backend startup, the app currently auto-creates a default admin account for development use:
 
-```powershell
-docker compose ps
-```
+- Email: `admin@gmail.com`
+- Password: `admin`
 
-Tail logs:
+This is convenient for local setup and unsafe for production. Replace or remove this bootstrap behavior before any real deployment.
 
-```powershell
-docker compose logs -f backend
-docker compose logs -f frontend
-docker compose logs -f ai-server
-docker compose logs -f mongo
-```
+## Common Operations
 
-Stop stack:
+### Show service state
 
 ```powershell
-docker compose down
+docker compose --env-file .env.docker ps
 ```
 
-Stop and remove volumes (data reset):
+### Tail logs
 
 ```powershell
-docker compose down -v
+docker compose --env-file .env.docker logs -f frontend backend ai-server mongo
 ```
 
-Rebuild one service:
+### Stop the stack
 
 ```powershell
-docker compose build backend
-docker compose up -d backend
+docker compose --env-file .env.docker down
 ```
 
-## 7. MongoDB Setup / Inspection
+### Stop and remove volumes
 
-The database is auto-created via `MONGO_DB_NAME` when first written to.
+```powershell
+docker compose --env-file .env.docker down -v
+```
 
-Open Mongo shell inside container:
+### Rebuild only one service
+
+```powershell
+docker compose --env-file .env.docker up -d --build frontend
+docker compose --env-file .env.docker up -d --build backend
+docker compose --env-file .env.docker up -d --build ai-server
+```
+
+## MongoDB Inspection
+
+Open the Mongo shell inside the container:
 
 ```powershell
 docker exec -it exam-shield-mongo mongosh
@@ -117,61 +113,36 @@ Inside `mongosh`:
 show dbs
 use online_exam
 show collections
-db.TraineeModel.find().limit(5)
+db.usermodels.find().limit(5)
 ```
 
-## 8. Create Initial Admin User (Required for Login)
+## Troubleshooting
 
-If this is a fresh database, login will fail until at least one admin/trainer user exists.
-
-Run this once:
-
-```powershell
-docker exec `
-  -e ADMIN_NAME="Admin" `
-  -e ADMIN_EMAIL="admin@example.com" `
-  -e ADMIN_PASSWORD="Admin@12345" `
-  -e ADMIN_CONTACT="251900000001" `
-  exam-shield-backend `
-  npm run seed:admin
-```
-
-Then sign in at `http://localhost:3000` with:
-
-- Email: `admin@example.com`
-- Password: `Admin@12345`
-
-## 9. Troubleshooting
-
-### Port already in use
-If `3000`, `5001`, `5020`, `8080`, `8081`, or `27017` are occupied, change values in `.env.docker` and restart.
-
-### AI image build is slow/heavy
-- This is expected due ML dependencies.
-- Ensure Docker Desktop has enough memory (8-12 GB recommended).
-
-### Frontend still points to old API URLs
-Frontend env values are compiled at image build time. Rebuild frontend after env changes:
+### Frontend still points to an old API base URL
+Frontend runtime values are compiled at build time. Rebuild the frontend after changing frontend env vars:
 
 ```powershell
-docker compose --env-file .env.docker build frontend
-docker compose --env-file .env.docker up -d frontend
+docker compose --env-file .env.docker up -d --build frontend
 ```
 
 ### Backend cannot connect to MongoDB
 Check:
 
 ```powershell
-docker compose logs backend
-docker compose logs mongo
+docker compose --env-file .env.docker logs backend
+docker compose --env-file .env.docker logs mongo
 ```
 
-Ensure `MONGODB_URI` stays as service DNS target (`mongo`) inside compose.
+### Email links are not being delivered
+- Verify `MAIL_USER` and `MAIL_PASSWORD`
+- Rebuild the backend after updating mail settings
+- For Gmail, use an app password instead of the main account password
 
-## 10. Production Notes
+### AI image takes too long to build
+That is expected on the first build. The image installs heavy ML dependencies. If you are only changing frontend or backend code, rebuild just those services instead of the full stack.
 
-- Replace default `JWT_SECRET`.
-- Use external managed MongoDB if required.
-- Set strict `AI_ALLOWED_ORIGINS` and CORS domains.
-- Configure TURN servers for stable WebRTC under NAT/firewalls.
-- Consider reverse proxy + TLS termination in front of containers.
+## Practical Notes
+
+- Docker volumes preserve MongoDB data and generated files across restarts.
+- The frontend no longer depends on the AI image just to build or start, so frontend-only rebuilds are much faster than a full-stack rebuild.
+- For production, place a TLS reverse proxy in front of the stack and move secrets into your deployment secret manager.

@@ -1,61 +1,65 @@
 # Exam Shield AI
 
-Exam Shield AI is a full-stack online examination platform with live proctoring, configurable integrity policies, resilient candidate sessions, moderation tooling, and post-exam psychometric analytics.
+Exam Shield AI is a production-oriented online examination platform with role-based administration, live proctoring, resilience against session interruption, moderation controls, and post-exam quality analytics.
 
-This repository contains four runtime pieces:
-- `Frontend`: React 18 single-page application for admin, examiner, and examinee flows
-- `Backend`: Node.js/Express API, exam engine, reporting, moderation, and websocket relay services
-- `AI Server`: Python-based real-time media analysis service used by the proctoring pipeline
-- `MongoDB`: persistent store for users, exams, submissions, proctoring events, and analytics
+## Platform Summary
 
-## What The System Covers
+The repository ships four runtime pieces:
 
-### Admin workflows
-- Manage courses and examiner accounts
-- Access platform-level dashboards
-- Monitor high-level operational activity
+- `Frontend`: React 18 single-page application for admin, examiner, and examinee workflows
+- `Backend`: Node.js/Express API, exam engine, moderation/reporting logic, and WebSocket relay services
+- `AI Server`: Python media-analysis service used by the proctoring pipeline
+- `MongoDB`: persistent data store for users, exams, answers, results, events, and analytics
 
-### Examiner workflows
-- Create and publish exams
-- Configure integrity mode and entry checks before start
+## Core Capabilities
+
+### Admin
+- Manage examiner accounts
+- Manage course catalog entries
+- Review platform-wide dashboard metrics
+
+### Examiner
+- Build questions and exams
+- Configure security level and entry checks before exam start
+- Toggle face-recognition enforcement before exam start
 - Open and close registration
-- Start and end live exam sessions
-- Review candidates in Live Exam Operations
-- Apply accommodations and moderation actions
-- Generate results and inspect psychometric statistics
+- Run live exam sessions
+- Monitor examinees in real time
+- Apply support settings and moderation actions
+- Generate results and review exam-quality analytics
 
-### Examinee workflows
-- Register through the exam link delivered by email
-- Complete preflight checks before entry when required
-- Take timed exams with auto-save and reconnect recovery
-- Submit feedback after the exam
-- View results when published
+### Examinee
+- Register through an exam-specific link
+- Receive exam access by email
+- Complete pre-entry device checks when required
+- Take exams with auto-save and reconnect recovery
+- View results and submit feedback after completion
 
-## Key Product Capabilities
+## Key Features
 
-- Role-based web application for admin, examiner, and examinee users
-- Exam creation with question bank selection and result generation
-- Integrity modes with configurable preflight checks
-- Optional face-recognition enforcement before exam start
-- Live proctoring event timeline with severity scoring
-- Session resilience with reconnect handling, grace periods, and auto-save
-- Candidate accommodations and examiner moderation actions
-- Psychometric analytics for completed exams
-- Docker-based single-instance deployment
-- Smoke test coverage for core login, registration, exam, and result flows
+- React 18 + Redux web client with separate admin, examiner, and examinee experiences
+- Header-based bearer auth for protected admin/examiner APIs
+- Docker Compose deployment for frontend, backend, AI server, and MongoDB
+- Live proctoring timeline with severity scoring and examiner acknowledgement/review actions
+- Security levels with conditional pre-entry checks
+- Session resilience with heartbeat, reconnect handling, grace windows, and local draft buffering
+- Examinee support settings and examiner moderation controls
+- Result generation with Excel export
+- Exam-quality analytics and review queues for completed exams
+- Docker regression harness and Cypress smoke coverage for critical flows
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A[React Frontend] -->|REST /api| B[Node.js Backend]
-    A -->|WebSocket signaling| C[Relay Server 8080]
-    A -->|WebSocket result relay| D[Relay Server 8081]
-    A -->|Media / analysis requests| E[Python AI Server]
+    A[React Frontend] -->|REST API| B[Node.js Backend]
+    A -->|WS Signaling| C[Relay 8080]
+    A -->|WS Result Relay| D[Relay 8081]
+    A -->|Media Analysis| E[Python AI Server]
     B --> F[(MongoDB)]
+    B --> G[Uploads and Result Files]
     C --> B
     D --> B
-    B --> G[Excel / Result Files]
 ```
 
 ## Tech Stack
@@ -63,68 +67,59 @@ flowchart LR
 | Layer | Technologies |
 | --- | --- |
 | Frontend | React 18, React Router 6, Redux 5, Ant Design 5, lucide-react, Chart.js, Cypress |
-| Backend | Node.js, Express 5, Mongoose 9, Passport JWT, Nodemailer, WebSocket relay, ExcelJS |
-| AI Server | Python 3.10, aiortc, aiohttp, TensorFlow 2.15, PyTorch 2.5, librosa |
+| Backend | Node.js 20, Express 5, Mongoose, Passport JWT, Nodemailer, WebSocket relay, ExcelJS |
+| AI Server | Python 3.10, aiohttp, aiortc, TensorFlow, PyTorch, librosa |
 | Database | MongoDB 7 |
-| Deployment | Docker Compose, Nginx frontend container, persistent Docker volumes |
+| Deployment | Docker Compose, Nginx, Docker volumes |
 
 ## Repository Layout
 
 ```text
 .
-|-- AI Server/               Python analysis service
-|-- Backend/                 API, websocket relays, reporting, moderation, analytics
-|-- Frontend/                React application and Cypress smoke tests
+|-- AI Server/
+|-- Backend/
+|-- Frontend/
 |-- docs/
-|   |-- DOCKER_SETUP.md      Docker Desktop and compose guide
-|   `-- explanation.md       Proctoring severity and acknowledgement logic
-|-- docker-compose.yml       Full local deployment stack
-|-- .env.docker.example      Example environment file for Docker runs
+|   |-- DEPLOYMENT_NOTES.md
+|   |-- DOCKER_SETUP.md
+|   |-- OPERATOR_GUIDE.md
+|   `-- explanation.md
+|-- scripts/
+|   `-- docker-regression.ps1
+|-- docker-compose.yml
+|-- .env.docker.example
 `-- README.md
 ```
 
-## Prerequisites
-
-### Recommended path: Docker
-- Docker Desktop
-- Docker Compose v2
-
-### For local non-Docker development
-- Node.js 20+
-- npm 10+
-- Python 3.10
-- MongoDB 7
-- FFmpeg and audio/video system libraries required by the AI server
-
 ## Quick Start With Docker
 
-### 1. Create the environment file
-Copy the example file and fill in the required values:
+### 1. Prepare the environment file
 
 ```powershell
 Copy-Item .env.docker.example .env.docker
 ```
 
-Required values to review before first run:
+Review these values before first run:
 - `JWT_SECRET`
 - `MAIL_USER`
 - `MAIL_PASSWORD`
 - `FRONTEND_BASE_URL`
 - `REACT_APP_API_BASE_URL`
 
-Important Docker note:
+Important frontend runtime note:
 - When using the bundled Nginx frontend, keep `REACT_APP_API_BASE_URL=http://localhost:3000`
 - The frontend container reverse-proxies `/api`, `/uploads`, and `/result` to the backend
 
-### 2. Build and start the stack
+### 2. Start the stack
 
 ```powershell
 docker compose --env-file .env.docker up --build -d
 ```
 
-### 3. Open the application
+### 3. Open the app
+
 - Frontend: [http://localhost:3000](http://localhost:3000)
-- Backend API health: [http://localhost:5001/api/v1/system/health](http://localhost:5001/api/v1/system/health)
+- Backend health: [http://localhost:5001/api/v1/system/health](http://localhost:5001/api/v1/system/health)
 - AI server: [http://localhost:5020](http://localhost:5020)
 
 ### 4. Stop the stack
@@ -133,15 +128,16 @@ docker compose --env-file .env.docker up --build -d
 docker compose --env-file .env.docker down
 ```
 
-### 5. Persisted data
-Docker volumes used by the stack:
-- `mongo_data`
-- `backend_uploads`
-- `backend_results`
+## Default Admin Bootstrap
 
-For detailed Docker setup, troubleshooting, and MongoDB notes, see [docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md).
+The backend currently calls `createadmin()` on startup. In a fresh database, the default admin account is created automatically with:
 
-## Local Development Without Docker
+- Email: `admin@gmail.com`
+- Password: `admin`
+
+This is development-friendly, not production-safe. Change or remove this behavior before a real deployment.
+
+## Local Development
 
 ### Backend
 
@@ -150,11 +146,6 @@ cd Backend
 npm install
 npm start
 ```
-
-The backend listens on `PORT` and exposes:
-- REST API on `5001` by default
-- signaling relay on `8080`
-- result relay on `8081`
 
 ### Frontend
 
@@ -183,16 +174,13 @@ pip install -r requirements.txt
 python server.py
 ```
 
-### MongoDB
-Run MongoDB locally on the configured port or use Docker only for MongoDB:
+### MongoDB only in Docker
 
 ```powershell
 docker compose --env-file .env.docker up -d mongo
 ```
 
-## Environment Configuration
-
-The project is environment-driven. The Docker example groups settings into four areas:
+## Environment Groups
 
 ### MongoDB
 - `MONGO_DB_NAME`
@@ -206,142 +194,106 @@ The project is environment-driven. The Docker example groups settings into four 
 - `WS_SIGNALING_PORT`
 - `WS_RESULT_PORT`
 - `FRONTEND_BASE_URL`
-- logging, metrics, relay, and failure-alert settings
+- logging, metrics, alerting, and relay variables
 
 ### AI Server
 - `AI_SERVER_PORT`
 - `AI_ALLOWED_ORIGINS`
 
-### Frontend runtime targets
+### Frontend
 - `FRONTEND_PORT`
 - `REACT_APP_API_BASE_URL`
 - `REACT_APP_WS_SIGNALING_URL`
 - `REACT_APP_WS_RESULT_URL`
 - `REACT_APP_AI_SERVER_URL`
-- STUN/TURN variables
+- STUN/TURN configuration
 
-Use [`.env.docker.example`](.env.docker.example) as the source of truth for Docker deployments.
+Use [`.env.docker.example`](.env.docker.example) as the baseline.
 
-## Authentication And Access
+## Proctoring, Moderation, and Analytics
 
-### Admin / examiner login
-- Trainer and admin access is protected through backend-authenticated routes
-- Frontend session state is driven by authenticated API responses
+### Security levels
+Examiners can configure exam entry policy before an exam starts:
+- `Light`
+- `Standard`
+- `Strict`
 
-### Examinee access
-- Examinees enter through exam-specific registration and exam links
-- Registration email delivery depends on valid SMTP credentials in `.env.docker`
-
-### Admin bootstrap
-If you need to seed or update an admin account manually:
-
-```powershell
-cd Backend
-$env:ADMIN_EMAIL='admin@example.com'
-$env:ADMIN_PASSWORD='change-me'
-$env:ADMIN_CONTACT='251900000000'
-npm run seed:admin
-```
-
-## Proctoring And Integrity Features
-
-### Integrity modes
-The examiner can define entry policy before an exam starts. The current platform supports:
-- light entry rules
-- standard entry rules
-- strict entry rules
-
-### Preflight checks
-Depending on exam configuration, candidates may need to verify:
+### Pre-entry checks
+Depending on exam policy, the platform can require:
 - camera
 - microphone
 - screen sharing
-- browser/environment readiness
-- network readiness
-- VPN restrictions when enabled by the exam policy
+- fullscreen
+- browser readiness
+- network checks
+- VPN restrictions
 
 ### Proctoring event model
-The platform records live events such as:
-- AI suspicious and cheating signals
-- no-face / multi-face / face mismatch events
-- tab switches and fullscreen violations
-- connection interruptions and restores
-- examiner acknowledgements and moderation actions
+Live monitoring records events such as:
+- suspicious and cheating AI signals
+- no-face, multi-face, and face-mismatch signals
+- tab and fullscreen violations
+- disconnect/reconnect events
+- examiner review actions
 
-Severity snapshots are computed from these events and shown in Live Exam Operations.
-
-A deeper explanation of scoring, event bands, and acknowledgement behavior is in [docs/explanation.md](docs/explanation.md).
-
-## Session Resilience
-
-The examinee runtime supports:
-- answer auto-save
-- reconnect recovery
-- local draft buffering during interruptions
-- grace-period handling for temporary disconnects
-- server-authoritative end-of-exam behavior
-
-This reduces candidate disruption during refreshes and short network instability.
-
-## Accommodations And Moderation
-
-Examiner-side controls include:
+### Examinee support settings
+Examiners can apply:
 - extra time
-- screen-share, microphone, face-verification, and fullscreen exemptions
-- trainer notes and warnings
-- force submit
-- reopen session
-- disqualification and review outcomes
+- accessibility options
+- monitoring exceptions where policy permits
+- scheduling adjustments
 
-These actions are audit-aware and tied to candidate session history.
+### Moderation controls
+Examiners can:
+- acknowledge incidents
+- confirm or excuse incidents
+- warn examinees
+- force submit sessions
+- reopen sessions
+- disqualify results
 
-## Results And Analytics
-
-### Result generation
-The backend can:
-- score completed exams
-- generate result views
-- export Excel outputs
-- publish post-exam summaries
-
-### Psychometric analytics
-Completed exams expose analytics such as:
+### Exam-quality analytics
+Completed exams expose:
 - score distribution
 - pass rate
 - item difficulty
 - discrimination indicators
-- distractor quality signals
-- flagged-question review queues
+- low-quality question flags
+- review queues for weak questions
 
-These are available in the examiner statistics experience after results exist for a completed exam.
+## Testing And Regression
 
-## Testing
+### Docker regression harness
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\docker-regression.ps1
+```
+
+This validates:
+- admin login and dashboard
+- examiner login and dashboard
+- question and exam creation
+- registration and resend email
+- pre-entry checks by security level
+- live exam start/end
+- result generation
+- exam-quality analytics endpoints
 
 ### Frontend smoke tests
-The frontend includes Cypress smoke coverage for:
-- login
-- trainee registration
-- exam start / end
-- result-generation flow
-
-Run smoke tests with:
 
 ```powershell
 cd Frontend
 npm run smoke
 ```
 
-### Frontend unit/test runner
+### Frontend test runner
 
 ```powershell
 cd Frontend
 npm test
 ```
 
-### Backend
-There is no comprehensive automated backend test suite checked in yet. Current validation is primarily smoke-flow and runtime verification.
-
-## Common Operational Commands
+## Common Docker Commands
 
 ### Rebuild frontend only
 
@@ -361,7 +313,7 @@ docker compose --env-file .env.docker up -d --build backend
 docker compose --env-file .env.docker logs -f frontend backend ai-server mongo
 ```
 
-### Check running containers
+### Check service state
 
 ```powershell
 docker compose --env-file .env.docker ps
@@ -369,29 +321,33 @@ docker compose --env-file .env.docker ps
 
 ## Troubleshooting
 
-### Frontend loads but login or API actions do not work
+### Frontend loads but API actions fail
 - Confirm `REACT_APP_API_BASE_URL` matches the deployment mode
 - In Docker mode, it should normally be `http://localhost:3000`
-- Check frontend and backend container logs together
+- Review frontend and backend logs together
 
-### Emails are not being sent
+### Email delivery fails
 - Verify `MAIL_USER` and `MAIL_PASSWORD`
-- Use a valid Gmail app password if Gmail SMTP is configured
-- Rebuild the backend after changing mail environment variables
+- Use a valid app password if Gmail SMTP is configured
+- Rebuild the backend after mail environment changes
 
-### Statistics tab returns no data
-- Confirm the exam is completed and has result data
-- Confirm the backend is running with the latest psychometric routes
+### Live preview or real-time monitoring is unstable
+- Confirm WebSocket ports are available
+- Confirm STUN/TURN settings if testing across restrictive networks
+- Check browser permissions for camera, microphone, and screen sharing
 
-### Face recognition build warnings
-The current frontend build still emits warnings from the `face-api.js` dependency source maps. They do not currently block the production build, but they should be cleaned in a future maintenance pass.
+### Exam-quality tabs show little or no data
+- Ensure the exam is completed
+- Ensure results were generated
+- Expect limited analytics for very small cohorts
 
 ## Documentation
 
-Additional documentation kept in the repository:
-- [docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md)
-- [docs/explanation.md](docs/explanation.md)
+- [Docker setup guide](docs/DOCKER_SETUP.md)
+- [Deployment notes](docs/DEPLOYMENT_NOTES.md)
+- [Operator guide for admin and examiner users](docs/OPERATOR_GUIDE.md)
+- [Live alert scoring and acknowledgement behavior](docs/explanation.md)
 
 ## License
 
-This repository is distributed under the terms described in [LICENSE](LICENSE).
+See [LICENSE](LICENSE).

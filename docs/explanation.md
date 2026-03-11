@@ -4,7 +4,7 @@ This document explains how live alerts are currently calculated in Live Exam Ope
 
 ## 1. What drives the live alert state
 
-The alert shown for a candidate is not based on a single AI message. It is based on a combined monitoring timeline that can include:
+The alert shown for a examinee is not based on a single AI message. It is based on a combined monitoring timeline that can include:
 
 - AI events
   - `AI_SUSPICIOUS`
@@ -21,11 +21,11 @@ The alert shown for a candidate is not based on a single AI message. It is based
 - Exam lifecycle events
   - `EXAM_STARTED`
   - `EXAM_FINISHED`
-- Trainer actions
+- Examiner actions
   - `TRAINER_ACK`
   - `TRAINER_ESCALATE`
 
-These events are stored in the backend event timeline and then summarized into a rolling risk snapshot for each candidate session.
+These events are stored in the backend event timeline and then summarized into a rolling risk snapshot for each examinee session.
 
 ## 2. Event score calculation
 
@@ -116,11 +116,11 @@ Some combinations or repetitions override normal scoring:
 - `MULTI_FACE` 2 times in 3 minutes => `CHEATING`
 - `FACE_MISMATCH` plus `AUDIO_MULTIPLE_VOICES` within 60 seconds => `CHEATING`
 
-So even if individual events are moderate, repeated or combined events can push the candidate to a much higher severity.
+So even if individual events are moderate, repeated or combined events can push the examinee to a much higher severity.
 
 ## 5. Rolling risk score
 
-The candidate row in Live Exam Operations does not show only the latest event. It shows a rolling risk score.
+The examinee row in Live Exam Operations does not show only the latest event. It shows a rolling risk score.
 
 The rolling risk logic:
 
@@ -141,11 +141,11 @@ In simple terms:
 
 If no suspicious event happened for more than `5 minutes`, the rolling score is reduced by `10`.
 
-This is a decay rule so a candidate does not stay permanently at a high level after a brief issue that did not continue.
+This is a decay rule so a examinee does not stay permanently at a high level after a brief issue that did not continue.
 
 ## 6. Snapshot used by the UI
 
-For each candidate session, the backend stores a risk snapshot containing:
+For each examinee session, the backend stores a risk snapshot containing:
 
 - `rollingRiskScore`
 - `severityLevel`
@@ -157,16 +157,16 @@ For each candidate session, the backend stores a risk snapshot containing:
 - `criticalCount`
 - `isFinished`
 
-The trainer dashboard reads that snapshot and shows:
+The examiner dashboard reads that snapshot and shows:
 
 - the current alert badge
 - the numeric score
 - the latest message
 - the latest event time
 
-## 7. What the trainer badge means
+## 7. What the examiner badge means
 
-The badge shown in the candidate table is based on the snapshot if one exists.
+The badge shown in the examinee table is based on the snapshot if one exists.
 
 If no snapshot exists yet, the UI falls back to exam progress:
 
@@ -203,7 +203,7 @@ Important detail:
 - `FACE_MISMATCH`
 - `AUDIO_MULTIPLE_VOICES`
 
-If both happen within 60 seconds, the candidate is forced to `CHEATING`.
+If both happen within 60 seconds, the examinee is forced to `CHEATING`.
 
 ## 9. What the Acknowledge button does
 
@@ -217,9 +217,9 @@ When an examiner clicks `Acknowledge` on a timeline item, the backend does three
 2. It writes a new timeline event:
    - event type: `TRAINER_ACK`
    - source: `TRAINER`
-   - message: `Trainer acknowledged this event.` or the provided note
+   - message: `Examiner acknowledged this event.` or the provided note
 
-3. It refreshes the candidate snapshot.
+3. It refreshes the examinee snapshot.
 
 ### Important behavior of acknowledge
 
@@ -227,7 +227,7 @@ Acknowledging an event does **not** mean:
 
 - the alert is cleared
 - the severity score is reduced
-- the candidate is considered safe again
+- the examinee is considered safe again
 
 It only means:
 
@@ -244,7 +244,7 @@ This is intentional. Acknowledge is a review action, not a forgiveness action.
 - they are stored for audit/history
 - they do not lower the risk level by themselves
 
-So if the candidate is still at `High Risk` or `Cheating`, acknowledging the event will not automatically drop the badge.
+So if the examinee is still at `High Risk` or `Cheating`, acknowledging the event will not automatically drop the badge.
 
 ## 10. What happens after acknowledgement in the UI
 
@@ -252,8 +252,8 @@ After acknowledgement:
 
 - the event becomes marked as acknowledged
 - the examiner can see that it was already reviewed
-- the timeline includes a trainer acknowledgement entry
-- the candidate row still reflects the actual rolling risk score
+- the timeline includes a examiner acknowledgement entry
+- the examinee row still reflects the actual rolling risk score
 
 This prevents the examiner from accidentally hiding a real risk just by clicking a button.
 
@@ -263,6 +263,6 @@ This prevents the examiner from accidentally hiding a real risk just by clicking
 - Every event gets a numeric score
 - Scores are mapped into severity bands
 - Repetition and event combinations can force escalation
-- The trainer sees a rolling risk snapshot, not just the latest raw signal
+- The examiner sees a rolling risk snapshot, not just the latest raw signal
 - `Acknowledge` records examiner review, but does not clear the alert or lower the score
 
